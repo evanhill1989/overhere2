@@ -1,103 +1,259 @@
-import Image from "next/image";
+"use client";
+
+import { useState, useTransition } from "react"; // Import useEffect
+import { createUser } from "@/db/queries/insert";
+import {
+  RegisterLink,
+  LoginLink,
+  LogoutLink,
+} from "@kinde-oss/kinde-auth-nextjs/components";
+import { submitCheckIn } from "@/app/_actions/checkinActions";
+
+// Define a type for the place data structure
+interface Place {
+  id: string;
+  name: string;
+  address: string;
+  lat?: number;
+  lng?: number;
+}
 
 export default function Home() {
-  return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm/6 text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-[family-name:var(--font-geist-mono)] font-semibold">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+  // Geolocation state
+  const [latitude, setLatitude] = useState<number | null>(null);
+  const [longitude, setLongitude] = useState<number | null>(null);
+  const [locationError, setLocationError] = useState<string | null>(null);
+  const [isLoadingLocation, setIsLoadingLocation] = useState<boolean>(false);
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+  // Nearby Places state
+  const [nearbyPlaces, setNearbyPlaces] = useState<Place[]>([]);
+  const [isLoadingPlaces, setIsLoadingPlaces] = useState<boolean>(false);
+  const [placesError, setPlacesError] = useState<string | null>(null);
+
+  // Selected Place state (for check-in)
+  const [selectedPlace, setSelectedPlace] = useState<Place | null>(null);
+
+  // --- State for Server Action ---
+  const [isPending, startTransition] = useTransition(); // For loading state during action
+  const [checkinResult, setCheckinResult] = useState<{
+    success: boolean;
+    message: string;
+  } | null>(null); // To show success/error message
+
+  // --- Fetch Nearby Places Function ---
+  const fetchNearbyPlaces = async (lat: number, lon: number) => {
+    setIsLoadingPlaces(true);
+    setPlacesError(null);
+    setNearbyPlaces([]); // Clear previous places
+    setSelectedPlace(null); // Clear selected place
+
+    try {
+      const response = await fetch("/api/places/nearby", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ latitude: lat, longitude: lon }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || `HTTP error! status: ${response.status}`);
+      }
+
+      if (data.places && data.places.length > 0) {
+        setNearbyPlaces(data.places);
+      } else {
+        setPlacesError("No nearby places found."); // Or just show nothing
+      }
+    } catch (error: any) {
+      console.error("Failed to fetch nearby places:", error);
+      setPlacesError(`Failed to fetch places: ${error.message}`);
+    } finally {
+      setIsLoadingPlaces(false);
+    }
+  };
+
+  // --- Get Location Handler ---
+  const handleGetLocation = () => {
+    // Reset states
+    setLocationError(null);
+    setLatitude(null);
+    setLongitude(null);
+    setNearbyPlaces([]);
+    setPlacesError(null);
+    setSelectedPlace(null);
+    setIsLoadingLocation(true);
+
+    if (!navigator.geolocation) {
+      setLocationError("Geolocation is not supported by your browser.");
+      setIsLoadingLocation(false);
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const lat = position.coords.latitude;
+        const lon = position.coords.longitude;
+        setLatitude(lat);
+        setLongitude(lon);
+        setIsLoadingLocation(false);
+        console.log("Location obtained:", position.coords);
+
+        fetchNearbyPlaces(lat, lon);
+      },
+      (error) => {
+        switch (error.code) {
+          case error.PERMISSION_DENIED:
+            setLocationError("User denied the request for Geolocation.");
+            break;
+          case error.POSITION_UNAVAILABLE:
+            setLocationError("Location information is unavailable.");
+            break;
+          case error.TIMEOUT:
+            setLocationError("The request to get user location timed out.");
+            break;
+          default:
+            setLocationError(
+              "An unknown error occurred while getting location."
+            );
+            break;
+        }
+        console.error("Geolocation Error:", error);
+        setIsLoadingLocation(false);
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+    );
+  };
+
+  const handleSelectPlace = (place: Place) => {
+    setSelectedPlace(place);
+    console.log("Selected place:", place);
+  };
+
+  // --- Handle Actual Check-in using Server Action ---
+  const handleCheckIn = async () => {
+    if (!selectedPlace) {
+      alert("Please select a place first!");
+      return;
+    }
+    setCheckinResult(null); // Clear previous results
+
+    // Wrap the Server Action call in startTransition
+    startTransition(async () => {
+      const result = await submitCheckIn(selectedPlace); // Call the server action
+      setCheckinResult(result); // Store the result message
+
+      if (result.success) {
+        console.log("Check-in successful via Server Action:", result.message);
+        // Optionally clear selection or give other feedback
+        // setSelectedPlace(null);
+      } else {
+        console.error("Check-in failed via Server Action:", result.message);
+      }
+    });
+  };
+
+  const handleAddUser = async () => {
+    /* ... as before ... */
+  };
+
+  return (
+    <div
+      style={{
+        padding: "20px",
+        display: "flex",
+        flexDirection: "column",
+        gap: "15px",
+      }}
+    >
+      {/* ... (Title, Auth Links, Location Button, Location Info) ... */}
+      <h1>Homepage - Check In</h1>
+      <div>
+        <LoginLink style={{ marginRight: "10px" }}>Sign in</LoginLink>
+        <LogoutLink>Log Out</LogoutLink>
+      </div>
+      <hr />
+      <button onClick={handleGetLocation} disabled={isLoadingLocation}>
+        {isLoadingLocation ? "Getting Location..." : "Find Nearby Places"}
+      </button>
+      {/* ... Location error/info display ... */}
+      <hr />
+
+      {/* --- Nearby Places Section (as before) --- */}
+      {isLoadingPlaces && <p>Loading nearby places...</p>}
+      {placesError && (
+        <p style={{ color: "orange" }}>Places Error: {placesError}</p>
+      )}
+      {nearbyPlaces.length > 0 && (
+        <div>
+          <h3>Select a Place to Check In:</h3>
+          <ul style={{ listStyle: "none", padding: 0 }}>
+            {nearbyPlaces.map((place) => (
+              <li
+                key={place.id}
+                style={{
+                  /* ... styling ... */ border:
+                    selectedPlace?.id === place.id
+                      ? "2px solid blue"
+                      : "1px solid #ccc" /* ... */,
+                }}
+              >
+                <button
+                  onClick={() => handleSelectPlace(place)}
+                  style={
+                    {
+                      /* ... styling ... */
+                    }
+                  }
+                >
+                  <strong>{place.name}</strong>
+                  <br />
+                  <small>{place.address}</small>
+                </button>
+              </li>
+            ))}
+          </ul>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+      )}
+
+      {/* --- Check-in Action --- */}
+      {selectedPlace && (
+        <div>
+          <hr />
+          <p>
+            Selected: <strong>{selectedPlace.name}</strong>
+          </p>
+          <button
+            onClick={handleCheckIn}
+            disabled={isPending} // Disable button while action is running
+            style={{
+              padding: "10px",
+              background: isPending ? "grey" : "green",
+              color: "white",
+              border: "none",
+              borderRadius: "4px",
+              cursor: isPending ? "wait" : "pointer",
+            }}
+          >
+            {isPending
+              ? "Checking In..."
+              : `Confirm Check In at ${selectedPlace.name}`}
+          </button>
+          {/* Display result from Server Action */}
+          {checkinResult && (
+            <p
+              style={{
+                color: checkinResult.success ? "green" : "red",
+                marginTop: "10px",
+              }}
+            >
+              {checkinResult.message}
+            </p>
+          )}
+        </div>
+      )}
     </div>
   );
 }
