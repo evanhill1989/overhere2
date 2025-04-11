@@ -22,7 +22,8 @@ interface ActionResult {
 
 export async function submitCheckIn(place: PlaceData): Promise<ActionResult> {
   const { getUser, isAuthenticated } = getKindeServerSession();
-
+  console.log("Submitting check-in...");
+  console.log("Place data:", place);
   if (!(await isAuthenticated())) {
     return { success: false, message: "User not authenticated." };
   }

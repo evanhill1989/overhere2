@@ -1,15 +1,15 @@
+// src/app/page.tsx (or your main page file)
 "use client";
 
-import { useState, useTransition } from "react"; // Import useEffect
-import { createUser } from "@/db/queries/insert";
+import { useState, useTransition } from "react";
 import {
-  RegisterLink,
+  RegisterLink, // Assuming RegisterLink is needed, otherwise remove
   LoginLink,
   LogoutLink,
 } from "@kinde-oss/kinde-auth-nextjs/components";
-import { submitCheckIn } from "@/app/_actions/checkinActions";
+import { submitCheckIn } from "@/app/_actions/checkinActions"; // Import the Server Action
 
-// Define a type for the place data structure
+// Define the structure for place data used in this component
 interface Place {
   id: string;
   name: string;
@@ -30,22 +30,23 @@ export default function Home() {
   const [isLoadingPlaces, setIsLoadingPlaces] = useState<boolean>(false);
   const [placesError, setPlacesError] = useState<string | null>(null);
 
-  // Selected Place state (for check-in)
+  // Selected Place state
   const [selectedPlace, setSelectedPlace] = useState<Place | null>(null);
 
-  // --- State for Server Action ---
-  const [isPending, startTransition] = useTransition(); // For loading state during action
+  // Server Action state
+  const [isPendingCheckin, startTransition] = useTransition();
   const [checkinResult, setCheckinResult] = useState<{
     success: boolean;
     message: string;
-  } | null>(null); // To show success/error message
+  } | null>(null);
 
-  // --- Fetch Nearby Places Function ---
+  // Fetches places from your API route
   const fetchNearbyPlaces = async (lat: number, lon: number) => {
     setIsLoadingPlaces(true);
     setPlacesError(null);
-    setNearbyPlaces([]); // Clear previous places
-    setSelectedPlace(null); // Clear selected place
+    setNearbyPlaces([]);
+    setSelectedPlace(null);
+    setCheckinResult(null);
 
     try {
       const response = await fetch("/api/places/nearby", {
@@ -65,7 +66,7 @@ export default function Home() {
       if (data.places && data.places.length > 0) {
         setNearbyPlaces(data.places);
       } else {
-        setPlacesError("No nearby places found."); // Or just show nothing
+        setPlacesError("No nearby places found.");
       }
     } catch (error: any) {
       console.error("Failed to fetch nearby places:", error);
@@ -75,15 +76,15 @@ export default function Home() {
     }
   };
 
-  // --- Get Location Handler ---
+  // Gets user's current location via browser API
   const handleGetLocation = () => {
-    // Reset states
     setLocationError(null);
     setLatitude(null);
     setLongitude(null);
     setNearbyPlaces([]);
     setPlacesError(null);
     setSelectedPlace(null);
+    setCheckinResult(null);
     setIsLoadingLocation(true);
 
     if (!navigator.geolocation) {
@@ -99,9 +100,7 @@ export default function Home() {
         setLatitude(lat);
         setLongitude(lon);
         setIsLoadingLocation(false);
-        console.log("Location obtained:", position.coords);
-
-        fetchNearbyPlaces(lat, lon);
+        fetchNearbyPlaces(lat, lon); // Fetch places after getting location
       },
       (error) => {
         switch (error.code) {
@@ -127,132 +126,148 @@ export default function Home() {
     );
   };
 
+  // Handles selecting a place from the list
   const handleSelectPlace = (place: Place) => {
     setSelectedPlace(place);
-    console.log("Selected place:", place);
+    setCheckinResult(null);
   };
 
-  // --- Handle Actual Check-in using Server Action ---
-  const handleCheckIn = async () => {
-    if (!selectedPlace) {
-      alert("Please select a place first!");
-      return;
-    }
-    setCheckinResult(null); // Clear previous results
+  // Handles submitting the check-in via Server Action
+  const handleCheckIn = () => {
+    if (!selectedPlace) return;
+    setCheckinResult(null);
 
-    // Wrap the Server Action call in startTransition
     startTransition(async () => {
-      const result = await submitCheckIn(selectedPlace); // Call the server action
-      setCheckinResult(result); // Store the result message
-
-      if (result.success) {
-        console.log("Check-in successful via Server Action:", result.message);
-        // Optionally clear selection or give other feedback
-        // setSelectedPlace(null);
-      } else {
-        console.error("Check-in failed via Server Action:", result.message);
-      }
+      const result = await submitCheckIn(selectedPlace);
+      setCheckinResult(result);
+      // Optionally reset selection on success
+      // if (result.success) {
+      //   setSelectedPlace(null);
+      // }
     });
-  };
-
-  const handleAddUser = async () => {
-    /* ... as before ... */
   };
 
   return (
     <div
       style={{
         padding: "20px",
+        fontFamily: "sans-serif",
         display: "flex",
         flexDirection: "column",
         gap: "15px",
+        maxWidth: "600px",
+        margin: "auto",
       }}
     >
-      {/* ... (Title, Auth Links, Location Button, Location Info) ... */}
-      <h1>Homepage - Check In</h1>
-      <div>
-        <LoginLink style={{ marginRight: "10px" }}>Sign in</LoginLink>
-        <LogoutLink>Log Out</LogoutLink>
-      </div>
-      <hr />
-      <button onClick={handleGetLocation} disabled={isLoadingLocation}>
-        {isLoadingLocation ? "Getting Location..." : "Find Nearby Places"}
-      </button>
-      {/* ... Location error/info display ... */}
-      <hr />
+      <header
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          paddingBottom: "10px",
+          borderBottom: "1px solid #eee",
+        }}
+      >
+        <h1>Check In App</h1>
+        <nav style={{ display: "flex", gap: "10px" }}>
+          <LoginLink>Sign in</LoginLink>
+          {/* <RegisterLink>Sign up</RegisterLink> */}
+          <LogoutLink>Log Out</LogoutLink>
+        </nav>
+      </header>
 
-      {/* --- Nearby Places Section (as before) --- */}
-      {isLoadingPlaces && <p>Loading nearby places...</p>}
-      {placesError && (
-        <p style={{ color: "orange" }}>Places Error: {placesError}</p>
-      )}
-      {nearbyPlaces.length > 0 && (
-        <div>
-          <h3>Select a Place to Check In:</h3>
-          <ul style={{ listStyle: "none", padding: 0 }}>
-            {nearbyPlaces.map((place) => (
-              <li
-                key={place.id}
-                style={{
-                  /* ... styling ... */ border:
-                    selectedPlace?.id === place.id
-                      ? "2px solid blue"
-                      : "1px solid #ccc" /* ... */,
-                }}
-              >
-                <button
-                  onClick={() => handleSelectPlace(place)}
-                  style={
-                    {
-                      /* ... styling ... */
-                    }
-                  }
-                >
-                  <strong>{place.name}</strong>
-                  <br />
-                  <small>{place.address}</small>
-                </button>
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
+      <section>
+        <button
+          onClick={handleGetLocation}
+          disabled={isLoadingLocation || isLoadingPlaces}
+          style={{ padding: "10px 15px", cursor: "pointer" }}
+        >
+          {isLoadingLocation
+            ? "Getting Location..."
+            : isLoadingPlaces
+            ? "Finding Places..."
+            : "Find Nearby Places"}
+        </button>
+        {locationError && (
+          <p style={{ color: "red", marginTop: "5px" }}>{locationError}</p>
+        )}
+        {latitude && longitude && !locationError && (
+          <p style={{ color: "green", marginTop: "5px" }}>
+            Location Found: {latitude.toFixed(4)}, {longitude.toFixed(4)}
+          </p>
+        )}
+      </section>
 
-      {/* --- Check-in Action --- */}
+      <section>
+        {isLoadingPlaces && <p>Loading nearby places...</p>}
+        {placesError && <p style={{ color: "orange" }}>{placesError}</p>}
+
+        {nearbyPlaces.length > 0 && (
+          <div>
+            <h3>Select a Place to Check In:</h3>
+            <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
+              {nearbyPlaces.map((place) => (
+                <li key={place.id} style={{ marginBottom: "8px" }}>
+                  <button
+                    onClick={() => handleSelectPlace(place)}
+                    style={{
+                      width: "100%",
+                      textAlign: "left",
+                      background:
+                        selectedPlace?.id === place.id ? "#e0f7fa" : "#f9f9f9",
+                      border:
+                        selectedPlace?.id === place.id
+                          ? "2px solid #007bff"
+                          : "1px solid #ddd",
+                      padding: "10px",
+                      borderRadius: "4px",
+                      cursor: "pointer",
+                    }}
+                  >
+                    <strong>{place.name}</strong>
+                    <br />
+                    <small style={{ color: "#555" }}>{place.address}</small>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </section>
+
       {selectedPlace && (
-        <div>
-          <hr />
-          <p>
-            Selected: <strong>{selectedPlace.name}</strong>
+        <section style={{ borderTop: "1px solid #eee", paddingTop: "15px" }}>
+          <p style={{ margin: "0 0 10px 0" }}>
+            Selected:{" "}
+            <strong style={{ fontSize: "1.1em" }}>{selectedPlace.name}</strong>
           </p>
           <button
             onClick={handleCheckIn}
-            disabled={isPending} // Disable button while action is running
+            disabled={isPendingCheckin}
             style={{
-              padding: "10px",
-              background: isPending ? "grey" : "green",
+              padding: "10px 15px",
+              background: isPendingCheckin ? "grey" : "#28a745",
               color: "white",
               border: "none",
               borderRadius: "4px",
-              cursor: isPending ? "wait" : "pointer",
+              cursor: isPendingCheckin ? "wait" : "pointer",
+              fontSize: "1em",
             }}
           >
-            {isPending
-              ? "Checking In..."
-              : `Confirm Check In at ${selectedPlace.name}`}
+            {isPendingCheckin ? "Checking In..." : `Confirm Check In`}
           </button>
-          {/* Display result from Server Action */}
           {checkinResult && (
             <p
               style={{
                 color: checkinResult.success ? "green" : "red",
                 marginTop: "10px",
+                fontWeight: "bold",
               }}
             >
               {checkinResult.message}
             </p>
           )}
-        </div>
+        </section>
       )}
     </div>
   );
