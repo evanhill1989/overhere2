@@ -6,24 +6,24 @@ import { checkinsTable } from "@/db/schema";
 import { getKindeServerSession } from "@kinde-oss/kinde-auth-nextjs/server";
 import { revalidatePath } from "next/cache";
 
-interface PlaceData {
+type PlaceData = {
   id: string;
   name: string;
   address: string;
   lat?: number;
   lng?: number;
-}
+};
 
-interface ActionResult {
+type ActionResult = {
   success: boolean;
   message: string;
   checkinId?: number;
-}
+};
 
-export async function submitCheckIn(place: PlaceData): Promise<ActionResult> {
+export async function submitCheckIn(formData: FormData): Promise<ActionResult> {
   const { getUser, isAuthenticated } = getKindeServerSession();
   console.log("Submitting check-in...");
-  console.log("Place data:", place);
+  console.log("Place data:", formData);
   if (!(await isAuthenticated())) {
     return { success: false, message: "User not authenticated." };
   }
