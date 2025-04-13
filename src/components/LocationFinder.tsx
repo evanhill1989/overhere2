@@ -5,7 +5,7 @@ type LocationFinderProps = {
   error: string | null;
   isLoading: boolean;
   onRequestLocation: () => void;
-  isPlacesLoading: boolean; // To disable button while places are loading too
+  isPlacesLoading: boolean;
 };
 
 export function LocationFinder({

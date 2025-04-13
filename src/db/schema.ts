@@ -46,3 +46,19 @@ export const checkinsTable = pgTable(
 
 export type InsertCheckin = typeof checkinsTable.$inferInsert;
 export type SelectCheckin = typeof checkinsTable.$inferSelect;
+
+export const placesTable = pgTable("places", {
+  // Using Google Place ID as the primary key
+  id: varchar("id", { length: 255 }).primaryKey(), // Google Place ID
+  name: varchar("name", { length: 255 }).notNull(),
+  address: varchar("address", { length: 511 }).notNull(), // Use formatted_address from Google
+  latitude: doublePrecision("latitude"), // Can be null if Google doesn't provide
+  longitude: doublePrecision("longitude"), // Can be null if Google doesn't provide
+  // Record when we last fetched this from Google to check for staleness
+  lastFetchedAt: timestamp("last_fetched_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+
+export type InsertPlace = typeof placesTable.$inferInsert;
+export type SelectPlace = typeof placesTable.$inferSelect; // Use this type for fetched/cached data
