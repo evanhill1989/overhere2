@@ -1,12 +1,14 @@
 // app/places/[placeId]/page.tsx
 
 import { db } from "@/index"; // Adjust import path for your db instance
-import { placesTable } from "@/db/schema"; // Adjust import path for your schema
-import { eq } from "drizzle-orm";
+import { placesTable, checkinsTable, type SelectCheckin } from "@/db/schema"; // Adjust import path for your schema
+import { eq, and, gt, ne } from "drizzle-orm";
 import { notFound } from "next/navigation"; // Import for handling 404
+import { getKindeServerSession } from "@kinde-oss/kinde-auth-nextjs/server";
+import InteractiveCheckinList from "./_components/InteractiveCheckinList";
 
-// Define the structure of the props passed to the page component
-// 'params' contains the dynamic route segments
+const CURRENT_WINDOW_MS = 2 * 60 * 60 * 1000;
+
 type PlaceDetailPageProps = {
   params: Promise<{
     placeId: string; // This must match the folder name '[placeId]'
@@ -19,7 +21,7 @@ export default async function PlaceDetailPage(props: PlaceDetailPageProps) {
 
   let placeDetails;
   try {
-    placeDetails = await db.query.placesTable?.findFirst({
+    placeDetails = await db.query.placesTable.findFirst({
       where: eq(placesTable.id, placeId),
     });
   } catch (error) {
@@ -30,10 +32,42 @@ export default async function PlaceDetailPage(props: PlaceDetailPageProps) {
     notFound();
   }
 
+  // --- Fetch Current User ---
+  const { getUser } = getKindeServerSession();
+  const user = await getUser();
+  const currentUserKindeId = user?.id; // Can be null/undefined if not logged in
+
+  // --- Fetch Recent Check-ins for this Place ---
+  let otherCheckins: SelectCheckin[] = [];
+  const thresholdTime = new Date(Date.now() - CURRENT_WINDOW_MS);
+  try {
+    const recentCheckins = await db
+      .select()
+      .from(checkinsTable)
+      .where(
+        and(
+          eq(checkinsTable.placeId, placeId),
+          gt(checkinsTable.createdAt, thresholdTime),
+          // Only include check-ins *not* by the current user (if logged in)
+          currentUserKindeId
+            ? ne(checkinsTable.userId, currentUserKindeId)
+            : undefined
+        )
+      )
+      .orderBy(checkinsTable.createdAt); // Optional: order by time
+
+    otherCheckins = recentCheckins;
+  } catch (error) {
+    console.error(`DB error fetching checkins for place ${placeId}:`, error);
+    // Decide how to handle - maybe show an error message in UI instead of empty list
+  }
+
   return (
     <div className="p-5 font-sans flex flex-col gap-4 max-w-lg mx-auto">
       <header>
-        <h1 className="text-3xl font-bold mb-1">{placeDetails.name}</h1>
+        <h1 className="text-3xl text-white font-bold mb-1">
+          {placeDetails.name}
+        </h1>
         <address className="text-gray-600 not-italic">
           {placeDetails.address}
         </address>
@@ -52,16 +86,11 @@ export default async function PlaceDetailPage(props: PlaceDetailPageProps) {
           {placeDetails.lastFetchedAt.toLocaleTimeString()}
         </p>
       </section>
-
+      <InteractiveCheckinList otherCheckins={otherCheckins} placeId={placeId} />
       {/* --- Potential Future Sections --- */}
-      {/*
-      <section className="mt-6">
-        <h2 className="text-xl font-semibold mb-2">Who's Here Now?</h2>
-        {/* TODO: Component to display users currently checked into this placeId
-            (This would require fetching check-in data filtered by placeId
-             and potentially only showing recent/active check-ins)
-      </section>
 
+      {/*
+     
       <section className="mt-6">
           {/* TODO: Maybe an embedded map using placeDetails.latitude/longitude
       </section>

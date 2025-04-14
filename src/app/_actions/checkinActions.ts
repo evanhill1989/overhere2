@@ -5,8 +5,8 @@ import { db } from "@/index";
 import {
   checkinsTable,
   placesTable,
-  usersTable, // Assuming usersTable might be needed elsewhere or for relations
   type SelectPlace,
+  usersTable,
 } from "@/db/schema";
 import { getKindeServerSession } from "@kinde-oss/kinde-auth-nextjs/server";
 import { redirect } from "next/navigation";
@@ -130,41 +130,32 @@ export async function submitCheckIn(
   previousState: ActionResult | null,
   formData: FormData
 ): Promise<ActionResult> {
-  // Note: Promise might not resolve with ActionResult if redirect happens
   const { getUser, isAuthenticated } = getKindeServerSession();
-
   const authenticated = await isAuthenticated();
-  if (!authenticated) {
-    return { success: false, message: "User not authenticated." };
-  }
-
   const user = await getUser();
-  if (!user?.id) {
-    // Simplified check
-    return { success: false, message: "Could not retrieve user details." };
+
+  if (!authenticated || !user?.id) {
+    return {
+      success: false,
+      message: "User not authenticated or details missing.",
+    };
   }
   const userKindeId = user.id;
 
   const selectedPlaceId = formData.get("selectedPlaceId") as string | null;
+  // --- Get Topic from Form Data ---
+  const topicPreference = formData.get("topicPreference") as string | null; // Name this field in your form
+
   if (!selectedPlaceId) {
-    return { success: false, message: "No place selected from the form." };
+    return { success: false, message: "No place selected." };
   }
-  console.log(
-    `User ${userKindeId} attempting check-in for place ID: ${selectedPlaceId}`
-  );
 
   const placeDetails = await fetchAndCacheGooglePlaceDetails(selectedPlaceId);
-
   if (!placeDetails) {
-    return {
-      success: false,
-      message: `Could not retrieve details for the selected place. Please try again.`,
-    };
+    return { success: false, message: "Could not retrieve place details." };
   }
-  console.log("Using place details for check-in:", placeDetails);
 
   let checkinId: number | undefined;
-
   try {
     const newCheckin = await db
       .insert(checkinsTable)
@@ -175,33 +166,25 @@ export async function submitCheckIn(
         placeAddress: placeDetails.address,
         latitude: placeDetails.latitude,
         longitude: placeDetails.longitude,
+        status: "available", // Default to available on new check-in
+        topic: topicPreference?.trim() || null, // Save topic or null if empty/missing
       })
       .returning({ id: checkinsTable.id });
 
     if (!newCheckin?.[0]?.id) {
-      // Simplified check
-      throw new Error("Database insertion failed or did not return ID.");
+      throw new Error("Database insertion failed.");
     }
     checkinId = newCheckin[0].id;
   } catch (error: any) {
-    console.error(
-      `Check-in DB operation failed for user ${userKindeId} at place ${selectedPlaceId}:`,
-      error
-    );
+    console.error(`Check-in DB operation failed:`, error);
     return {
       success: false,
-      message: `Check-in failed: ${
-        error.message || "A database error occurred."
-      }`,
+      message: `Check-in failed: ${error.message || "Database error."}`,
     };
   }
 
-  // --- Success Path ---
   console.log(
-    `User ${userKindeId} successfully checked into ${placeDetails.name} (Check-in ID: ${checkinId})`
+    `User ${userKindeId} checked into ${placeDetails.name} (ID: ${checkinId})`
   );
-
-  redirect(`/places/${placeDetails.id}`); // Redirect on successful check-in
-
-  // Note: A return value here is effectively unreachable due to redirect().
+  redirect(`/places/${placeDetails.id}`);
 }
