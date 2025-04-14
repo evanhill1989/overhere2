@@ -1,4 +1,3 @@
-// src/app/_actions/chatActions.ts
 "use server";
 
 import { db } from "@/index";
@@ -8,12 +7,12 @@ import { getKindeServerSession } from "@kinde-oss/kinde-auth-nextjs/server";
 import { and, eq, or, gt, desc } from "drizzle-orm";
 
 // Consider making this configurable or sharing from elsewhere
-const CHAT_SESSION_WINDOW_MS = 2 * 60 * 60 * 1000; // 2 hours validity for finding existing sessions
+const CHAT_SESSION_WINDOW_MS = 2 * 60 * 60 * 1000;
 
 export async function createOrGetChatSession(
   initiatorCheckinId: number,
   receiverCheckinId: number,
-  placeId: string // Passed from client context
+  placeId: string
 ): Promise<{ sessionId: string | null; error?: string }> {
   const { getUser, isAuthenticated } = getKindeServerSession();
   if (!(await isAuthenticated()))
@@ -30,7 +29,7 @@ export async function createOrGetChatSession(
     const initiatorCheckin = await db.query.checkinsTable.findFirst({
       where: and(
         eq(checkinsTable.id, initiatorCheckinId),
-        eq(checkinsTable.userId, user.id) // Match Kinde ID
+        eq(checkinsTable.userId, user.id)
       ),
       columns: { id: true },
     });
@@ -61,7 +60,6 @@ export async function createOrGetChatSession(
       return { sessionId: existingSession.id };
     }
 
-    // Create new session
     const newSessionData: InsertChatSession = {
       placeId: placeId,
       initiatorCheckinId: initiatorCheckinId,
@@ -87,7 +85,7 @@ export async function createOrGetChatSession(
 }
 
 export async function sendMessage(
-  sessionId: string, // Should be UUID from chat_sessions table
+  sessionId: string,
   senderCheckinId: number,
   content: string
 ): Promise<{ success: boolean; error?: string }> {
@@ -99,20 +97,18 @@ export async function sendMessage(
 
   const trimmedContent = content?.trim();
   if (!trimmedContent) return { success: false, error: "Message is empty." };
-  // Add max length check if desired, e.g., match DB column
 
   try {
     // Security: Verify sender check-in belongs to the logged-in user
     const senderCheckin = await db.query.checkinsTable.findFirst({
       where: and(
         eq(checkinsTable.id, senderCheckinId),
-        eq(checkinsTable.userId, user.id) // Match Kinde ID
+        eq(checkinsTable.userId, user.id)
       ),
       columns: { id: true },
     });
     if (!senderCheckin) return { success: false, error: "Invalid sender." };
 
-    // Security: Verify session exists and sender is part of it
     const validSession = await db.query.chatSessionsTable.findFirst({
       where: eq(chatSessionsTable.id, sessionId),
       columns: { initiatorCheckinId: true, receiverCheckinId: true },

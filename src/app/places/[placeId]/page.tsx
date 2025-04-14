@@ -2,7 +2,7 @@
 
 import { db } from "@/index"; // Adjust import path for your db instance
 import { placesTable, checkinsTable, type SelectCheckin } from "@/db/schema"; // Adjust import path for your schema
-import { eq, and, gt, ne } from "drizzle-orm";
+import { eq, and, gt, ne, desc } from "drizzle-orm";
 import { notFound } from "next/navigation"; // Import for handling 404
 import { getKindeServerSession } from "@kinde-oss/kinde-auth-nextjs/server";
 import InteractiveCheckinList from "./_components/InteractiveCheckinList";
@@ -39,7 +39,9 @@ export default async function PlaceDetailPage(props: PlaceDetailPageProps) {
 
   // --- Fetch Recent Check-ins for this Place ---
   let otherCheckins: SelectCheckin[] = [];
+  let currentUserCheckin: SelectCheckin | null = null;
   const thresholdTime = new Date(Date.now() - CURRENT_WINDOW_MS);
+
   try {
     const recentCheckins = await db
       .select()
@@ -47,19 +49,24 @@ export default async function PlaceDetailPage(props: PlaceDetailPageProps) {
       .where(
         and(
           eq(checkinsTable.placeId, placeId),
-          gt(checkinsTable.createdAt, thresholdTime),
-          // Only include check-ins *not* by the current user (if logged in)
-          currentUserKindeId
-            ? ne(checkinsTable.userId, currentUserKindeId)
-            : undefined
+          gt(checkinsTable.createdAt, thresholdTime)
         )
       )
-      .orderBy(checkinsTable.createdAt); // Optional: order by time
+      .orderBy(desc(checkinsTable.createdAt)); // Get most recent first
 
-    otherCheckins = recentCheckins;
+    if (currentUserKindeId) {
+      currentUserCheckin =
+        recentCheckins.find((c) => c.userId === currentUserKindeId) ?? null;
+
+      otherCheckins = recentCheckins.filter(
+        (c) => c.userId !== currentUserKindeId
+      );
+    } else {
+      otherCheckins = recentCheckins; // Show all if user not logged in
+    }
   } catch (error) {
     console.error(`DB error fetching checkins for place ${placeId}:`, error);
-    // Decide how to handle - maybe show an error message in UI instead of empty list
+    // Consider showing an error state in the UI instead of an empty list
   }
 
   return (
@@ -86,7 +93,11 @@ export default async function PlaceDetailPage(props: PlaceDetailPageProps) {
           {placeDetails.lastFetchedAt.toLocaleTimeString()}
         </p>
       </section>
-      <InteractiveCheckinList otherCheckins={otherCheckins} placeId={placeId} />
+      <InteractiveCheckinList
+        otherCheckins={otherCheckins}
+        placeId={placeId}
+        currentUserCheckinId={currentUserCheckin?.id ?? null}
+      />
       {/* --- Potential Future Sections --- */}
 
       {/*
