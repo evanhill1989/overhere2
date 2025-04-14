@@ -8,14 +8,13 @@ import { notFound } from "next/navigation"; // Import for handling 404
 // Define the structure of the props passed to the page component
 // 'params' contains the dynamic route segments
 interface PlaceDetailPageProps {
-  params: {
+  params: Promise<{
     placeId: string; // This must match the folder name '[placeId]'
-  };
+  }>;
 }
 
-export default async function PlaceDetailPage({
-  params,
-}: PlaceDetailPageProps) {
+export default async function PlaceDetailPage(props: PlaceDetailPageProps) {
+  const params = await props.params;
   const { placeId } = params;
 
   let placeDetails;
