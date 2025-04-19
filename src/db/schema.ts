@@ -7,7 +7,6 @@ import {
   serial,
   doublePrecision,
   index,
-  primaryKey, // Make sure primaryKey is imported if needed elsewhere
   pgEnum,
   uuid,
   text, // Import pgEnum for status

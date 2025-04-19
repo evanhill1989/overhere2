@@ -2,12 +2,7 @@
 "use server";
 
 import { db } from "@/index";
-import {
-  checkinsTable,
-  placesTable,
-  type SelectPlace,
-  usersTable,
-} from "@/db/schema";
+import { checkinsTable, placesTable, type SelectPlace } from "@/db/schema";
 import { getKindeServerSession } from "@kinde-oss/kinde-auth-nextjs/server";
 import { redirect } from "next/navigation";
 import { eq, sql } from "drizzle-orm";
@@ -175,11 +170,11 @@ export async function submitCheckIn(
       throw new Error("Database insertion failed.");
     }
     checkinId = newCheckin[0].id;
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error(`Check-in DB operation failed:`, error);
     return {
       success: false,
-      message: `Check-in failed: ${error.message || "Database error."}`,
+      message: `Check-in failed: ${"Database error."}`,
     };
   }
 

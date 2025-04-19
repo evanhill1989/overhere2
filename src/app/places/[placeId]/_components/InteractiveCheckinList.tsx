@@ -1,8 +1,7 @@
-// app/places/[placeId]/_components/InteractiveCheckinList.tsx
 "use client";
 
-import { useState, useEffect } from "react"; // Added useEffect
-import type { SelectCheckin, SelectChatSession } from "@/db/schema"; // Added SelectChatSession
+import { useState, useEffect } from "react";
+import type { SelectCheckin } from "@/db/schema";
 import { createOrGetChatSession } from "@/app/_actions/chatActions";
 import ChatWindow from "./ChatWindow";
 // Import Supabase client stuff
@@ -11,6 +10,21 @@ import {
   SupabaseClient,
   RealtimeChannel,
 } from "@supabase/supabase-js";
+
+import type { Tables } from "@/types/supabase";
+
+// Define the RealtimePayload structure again
+interface RealtimePayload<T = unknown> {
+  schema: string;
+  table: string;
+  commit_timestamp: string;
+  eventType: "INSERT" | "UPDATE" | "DELETE";
+  new: T;
+  old: Partial<T>;
+  errors: string[] | null;
+}
+
+type ChatSessionRow = Tables<"chat_sessions">;
 
 interface InteractiveCheckinListProps {
   otherCheckins: SelectCheckin[];
@@ -45,7 +59,7 @@ export default function InteractiveCheckinList({
   >(null);
   const [isLoadingChat, setIsLoadingChat] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [chatRequests, setChatRequests] = useState<SelectChatSession[]>([]); // State for notifications
+  const [chatRequests, setChatRequests] = useState<ChatSessionRow[]>([]);
 
   // Effect for Subscribing to Chat Request Notifications
   useEffect(() => {
@@ -53,21 +67,31 @@ export default function InteractiveCheckinList({
 
     let channel: RealtimeChannel | null = null;
 
-    const handleChatRequest = (payload: any) => {
-      console.log("Chat request received:", payload.new);
-      const newSession = payload.new as SelectChatSession;
-      setChatRequests((currentRequests) => {
-        // Add if not already present
-        if (!currentRequests.some((req) => req.id === newSession.id)) {
-          return [...currentRequests, newSession];
-        }
-        return currentRequests;
-      });
+    const handleChatRequest = (payload: RealtimePayload<ChatSessionRow>) => {
+      if (
+        (payload.eventType === "INSERT" || payload.eventType === "UPDATE") &&
+        payload.new
+      ) {
+        const newSession = payload.new;
+
+        console.log("Processing new/updated chat session:", newSession);
+        setChatRequests((currentRequests) => {
+          if (!currentRequests.some((req) => req.id === newSession.id)) {
+            return [...currentRequests, newSession];
+          }
+          return currentRequests;
+        });
+      } else if (payload.eventType === "DELETE") {
+        // Use payload.old (which might be Partial<ChatSessionRow>)
+        setChatRequests((currentRequests) =>
+          currentRequests.filter((req) => req.id !== payload.old?.id)
+        );
+      }
     };
 
     channel = supabase
       .channel(`chat_notifications_for_${currentUserCheckinId}`)
-      .on<SelectChatSession>(
+      .on<ChatSessionRow>(
         "postgres_changes",
         {
           event: "INSERT",
@@ -135,8 +159,8 @@ export default function InteractiveCheckinList({
         prev.filter(
           (req) =>
             !(
-              req.initiatorCheckinId === receiverCheckin.id ||
-              req.receiverCheckinId === receiverCheckin.id
+              req.initiator_checkin_id === receiverCheckin.id ||
+              req.receiver_checkin_id === receiverCheckin.id
             )
         )
       );
@@ -145,10 +169,10 @@ export default function InteractiveCheckinList({
   };
 
   // Function to accept a chat request
-  const handleAcceptChat = (request: SelectChatSession) => {
+  const handleAcceptChat = (request: ChatSessionRow) => {
     if (isLoadingChat) return; // Don't accept if already trying to initiate
     setActiveChatSessionId(request.id);
-    setChatPartnerCheckinId(request.initiatorCheckinId); // The initiator is the partner
+    setChatPartnerCheckinId(request.initiator_checkin_id); // The initiator is the partner
     setChatRequests((prev) => prev.filter((r) => r.id !== request.id)); // Remove accepted request
     setErrorMessage(null); // Clear any previous errors
   };
@@ -258,7 +282,7 @@ export default function InteractiveCheckinList({
                   </span>
                   {checkin.topic ? (
                     <span className="text-gray-800 dark:text-gray-200 italic">
-                      "{checkin.topic}"
+                      {checkin.topic}
                     </span>
                   ) : (
                     <span className="text-gray-500 dark:text-gray-400">

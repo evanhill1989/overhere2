@@ -4,6 +4,18 @@ import type { Place } from "@/types/places";
 const SERVICE_PROVIDER = "google"; // or 'mapbox', 'other'
 const Maps_API_KEY = process.env.Maps_API_KEY;
 
+interface GooglePlaceResult {
+  place_id: string;
+  name: string;
+  vicinity?: string;
+  geometry?: {
+    location?: {
+      lat?: number;
+      lng?: number;
+    };
+  };
+}
+
 export async function POST(request: Request) {
   if (!Maps_API_KEY) {
     console.error("Mapping API Key/Token is missing");
@@ -60,13 +72,15 @@ export async function POST(request: Request) {
         );
       }
 
-      places = (data.results || []).map((place: any) => ({
-        id: place.place_id,
-        name: place.name,
-        address: place.vicinity,
-        lat: place.geometry?.location?.lat,
-        lng: place.geometry?.location?.lng,
-      }));
+      places = (data.results || []).map(
+        (place: GooglePlaceResult): Place => ({
+          id: place.place_id,
+          name: place.name,
+          address: place.vicinity || "Address not available",
+          lat: place.geometry?.location?.lat,
+          lng: place.geometry?.location?.lng,
+        })
+      );
     } else {
       return NextResponse.json(
         { error: "Invalid service provider configured" },
@@ -75,12 +89,23 @@ export async function POST(request: Request) {
     }
 
     return NextResponse.json({ places });
-  } catch (error: any) {
+  } catch (error: unknown) {
+    // <-- Use unknown instead of any
     console.error("Error fetching nearby places:", error);
+
+    // Safely extract the error message
+    let errorMessage = "Unknown error occurred";
+    if (error instanceof Error) {
+      errorMessage = error.message;
+    } else if (typeof error === "string") {
+      errorMessage = error;
+    }
+    // You could add more checks here for other error types if needed
+
     return NextResponse.json(
       {
         error: "Failed to fetch nearby places",
-        details: error.message || "Unknown error",
+        details: errorMessage, // Use the extracted message
       },
       { status: 500 }
     );

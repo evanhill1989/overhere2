@@ -2,7 +2,7 @@
 
 import { db } from "@/index"; // Adjust import path for your db instance
 import { placesTable, checkinsTable, type SelectCheckin } from "@/db/schema"; // Adjust import path for your schema
-import { eq, and, gt, ne, desc } from "drizzle-orm";
+import { eq, and, gt, desc } from "drizzle-orm";
 import { notFound } from "next/navigation"; // Import for handling 404
 import { getKindeServerSession } from "@kinde-oss/kinde-auth-nextjs/server";
 import InteractiveCheckinList from "./_components/InteractiveCheckinList";

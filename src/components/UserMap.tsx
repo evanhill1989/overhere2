@@ -5,17 +5,7 @@ import L from "leaflet";
 import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
 import { LatLngExpression } from "leaflet";
 
-import iconRetinaUrl from "leaflet/dist/images/marker-icon-2x.png";
-import iconUrl from "leaflet/dist/images/marker-icon.png";
-import shadowUrl from "leaflet/dist/images/marker-shadow.png";
 import { Place } from "@/types/places";
-
-// delete (L.Icon.Default.prototype as any)._getIconUrl;
-// L.Icon.Default.mergeOptions({
-//   iconRetinaUrl: iconRetinaUrl.src,
-
-//   shadowUrl: shadowUrl.src,
-// });
 
 interface Location {
   latitude: number;
@@ -38,7 +28,7 @@ const markerIcon = new L.Icon({
   shadowSize: [41, 41], // Size of the shadow
 });
 
-export function UserMap({ center, places, zoom = 14 }: UserMapProps) {
+export function UserMap({ center, zoom = 14 }: UserMapProps) {
   const position: LatLngExpression = [center.latitude, center.longitude];
 
   return (

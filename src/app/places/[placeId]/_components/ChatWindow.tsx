@@ -47,7 +47,7 @@ if (supabaseUrl && supabaseAnonKey) {
 export default function ChatWindow({
   sessionId,
   currentUserCheckinId,
-  partnerCheckinId,
+
   onClose,
 }: ChatWindowProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -89,9 +89,9 @@ export default function ChatWindow({
 
         console.log("Fetched initial messages:", data);
         setMessages(data || []); // Update state with fetched messages
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.error("Error fetching initial messages:", err);
-        setError(`Failed to load messages: ${err.message}`);
+        setError(`Failed to load messages: ${err}`);
         setMessages([]);
       } finally {
         setIsLoadingInitial(false);
@@ -225,7 +225,7 @@ export default function ChatWindow({
         setNewMessage("");
         // The message will appear automatically via the Realtime subscription listening for DB inserts
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       // Catch unexpected errors (e.g., network issue calling the action)
       console.error("Error calling sendMessage action:", err);
       setError("Failed to send message due to a network or server issue.");

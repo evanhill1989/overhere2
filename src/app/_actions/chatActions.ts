@@ -56,7 +56,6 @@ export async function createOrGetChatSession(
     });
 
     if (existingSession) {
-      console.log(`Existing chat session found: ${existingSession.id}`);
       return { sessionId: existingSession.id };
     }
 
@@ -75,11 +74,11 @@ export async function createOrGetChatSession(
 
     console.log(`New chat session created: ${newSessionResult[0].id}`);
     return { sessionId: newSessionResult[0].id };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Error in createOrGetChatSession:", error);
     return {
       sessionId: null,
-      error: error.message || "Server error creating chat session.",
+      error: "Server error creating chat session.",
     };
   }
 }
@@ -134,11 +133,11 @@ export async function sendMessage(
       `Message sent by checkin ${senderCheckinId} in session ${sessionId}`
     );
     return { success: true };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error(`Error sending message in session ${sessionId}:`, error);
     return {
       success: false,
-      error: error.message || "Server error sending message.",
+      error: "Server error sending message.",
     };
   }
 }

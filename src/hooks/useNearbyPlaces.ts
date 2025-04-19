@@ -11,7 +11,7 @@ export function useNearbyPlaces(location: LocationData | null) {
   const fetchPlaces = useCallback(async (lat: number, lon: number) => {
     setIsLoading(true);
     setError(null);
-    setPlaces([]); // Reset places on new fetch
+    setPlaces([]);
 
     try {
       const response = await fetch("/api/places/nearby", {
@@ -28,9 +28,9 @@ export function useNearbyPlaces(location: LocationData | null) {
       } else {
         setError("No nearby places found.");
       }
-    } catch (fetchError: any) {
+    } catch (fetchError: unknown) {
       console.error("Failed to fetch nearby places:", fetchError);
-      setError(`Failed to fetch places: ${fetchError.message}`);
+      setError(`Failed to fetch places: ${fetchError}`);
     } finally {
       setIsLoading(false);
     }

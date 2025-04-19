@@ -6,8 +6,6 @@ import { usersTable } from "../schema";
 export type InsertUser = typeof usersTable.$inferInsert;
 
 export async function createUser() {
-  console.log("Creating user...");
-
   const user: InsertUser = {
     name: "Jon Doe",
     kinde_id: "kinde_id",
