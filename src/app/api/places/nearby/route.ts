@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import type { Place } from "@/types/places";
 
 const SERVICE_PROVIDER = "google"; // or 'mapbox', 'other'
 const Maps_API_KEY = process.env.Maps_API_KEY;
@@ -20,11 +21,16 @@ export async function POST(request: Request) {
     }
 
     let apiUrl = "";
-    let places = [];
+    let places: Place[] = [];
 
     if (SERVICE_PROVIDER === "google") {
-      const radius = 500;
-      apiUrl = `https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=${latitude}%2C${longitude}&radius=${radius}&key=${Maps_API_KEY}`;
+      const searchType = "point_of_interest"; // Or 'establishment', 'restaurant', etc.
+      apiUrl = `https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=${latitude}%2C${longitude}&rankby=distance&type=${searchType}&key=${Maps_API_KEY}`;
+
+      // Option 2: Keep radius but filter by type (If fixed radius is essential)
+      // const radius = 500; // Keep radius if you uncomment this
+      // const searchType = "point_of_interest";
+      // apiUrl = `https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=${latitude}%2C${longitude}&radius=${radius}&type=${searchType}&key=${Maps_API_KEY}`;
 
       const response = await fetch(apiUrl);
       if (!response.ok) {

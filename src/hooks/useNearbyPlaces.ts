@@ -1,15 +1,8 @@
 import { useState, useEffect, useCallback } from "react";
 import type { LocationData } from "./useGeolocation"; // Import type
+import { Place } from "@/types/places";
 
 // Assuming Place type is defined elsewhere or define here
-export type Place = {
-  id: string;
-  name: string;
-  address: string;
-  lat?: number;
-  lng?: number;
-};
-
 export function useNearbyPlaces(location: LocationData | null) {
   const [places, setPlaces] = useState<Place[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -24,7 +17,7 @@ export function useNearbyPlaces(location: LocationData | null) {
       const response = await fetch("/api/places/nearby", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ latitude: 27.7774, longitude: -82.6704 }),
+        body: JSON.stringify({ latitude: lat, longitude: lon }),
       });
       const data = await response.json();
       if (!response.ok)

@@ -1,9 +1,10 @@
 "use client";
 
 import { useActionState } from "react";
-import type { Place } from "@/hooks/useNearbyPlaces";
+
 import type { ActionResult } from "@/app/_actions/checkinActions";
 import { submitCheckIn } from "@/app/_actions/checkinActions";
+import { Place } from "@/types/places";
 
 type PlacesSelectionFormProps = {
   places: Place[];
