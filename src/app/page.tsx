@@ -45,7 +45,13 @@ export default function Home() {
         isPlacesLoading={isLoadingPlaces} // Pass this down to disable button
       />
       {location && !isLoadingLocation && (
-        <UserMap center={location} places={places} /> // Pass location and places
+        <UserMap center={location} places={places} zoom={20} /> // Pass location and places
+      )}
+      {!location && (
+        <UserMap
+          center={{ latitude: 27.7677, longitude: -82.6427 }} // Default center if no location
+          places={[]} // No places to show
+        />
       )}
       <PlacesSelectionForm
         places={places}

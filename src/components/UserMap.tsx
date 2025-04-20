@@ -28,7 +28,7 @@ const markerIcon = new L.Icon({
   shadowSize: [41, 41], // Size of the shadow
 });
 
-export function UserMap({ center, zoom = 14 }: UserMapProps) {
+export function UserMap({ center, zoom = 10 }: UserMapProps) {
   const position: LatLngExpression = [center.latitude, center.longitude];
 
   return (
