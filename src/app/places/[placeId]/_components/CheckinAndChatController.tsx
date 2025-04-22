@@ -2,7 +2,10 @@
 
 import { useState, useEffect } from "react";
 import type { SelectCheckin } from "@/db/schema";
-import { createOrGetChatSession } from "@/app/_actions/chatActions";
+import {
+  acceptChatSession,
+  createOrGetChatSession,
+} from "@/app/_actions/chatActions";
 import ChatWindow from "./ChatWindow";
 // Import Supabase client stuff
 import {
@@ -261,12 +264,50 @@ export default function CheckinAndChatController({
   };
 
   // Function to accept a chat request
-  const handleAcceptChat = (request: ChatSessionRow) => {
-    if (isLoadingChat) return; // Don't accept if already trying to initiate
-    setActiveChatSessionId(request.id);
-    setChatPartnerCheckinId(request.initiator_checkin_id); // The initiator is the partner
-    setChatRequests((prev) => prev.filter((r) => r.id !== request.id)); // Remove accepted request
-    setErrorMessage(null); // Clear any previous errors
+  // Inside InteractiveCheckinList component:
+
+  const handleAcceptChat = async (request: ChatSessionRow) => {
+    // Make async
+    // Prevent accepting if already loading another chat operation
+    if (isLoadingChat) return;
+
+    setIsLoadingChat(true); // Set loading state
+    setErrorMessage(null); // Clear previous errors
+
+    try {
+      // Call the server action first
+      const result = await acceptChatSession(request.id);
+
+      if (result.success) {
+        // --- If server action succeeded, update client state ---
+        console.log(
+          `Successfully accepted session ${request.id} via server action.`
+        );
+        setActiveChatSessionId(request.id);
+        setChatPartnerCheckinId(request.initiator_checkin_id); // The initiator is the partner
+        setChatRequests((prev) => prev.filter((r) => r.id !== request.id)); // Remove accepted request from list
+        // --- End client state update ---
+      } else {
+        // Server action failed, show error message
+        console.error(
+          "Failed to accept chat session via server action:",
+          result.error
+        );
+        setErrorMessage(
+          result.error || "Could not accept chat. Please try again."
+        );
+        // Optionally auto-clear error after some time
+        // setTimeout(() => setErrorMessage(null), 3500);
+      }
+    } catch (error) {
+      // Catch unexpected errors during the action call
+      console.error("Unexpected error calling acceptChatSession:", error);
+      setErrorMessage("An unexpected error occurred while accepting the chat.");
+      // Optionally auto-clear error after some time
+      // setTimeout(() => setErrorMessage(null), 3500);
+    } finally {
+      setIsLoadingChat(false); // Clear loading state regardless of success/failure
+    }
   };
 
   // --- Conditional Rendering Logic ---
