@@ -5,6 +5,7 @@ import { chatSessionsTable, checkinsTable, messagesTable } from "@/db/schema";
 import type { InsertChatSession, InsertMessage } from "@/db/schema";
 import { getKindeServerSession } from "@kinde-oss/kinde-auth-nextjs/server";
 import { and, eq, or, gt, desc } from "drizzle-orm";
+// import { revalidatePath } from "next/cache";
 
 // Consider making this configurable or sharing from elsewhere
 const CHAT_SESSION_WINDOW_MS = 2 * 60 * 60 * 1000;
@@ -79,6 +80,87 @@ export async function createOrGetChatSession(
     return {
       sessionId: null,
       error: "Server error creating chat session.",
+    };
+  }
+}
+
+export async function acceptChatSession(
+  sessionId: string
+): Promise<{ success: boolean; error?: string }> {
+  // 1. Check Authentication
+  const { getUser, isAuthenticated } = getKindeServerSession();
+  if (!(await isAuthenticated())) {
+    return { success: false, error: "Not authenticated." };
+  }
+  const user = await getUser();
+  if (!user?.id) {
+    return { success: false, error: "User not found." };
+  }
+
+  // Basic validation for sessionId
+  if (!sessionId || typeof sessionId !== "string") {
+    return { success: false, error: "Invalid session ID provided." };
+  }
+
+  try {
+    // --- Query 1: Get the chat session ---
+    const sessionToAccept = await db.query.chatSessionsTable.findFirst({
+      where: eq(chatSessionsTable.id, sessionId),
+      columns: { id: true, status: true, receiverCheckinId: true },
+      // REMOVED 'with' clause
+    });
+
+    // 3. Validate Session Existence
+    if (!sessionToAccept) {
+      return { success: false, error: "Chat session not found." };
+    }
+
+    // 4. Security Check: Verify the current user IS the intended receiver
+    // --- Query 2: Get the check-in details for the receiver ---
+    const receiverCheckinDetails = await db.query.checkinsTable.findFirst({
+      where: eq(checkinsTable.id, sessionToAccept.receiverCheckinId),
+      columns: { userId: true }, // Only need the userId associated with this checkin
+    });
+
+    // Check if check-in exists and if its userId matches the logged-in user's ID
+    if (!receiverCheckinDetails || receiverCheckinDetails.userId !== user.id) {
+      console.warn(
+        `User ${user.id} attempted to accept session ${sessionId} intended for receiver checkin ID ${sessionToAccept.receiverCheckinId} (User ID: ${receiverCheckinDetails?.userId})`
+      );
+      return { success: false, error: "Not authorized to accept this chat." };
+    }
+    // --- End Security Check ---
+
+    // 5. Check if already accepted or in a non-pending state
+    if (sessionToAccept.status === "active") {
+      console.log(`Session ${sessionId} is already active.`);
+      return { success: true }; // Idempotent
+    }
+    if (sessionToAccept.status !== "pending") {
+      return {
+        success: false,
+        error: `Cannot accept session with status: ${sessionToAccept.status}`,
+      };
+    }
+
+    // 6. Update the session status to 'active'
+    await db
+      .update(chatSessionsTable)
+      .set({ status: "active" }) // Set the status to 'active'
+      .where(eq(chatSessionsTable.id, sessionId));
+
+    console.log(`Chat session ${sessionId} accepted by user ${user.id}`);
+
+    return { success: true };
+  } catch (error: unknown) {
+    console.error(`Error accepting chat session ${sessionId}:`, error);
+    let message = "Server error accepting chat session.";
+    if (error instanceof Error) {
+      message = error.message;
+    }
+    return {
+      success: false,
+      error: message,
     };
   }
 }

@@ -16,6 +16,7 @@ export type Database = {
           initiator_checkin_id: number
           place_id: string
           receiver_checkin_id: number
+          status: Database["public"]["Enums"]["chat_session_status"]
         }
         Insert: {
           created_at?: string
@@ -23,6 +24,7 @@ export type Database = {
           initiator_checkin_id: number
           place_id: string
           receiver_checkin_id: number
+          status?: Database["public"]["Enums"]["chat_session_status"]
         }
         Update: {
           created_at?: string
@@ -30,6 +32,7 @@ export type Database = {
           initiator_checkin_id?: number
           place_id?: string
           receiver_checkin_id?: number
+          status?: Database["public"]["Enums"]["chat_session_status"]
         }
         Relationships: [
           {
@@ -193,6 +196,7 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
+      chat_session_status: "pending" | "active"
       checkin_status: "available" | "busy"
     }
     CompositeTypes: {
@@ -309,6 +313,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      chat_session_status: ["pending", "active"],
       checkin_status: ["available", "busy"],
     },
   },

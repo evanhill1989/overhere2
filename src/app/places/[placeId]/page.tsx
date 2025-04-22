@@ -1,17 +1,15 @@
-// app/places/[placeId]/page.tsx
-
-import { db } from "@/index"; // Adjust import path for your db instance
-import { placesTable, checkinsTable, type SelectCheckin } from "@/db/schema"; // Adjust import path for your schema
+import { db } from "@/index";
+import { placesTable, checkinsTable, type SelectCheckin } from "@/db/schema";
 import { eq, and, gt, desc } from "drizzle-orm";
-import { notFound } from "next/navigation"; // Import for handling 404
+import { notFound } from "next/navigation";
 import { getKindeServerSession } from "@kinde-oss/kinde-auth-nextjs/server";
-import InteractiveCheckinList from "./_components/InteractiveCheckinList";
+import CheckinAndChatController from "./_components/CheckinAndChatController";
 
 const CURRENT_WINDOW_MS = 2 * 60 * 60 * 1000;
 
 type PlaceDetailPageProps = {
   params: Promise<{
-    placeId: string; // This must match the folder name '[placeId]'
+    placeId: string;
   }>;
 };
 
@@ -62,11 +60,10 @@ export default async function PlaceDetailPage(props: PlaceDetailPageProps) {
         (c) => c.userId !== currentUserKindeId
       );
     } else {
-      otherCheckins = recentCheckins; // Show all if user not logged in
+      otherCheckins = recentCheckins;
     }
   } catch (error) {
     console.error(`DB error fetching checkins for place ${placeId}:`, error);
-    // Consider showing an error state in the UI instead of an empty list
   }
 
   return (
@@ -93,19 +90,11 @@ export default async function PlaceDetailPage(props: PlaceDetailPageProps) {
           {placeDetails.lastFetchedAt.toLocaleTimeString()}
         </p>
       </section>
-      <InteractiveCheckinList
+      <CheckinAndChatController
         otherCheckins={otherCheckins}
         placeId={placeId}
         currentUserCheckinId={currentUserCheckin?.id ?? null}
       />
-      {/* --- Potential Future Sections --- */}
-
-      {/*
-     
-      <section className="mt-6">
-          {/* TODO: Maybe an embedded map using placeDetails.latitude/longitude
-      </section>
-      */}
     </div>
   );
 }

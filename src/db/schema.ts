@@ -61,14 +61,16 @@ export const checkinsTable = pgTable(
   })
 );
 
-// --- New Chat Tables ---
+export const chatSessionStatusEnum = pgEnum("chat_session_status", [
+  "pending",
+  "active",
+]);
 
 export const chatSessionsTable = pgTable(
   "chat_sessions",
   {
-    id: uuid("id").primaryKey().defaultRandom(), // Unique ID for the session
-    placeId: varchar("place_id", { length: 255 }).notNull(), // Context: where the chat started
-    // References to the two check-ins involved in the chat
+    id: uuid("id").primaryKey().defaultRandom(),
+    placeId: varchar("place_id", { length: 255 }).notNull(),
     initiatorCheckinId: integer("initiator_checkin_id")
       .notNull()
       .references(() => checkinsTable.id, { onDelete: "cascade" }),
@@ -78,16 +80,17 @@ export const chatSessionsTable = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
+
+    status: chatSessionStatusEnum("status").notNull().default("pending"),
   },
   (table) => ({
-    // Index to quickly find chats involving a specific check-in
     initiatorIdx: index("chat_session_initiator_idx").on(
       table.initiatorCheckinId
     ),
     receiverIdx: index("chat_session_receiver_idx").on(table.receiverCheckinId),
-    placeIdx: index("chat_session_place_idx").on(table.placeId), // Optional: find chats at a place
-    // Optional: Unique constraint to prevent exact same pair initiating multiple sessions?
-    // Or handle this logic in the server action.
+    placeIdx: index("chat_session_place_idx").on(table.placeId),
+    // Optional: Index the status column if you query by it often
+    statusIdx: index("chat_session_status_idx").on(table.status),
   })
 );
 
