@@ -173,7 +173,7 @@ export default function CheckinAndChatController({
           // and separate filters implicitly ANDed. Check exact syntax if needed.
           // This filter might need refinement based on performance / exact Supabase behavior.
           // A simpler approach might be two separate listeners if this filter is problematic.
-          filter: `receiver_checkin_id=eq.${currentUserCheckinId},initiator_checkin_id=eq.${currentUserCheckinId}`,
+          // filter: `receiver_checkin_id=eq.${currentUserCheckinId},initiator_checkin_id=eq.${currentUserCheckinId}`,
         },
         handlePostgresChanges // Use the unified handler
       )
