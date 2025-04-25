@@ -228,32 +228,53 @@ export default function CheckinAndChatController({
     );
 
     // Listener 3: For DELETES of sessions I was involved in (Optional but good)
+    // Listener 3: Deletes (Listen broadly, filter client-side) - ADJUSTED
     channel.on<ChatSessionRow>(
       "postgres_changes",
       {
         event: "DELETE",
         schema: "public",
         table: "chat_sessions",
-        // Requires OR filter - test syntax carefully or filter client-side if needed
-        filter: `or(receiver_checkin_id.eq.<span class="math-inline">\{currentUserCheckinId\},initiator\_checkin\_id\.eq\.</span>{currentUserCheckinId})`,
+        // NO server-side filter for DELETE events
       },
       (payload) => {
-        console.log("Chat Session Deleted:", payload.old);
-        const deletedSessionId = payload.old?.id;
-        if (deletedSessionId) {
-          // Remove from both incoming and pending lists
+        console.log("Chat Session Potentially Deleted:", payload.old);
+        const deletedSessionData = payload.old;
+        const deletedSessionId = deletedSessionData?.id;
+
+        // Check if the deleted session involved the current user
+        if (
+          deletedSessionId &&
+          deletedSessionData &&
+          currentUserCheckinId &&
+          (deletedSessionData.initiator_checkin_id === currentUserCheckinId ||
+            deletedSessionData.receiver_checkin_id === currentUserCheckinId)
+        ) {
+          console.log(
+            `Confirmed DELETE event for relevant session: ${deletedSessionId}`
+          );
+          // Perform cleanup using the ID from payload.old
           setChatRequests((currentRequests) =>
             currentRequests.filter((req) => req.id !== deletedSessionId)
           );
           setPendingOutgoingRequests((prev) =>
             prev.filter((req) => req.sessionId !== deletedSessionId)
           );
-          // Close chat window if the deleted session was the active one
-          // if (activeChatSessionId === deletedSessionId) { /* close chat window */ }
+
+          // Close active chat window if it was the one deleted
+          // Needs access to activeChatSessionId state here - you might need useRef
+          // or reconsider if this cleanup is essential vs letting the chat window fail naturally.
+          // Example (might need adjustment based on state access):
+          // if (activeChatSessionId === deletedSessionId) {
+          //    setActiveChatSessionId(null);
+          //    setChatPartnerCheckinId(null);
+          //    console.log("Closed active chat window due to session delete.");
+          // }
+        } else {
+          console.log("Ignoring DELETE event not relevant to current user.");
         }
       }
     );
-
     channel.subscribe((status, err) => {
       if (status === "SUBSCRIBED") {
         console.log(
