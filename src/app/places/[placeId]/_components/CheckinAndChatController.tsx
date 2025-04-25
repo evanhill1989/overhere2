@@ -160,46 +160,123 @@ export default function CheckinAndChatController({
     // Create a unique channel name for this user's chat-related subscriptions
     const channelName = `realtime_chat_user_${currentUserCheckinId}`;
     console.log(`Attempting to subscribe to channel: ${channelName}`);
-    const channel = supabase
-      .channel(channelName)
-      .on<ChatSessionRow>(
-        "postgres_changes",
-        {
-          event: "*", // Listen to INSERT, UPDATE, DELETE
-          schema: "public",
-          table: "chat_sessions",
-          // Filter for sessions WHERE the current user is EITHER the initiator OR the receiver
-          // Supabase uses comma (,) as OR for filters on the same column,
-          // and separate filters implicitly ANDed. Check exact syntax if needed.
-          // This filter might need refinement based on performance / exact Supabase behavior.
-          // A simpler approach might be two separate listeners if this filter is problematic.
-          // filter: `receiver_checkin_id=eq.${currentUserCheckinId},initiator_checkin_id=eq.${currentUserCheckinId}`,
-        },
-        handlePostgresChanges // Use the unified handler
-      )
-      .subscribe((status, err) => {
-        if (status === "SUBSCRIBED") {
-          console.log(
-            `Successfully subscribed to channel ${channelName} for checkinId: ${currentUserCheckinId}`
-          );
-        } else if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") {
-          console.error(
-            `Subscription error on ${channelName} for checkinId ${currentUserCheckinId}:`,
-            err || status
-          );
-          setErrorMessage(
-            "Realtime connection issue. Chat features may be delayed."
-          );
-        } else if (err) {
-          console.error(
-            `Subscription error on ${channelName} for checkinId ${currentUserCheckinId}:`,
-            err
-          );
-          setErrorMessage(
-            "Realtime connection issue. Chat features may be delayed."
-          );
+    const channel = supabase.channel(channelName);
+
+    // Listener 1: For new INCOMING chat requests (INSERT where I am receiver)
+    channel.on<ChatSessionRow>(
+      "postgres_changes",
+      {
+        event: "INSERT",
+        schema: "public",
+        table: "chat_sessions",
+        filter: `receiver_checkin_id=eq.${currentUserCheckinId}`, // Filter: I am the receiver
+      },
+      (payload) => {
+        console.log("Incoming Request (INSERT):", payload);
+        if (payload.new) {
+          const newSession = payload.new;
+          // Add to chat requests state
+          setChatRequests((currentRequests) => {
+            if (!currentRequests.some((req) => req.id === newSession.id)) {
+              return [...currentRequests, newSession];
+            }
+            return currentRequests;
+          });
         }
-      });
+      }
+    );
+
+    // Listener 2: For updates on chats I INITIATED (e.g., receiver accepted)
+    channel.on<ChatSessionRow>(
+      "postgres_changes",
+      {
+        event: "UPDATE",
+        schema: "public",
+        table: "chat_sessions",
+        filter: `initiator_checkin_id=eq.${currentUserCheckinId}`, // Filter: I am the initiator
+      },
+      (payload) => {
+        console.log("My Outgoing Session Update (UPDATE):", payload);
+        if (payload.new) {
+          const updatedSession = payload.new;
+          // Check if the status is now 'active' (meaning accepted)
+          if (
+            updatedSession.status === "active" &&
+            payload.old?.status !== "active"
+          ) {
+            console.log(
+              `Chat session ${updatedSession.id} accepted by receiver!`
+            );
+            // Open the chat window
+            setActiveChatSessionId(updatedSession.id);
+            setChatPartnerCheckinId(updatedSession.receiver_checkin_id);
+            // Clean up pending state
+            setPendingOutgoingRequests((prev) =>
+              prev.filter((req) => req.sessionId !== updatedSession.id)
+            );
+            // Clean up any potentially conflicting incoming request notification
+            setChatRequests((prev) =>
+              prev.filter(
+                (r) =>
+                  r.initiator_checkin_id !== updatedSession.receiver_checkin_id
+              )
+            );
+          }
+          // Handle other status updates if needed (e.g., 'closed')
+        }
+      }
+    );
+
+    // Listener 3: For DELETES of sessions I was involved in (Optional but good)
+    channel.on<ChatSessionRow>(
+      "postgres_changes",
+      {
+        event: "DELETE",
+        schema: "public",
+        table: "chat_sessions",
+        // Requires OR filter - test syntax carefully or filter client-side if needed
+        filter: `or(receiver_checkin_id.eq.<span class="math-inline">\{currentUserCheckinId\},initiator\_checkin\_id\.eq\.</span>{currentUserCheckinId})`,
+      },
+      (payload) => {
+        console.log("Chat Session Deleted:", payload.old);
+        const deletedSessionId = payload.old?.id;
+        if (deletedSessionId) {
+          // Remove from both incoming and pending lists
+          setChatRequests((currentRequests) =>
+            currentRequests.filter((req) => req.id !== deletedSessionId)
+          );
+          setPendingOutgoingRequests((prev) =>
+            prev.filter((req) => req.sessionId !== deletedSessionId)
+          );
+          // Close chat window if the deleted session was the active one
+          // if (activeChatSessionId === deletedSessionId) { /* close chat window */ }
+        }
+      }
+    );
+
+    channel.subscribe((status, err) => {
+      if (status === "SUBSCRIBED") {
+        console.log(
+          `Successfully subscribed to channel ${channelName} for checkinId: ${currentUserCheckinId}`
+        );
+      } else if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") {
+        console.error(
+          `Subscription error on ${channelName} for checkinId ${currentUserCheckinId}:`,
+          err || status
+        );
+        setErrorMessage(
+          "Realtime connection issue. Chat features may be delayed."
+        );
+      } else if (err) {
+        console.error(
+          `Subscription error on ${channelName} for checkinId ${currentUserCheckinId}:`,
+          err
+        );
+        setErrorMessage(
+          "Realtime connection issue. Chat features may be delayed."
+        );
+      }
+    });
 
     return () => {
       if (channel && supabase) {
