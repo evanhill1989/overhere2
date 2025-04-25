@@ -196,7 +196,7 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      chat_session_status: "pending" | "active"
+      chat_session_status: "pending" | "active" | "rejected" | "closed"
       checkin_status: "available" | "busy"
     }
     CompositeTypes: {
@@ -313,7 +313,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      chat_session_status: ["pending", "active"],
+      chat_session_status: ["pending", "active", "rejected", "closed"],
       checkin_status: ["available", "busy"],
     },
   },

@@ -1,4 +1,3 @@
-// src/db/schema.ts
 import {
   pgTable,
   varchar,
@@ -64,6 +63,8 @@ export const checkinsTable = pgTable(
 export const chatSessionStatusEnum = pgEnum("chat_session_status", [
   "pending",
   "active",
+  "rejected",
+  "closed",
 ]);
 
 export const chatSessionsTable = pgTable(

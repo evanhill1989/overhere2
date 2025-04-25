@@ -165,6 +165,80 @@ export async function acceptChatSession(
   }
 }
 
+export async function rejectChatSession(
+  sessionId: string
+): Promise<{ success: boolean; error?: string }> {
+  // 1. Check Authentication
+  const { getUser, isAuthenticated } = getKindeServerSession();
+  if (!(await isAuthenticated())) {
+    return { success: false, error: "Not authenticated." };
+  }
+  const user = await getUser();
+  if (!user?.id) {
+    return { success: false, error: "User not found." };
+  }
+
+  // Basic validation
+  if (!sessionId || typeof sessionId !== "string") {
+    return { success: false, error: "Invalid session ID provided." };
+  }
+
+  try {
+    // 2. Find the session + verify receiver
+    const sessionToReject = await db.query.chatSessionsTable.findFirst({
+      where: eq(chatSessionsTable.id, sessionId),
+      columns: { id: true, status: true, receiverCheckinId: true },
+    });
+
+    if (!sessionToReject) {
+      return { success: false, error: "Chat session not found." };
+    }
+
+    // --- Query 2: Get receiver check-in details for authorization ---
+    const receiverCheckinDetails = await db.query.checkinsTable.findFirst({
+      where: eq(checkinsTable.id, sessionToReject.receiverCheckinId),
+      columns: { userId: true },
+    });
+
+    // 3. Security Check: Verify current user IS the intended receiver
+    if (!receiverCheckinDetails || receiverCheckinDetails.userId !== user.id) {
+      console.warn(
+        `User ${user.id} attempted to reject session ${sessionId} intended for checkin ${sessionToReject.receiverCheckinId} (User ID: ${receiverCheckinDetails?.userId})`
+      );
+      return { success: false, error: "Not authorized to reject this chat." };
+    }
+
+    // 4. Check Status: Only reject if pending
+    if (sessionToReject.status !== "pending") {
+      // If already active, rejected, closed etc., maybe just return success
+      console.log(
+        `Session ${sessionId} is not pending (status: ${sessionToReject.status}). Cannot reject.`
+      );
+      // Consider if receiver should be able to reject an 'active' chat (close it?) - current logic prevents this.
+      return {
+        success: false,
+        error: `Cannot reject session with status: ${sessionToReject.status}`,
+      };
+    }
+
+    // 5. Update status to 'rejected'
+    await db
+      .update(chatSessionsTable)
+      .set({ status: "rejected" }) // <-- Set status to 'rejected'
+      .where(eq(chatSessionsTable.id, sessionId));
+
+    console.log(`Chat session ${sessionId} rejected by user ${user.id}`);
+    return { success: true };
+  } catch (error: unknown) {
+    console.error(`Error rejecting chat session ${sessionId}:`, error);
+    let message = "Server error rejecting chat session.";
+    if (error instanceof Error) {
+      message = error.message;
+    }
+    return { success: false, error: message };
+  }
+}
+
 export async function sendMessage(
   sessionId: string,
   senderCheckinId: number,

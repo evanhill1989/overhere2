@@ -5,6 +5,7 @@ import type { SelectCheckin } from "@/db/schema";
 import {
   acceptChatSession,
   createOrGetChatSession,
+  rejectChatSession,
 } from "@/app/_actions/chatActions";
 import ChatWindow from "./ChatWindow";
 // Import Supabase client stuff
@@ -207,10 +208,10 @@ export default function CheckinAndChatController({
             console.log(
               `Chat session ${updatedSession.id} accepted by receiver!`
             );
-            // Open the chat window
+
             setActiveChatSessionId(updatedSession.id);
             setChatPartnerCheckinId(updatedSession.receiver_checkin_id);
-            // Clean up pending state
+
             setPendingOutgoingRequests((prev) =>
               prev.filter((req) => req.sessionId !== updatedSession.id)
             );
@@ -221,6 +222,19 @@ export default function CheckinAndChatController({
                   r.initiator_checkin_id !== updatedSession.receiver_checkin_id
               )
             );
+          } else if (
+            updatedSession.status === "rejected" &&
+            payload.old?.status === "pending"
+          ) {
+            console.log(
+              `Chat session ${updatedSession.id} rejected by receiver.`
+            );
+            // Remove the request from the initiator's pending list
+            setPendingOutgoingRequests((prev) =>
+              prev.filter((req) => req.sessionId !== updatedSession.id)
+            );
+            // Optionally show a temporary notification to the initiator?
+            // e.g., showToast("Your chat request was dismissed.");
           }
           // Handle other status updates if needed (e.g., 'closed')
         }
@@ -408,6 +422,38 @@ export default function CheckinAndChatController({
     }
   };
 
+  const handleDismissRequest = async (request: ChatSessionRow) => {
+    // Optional: Add loading state specific to dismissing if needed
+    setIsLoadingChat(true); // Reuse general loading state for simplicity
+    setErrorMessage(null);
+
+    try {
+      // Call the server action to update the status
+      const result = await rejectChatSession(request.id);
+
+      if (result.success) {
+        console.log(
+          `Successfully dismissed session ${request.id} via server action.`
+        );
+        // Remove from the local state ONLY after server confirms
+        setChatRequests((prev) => prev.filter((r) => r.id !== request.id));
+      } else {
+        console.error(
+          "Failed to dismiss chat session via server action:",
+          result.error
+        );
+        setErrorMessage(result.error || "Could not dismiss request.");
+        // Maybe add auto-clear for error
+      }
+    } catch (error) {
+      console.error("Unexpected error calling rejectChatSession:", error);
+      setErrorMessage(
+        "An unexpected error occurred while dismissing the request."
+      );
+    } finally {
+      setIsLoadingChat(false);
+    }
+  };
   // --- Conditional Rendering Logic ---
 
   // 1. Render Active Chat Window if session is active
@@ -455,11 +501,7 @@ export default function CheckinAndChatController({
                     Accept
                   </Button>
                   <Button
-                    onClick={() =>
-                      setChatRequests((prev) =>
-                        prev.filter((r) => r.id !== request.id)
-                      )
-                    }
+                    onClick={() => handleDismissRequest(request)}
                     className="px-2 py-1 bg-gray-400 text-white text-xs rounded hover:bg-gray-500 ml-1"
                   >
                     Dismiss
