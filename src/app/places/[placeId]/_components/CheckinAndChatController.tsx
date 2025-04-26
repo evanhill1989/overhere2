@@ -82,83 +82,6 @@ export default function CheckinAndChatController({
       return;
     }
 
-    // Define a single handler for all relevant postgres changes on chat_sessions
-    const handlePostgresChanges = (
-      payload: RealtimePayload<ChatSessionRow>
-    ) => {
-      console.log(`Postgres Change Received (${payload.eventType}):`, payload);
-
-      // --- Handle INSERT events (potential incoming requests) ---
-      if (payload.eventType === "INSERT" && payload.new) {
-        const newSession = payload.new;
-        // Check if this new session is directed *to* the current user
-        if (newSession.receiver_checkin_id === currentUserCheckinId) {
-          console.log("Processing new INCOMING chat request:", newSession);
-          setChatRequests((currentRequests) => {
-            // Add if not already present (prevent duplicates if somehow received twice)
-            if (!currentRequests.some((req) => req.id === newSession.id)) {
-              return [...currentRequests, newSession];
-            }
-            return currentRequests;
-          });
-        }
-      }
-      // --- Handle UPDATE events (potential acceptance of *your* outgoing request) ---
-      else if (payload.eventType === "UPDATE" && payload.new) {
-        const updatedSession = payload.new;
-        // Check if this session was initiated *by* the current user
-        // AND if its status now indicates acceptance (e.g., changed to 'active')
-        // Adapt 'active' based on your actual database status value for accepted chats
-        if (
-          updatedSession.initiator_checkin_id === currentUserCheckinId &&
-          updatedSession.status === "active" && // <<< Check for accepted status
-          // Optional: Check if the status actually changed from the old record if available
-          payload.old?.status !== "active"
-        ) {
-          console.log(
-            `Chat session ${updatedSession.id} initiated by you was accepted!`
-          );
-
-          // Set state to open the ChatWindow
-          setActiveChatSessionId(updatedSession.id);
-          setChatPartnerCheckinId(updatedSession.receiver_checkin_id);
-
-          // Remove from pending outgoing requests state, as it's now active
-          setPendingOutgoingRequests((prev) =>
-            prev.filter((req) => req.sessionId !== updatedSession.id)
-          );
-
-          // Optional: Might want to clear any incoming request notification from this user too
-          setChatRequests((prev) =>
-            prev.filter(
-              (r) =>
-                r.initiator_checkin_id !== updatedSession.receiver_checkin_id
-            )
-          );
-        }
-      }
-      // --- Handle DELETE events (optional cleanup) ---
-      else if (payload.eventType === "DELETE" && payload.old) {
-        const deletedSessionId = payload.old?.id;
-        if (deletedSessionId) {
-          console.log("Processing DELETED chat session:", payload.old);
-          // Remove from incoming requests if it was there
-          setChatRequests((currentRequests) =>
-            currentRequests.filter((req) => req.id !== deletedSessionId)
-          );
-          // Remove from pending outgoing requests if it was there
-          setPendingOutgoingRequests((prev) =>
-            prev.filter((req) => req.sessionId !== deletedSessionId)
-          );
-          // Optional: If this deleted session *was* the active one, close the chat window
-          // if (activeChatSessionId === deletedSessionId) {
-          //    setActiveChatSessionId(null);
-          //    setChatPartnerCheckinId(null);
-          // }
-        }
-      }
-    };
-
     // Create a unique channel name for this user's chat-related subscriptions
     const channelName = `realtime_chat_user_${currentUserCheckinId}`;
     console.log(`Attempting to subscribe to channel: ${channelName}`);
@@ -202,35 +125,27 @@ export default function CheckinAndChatController({
         if (payload.new) {
           const updatedSession = payload.new;
           // Check if the status is now 'active' (meaning accepted)
-          if (
-            updatedSession.status === "active" &&
-            payload.old?.status !== "active"
-          ) {
+          if (updatedSession.status === "active") {
             console.log(
               `Chat session ${updatedSession.id} accepted by receiver!`
             );
 
             setActiveChatSessionId(updatedSession.id);
             setChatPartnerCheckinId(updatedSession.receiver_checkin_id);
-
             setPendingOutgoingRequests((prev) =>
               prev.filter((req) => req.sessionId !== updatedSession.id)
             );
-            // Clean up any potentially conflicting incoming request notification
             setChatRequests((prev) =>
               prev.filter(
                 (r) =>
                   r.initiator_checkin_id !== updatedSession.receiver_checkin_id
               )
             );
-          } else if (
-            updatedSession.status === "rejected" &&
-            payload.old?.status === "pending"
-          ) {
+          } else if (updatedSession.status === "rejected") {
             console.log(
               `Chat session ${updatedSession.id} rejected by receiver.`
             );
-            // Remove the request from the initiator's pending list
+
             setPendingOutgoingRequests((prev) =>
               prev.filter((req) => req.sessionId !== updatedSession.id)
             );
@@ -241,49 +156,43 @@ export default function CheckinAndChatController({
       }
     );
 
-    // Listener 3: For DELETES of sessions I was involved in (Optional but good)
-    // Listener 3: Deletes (Listen broadly, filter client-side) - ADJUSTED
     channel.on<ChatSessionRow>(
       "postgres_changes",
       {
         event: "DELETE",
         schema: "public",
         table: "chat_sessions",
-        // NO server-side filter for DELETE events
       },
       (payload) => {
         console.log("Chat Session Potentially Deleted:", payload.old);
-        const deletedSessionData = payload.old;
-        const deletedSessionId = deletedSessionData?.id;
+
+        const deletedSessionId = payload.old?.id;
 
         // Check if the deleted session involved the current user
-        if (
-          deletedSessionId &&
-          deletedSessionData &&
-          currentUserCheckinId &&
-          (deletedSessionData.initiator_checkin_id === currentUserCheckinId ||
-            deletedSessionData.receiver_checkin_id === currentUserCheckinId)
-        ) {
-          console.log(
-            `Confirmed DELETE event for relevant session: ${deletedSessionId}`
+        if (deletedSessionId && currentUserCheckinId) {
+          const relevantIncoming = chatRequests.some(
+            (req) => req.id === deletedSessionId
           );
-          // Perform cleanup using the ID from payload.old
-          setChatRequests((currentRequests) =>
-            currentRequests.filter((req) => req.id !== deletedSessionId)
+          const relevantOutgoing = pendingOutgoingRequests.some(
+            (req) => req.sessionId === deletedSessionId
           );
-          setPendingOutgoingRequests((prev) =>
-            prev.filter((req) => req.sessionId !== deletedSessionId)
-          );
-
-          // Close active chat window if it was the one deleted
-          // Needs access to activeChatSessionId state here - you might need useRef
-          // or reconsider if this cleanup is essential vs letting the chat window fail naturally.
-          // Example (might need adjustment based on state access):
-          // if (activeChatSessionId === deletedSessionId) {
-          //    setActiveChatSessionId(null);
-          //    setChatPartnerCheckinId(null);
-          //    console.log("Closed active chat window due to session delete.");
-          // }
+          if (relevantIncoming || relevantOutgoing /*|| relevantActive*/) {
+            console.log(
+              `Processing DELETE event for relevant session: ${deletedSessionId}`
+            );
+            // Perform cleanup using the ID
+            setChatRequests((currentRequests) =>
+              currentRequests.filter((req) => req.id !== deletedSessionId)
+            );
+            setPendingOutgoingRequests((prev) =>
+              prev.filter((req) => req.sessionId !== deletedSessionId)
+            );
+            // if (relevantActive) { /* Close chat window logic */ }
+          } else {
+            console.log(
+              "Ignoring DELETE event not relevant to current user's active/pending state."
+            );
+          }
         } else {
           console.log("Ignoring DELETE event not relevant to current user.");
         }
