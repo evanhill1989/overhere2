@@ -17,6 +17,7 @@ import {
 
 import type { Tables } from "@/types/supabase";
 import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 
 // Define the RealtimePayload structure again
 interface RealtimePayload<T = unknown> {
@@ -233,8 +234,7 @@ export default function CheckinAndChatController({
             setPendingOutgoingRequests((prev) =>
               prev.filter((req) => req.sessionId !== updatedSession.id)
             );
-            // Optionally show a temporary notification to the initiator?
-            // e.g., showToast("Your chat request was dismissed.");
+            toast("Your chat request was dismissed.");
           }
           // Handle other status updates if needed (e.g., 'closed')
         }
@@ -576,11 +576,11 @@ export default function CheckinAndChatController({
                       className="px-3 py-1 bg-blue-500 text-white text-sm rounded hover:bg-blue-600 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
                       title={
                         !currentUserCheckinId
-                          ? "Check in to start chatting"
-                          : "Start a chat"
+                          ? "Check in to send a message"
+                          : "Send a message"
                       }
                     >
-                      {isLoadingChat ? "Starting..." : "Say Hi"}
+                      {isLoadingChat ? "Starting..." : "Send Message"}
                     </button>
                   )}
                   {isPending && (

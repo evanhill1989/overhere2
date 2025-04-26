@@ -4,6 +4,7 @@ import "./globals.css";
 import { Header } from "@/components/Header";
 import { getKindeServerSession } from "@kinde-oss/kinde-auth-nextjs/server";
 import { Footer } from "@/components/Footer";
+import { Toaster } from "@/components/ui/sonner";
 
 const fontSans = Nunito_Sans({
   subsets: ["latin"],
@@ -38,6 +39,7 @@ export default async function RootLayout({
         <Header isLoggedIn={isLoggedIn} />
         <main>{children}</main>
         <Footer />
+        <Toaster />
       </body>
     </html>
   );
