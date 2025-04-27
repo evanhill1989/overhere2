@@ -56,7 +56,9 @@ export default function CheckinAndMessageController({
   currentUserCheckinId,
   currentUserKindeId,
 }: InteractiveCheckinListProps) {
-  const [activeCId, setActiveConnectionId] = useState<string | null>(null);
+  const [activeConnectionId, setActiveConnectionId] = useState<string | null>(
+    null
+  );
   const [connectionPartnerCheckinId, setConnectionPartnerCheckinId] = useState<
     number | null
   >(null);
@@ -214,6 +216,7 @@ export default function CheckinAndMessageController({
         filter: `place_id=eq.${placeId}`, // Only for this place
       },
       (payload) => {
+        console.log("RAW PAYLOAD RECEIVED (Checkin INSERT):", payload);
         console.log("New Check-in Detected (INSERT):", payload.new);
         const newCheckin = payload.new;
         // Add to list ONLY IF it's not the current user's check-in
@@ -247,6 +250,7 @@ export default function CheckinAndMessageController({
         filter: `place_id=eq.${placeId}`,
       },
       (payload) => {
+        console.log("RAW PAYLOAD RECEIVED (Checkin Update):", payload);
         console.log("Check-in Update Detected (UPDATE):", payload.new);
         const updatedCheckin = payload.new;
         if (updatedCheckin) {
@@ -461,10 +465,14 @@ export default function CheckinAndMessageController({
   // --- Conditional Rendering Logic ---
 
   // 1. Render Active Chat Window if session is active
-  if (activeCId && connectionPartnerCheckinId && currentUserCheckinId) {
+  if (
+    activeConnectionId &&
+    connectionPartnerCheckinId &&
+    currentUserCheckinId
+  ) {
     return (
       <MessageWindow
-        sessionId={activeCId}
+        sessionId={activeConnectionId}
         currentUserCheckinId={currentUserCheckinId}
         partnerCheckinId={connectionPartnerCheckinId}
         onClose={() => {

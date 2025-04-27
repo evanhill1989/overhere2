@@ -180,7 +180,7 @@ export async function submitCheckIn(
       // --- 5a. UPDATE Existing Check-in ---
       operationType = "update";
       console.log(
-        `Updating existing check-in ${existingCheckin.id} for user ${userKindeId}`
+        `ACTION: Attempting to UPDATE checkin ID ${existingCheckin.id} for user ${userKindeId}`
       );
       const updateResult = await db
         .update(checkinsTable)
@@ -198,6 +198,7 @@ export async function submitCheckIn(
         })
         .where(eq(checkinsTable.id, existingCheckin.id))
         .returning({ id: checkinsTable.id });
+      console.log(`ACTION: Update Result:`, updateResult); // Log after
 
       if (!updateResult?.[0]?.id) {
         throw new Error("Database update failed for existing check-in.");
@@ -207,7 +208,7 @@ export async function submitCheckIn(
       // --- 5b. INSERT New Check-in ---
       operationType = "insert";
       console.log(
-        `Inserting new check-in for user ${userKindeId} at place ${placeDetails.id}`
+        `ACTION: Attempting to INSERT new checkin for user ${userKindeId} at place ${placeDetails.id}`
       );
       const newCheckinData: InsertCheckin = {
         userId: userKindeId,
@@ -223,7 +224,7 @@ export async function submitCheckIn(
         .insert(checkinsTable)
         .values(newCheckinData)
         .returning({ id: checkinsTable.id });
-
+      console.log(`ACTION: Insert Result:`, insertResult); // Log after
       if (!insertResult?.[0]?.id) {
         throw new Error("Database insertion failed for new check-in.");
       }

@@ -1,66 +1,30 @@
-// // Inside CheckinAndChatController.tsx
+// // Inside submitCheckIn action...
+// try {
+//     // ... find existingCheckin ...
 
-// export default function CheckinAndChatController({
-//     otherCheckins,
-//     placeId,
-//     currentUserCheckinId,
-//     currentUserKindeId, // <-- Destructure the new prop
-//   }: CheckinAndChatControllerProps) {
+//     if (existingCheckin) {
+//         // --- UPDATE Existing Check-in ---
+//         console.log(`ACTION: Attempting to UPDATE checkin ID ${existingCheckin.id} for user ${userKindeId}`); // Log before
+//         const updateResult = await db.update(checkinsTable).set({ /* ... data ... */ }).where(eq(checkinsTable.id, existingCheckin.id)).returning({ id: checkinsTable.id });
+//         console.log(`ACTION: Update Result:`, updateResult); // Log after
 
-//     // ... state ...
+//         if (!updateResult?.[0]?.id) throw new Error("Database update failed.");
+//         checkinId = updateResult[0].id;
+//         operationType = 'update';
 
-//     useEffect(() => {
-//       // Update guard clause
-//       if (!supabase || !currentUserCheckinId /* Maybe remove this check? */ || !placeId || !currentUserKindeId /* Add check for kindeId maybe? */ ) {
-//            console.log("Dependencies missing, skipping subscription.");
-//            // Decide if subscription should run even if user isn't checked in (currentUserCheckinId is null)
-//            // If yes, remove currentUserCheckinId from guard. Let's assume yes for now.
-//            // If user isn't logged in (currentUserKindeId is null), maybe skip?
-//            if (!supabase || !placeId) return; // Simplified guard
-//            // return;
-//       }
+//     } else {
+//         // --- INSERT New Check-in ---
+//         console.log(`ACTION: Attempting to INSERT new checkin for user ${userKindeId} at place ${placeDetails.id}`); // Log before
+//         const newCheckinData: InsertCheckin = { /* ... data ... */ };
+//         const insertResult = await db.insert(checkinsTable).values(newCheckinData).returning({ id: checkinsTable.id });
+//         console.log(`ACTION: Insert Result:`, insertResult); // Log after
 
-//       const channelName = `realtime_updates_place_${placeId}_user_${currentUserKindeId ?? 'anon'}`; // Adjust name
-//       const channel = supabase.channel(channelName);
-
-//       // Listener 4: New Check-in Created
-//       channel.on<CheckinRow>(
-//           'postgres_changes',
-//           { event: 'INSERT', schema: 'public', table: 'checkins', filter: `place_id=eq.${placeId}` },
-//           (payload) => {
-//               console.log("New Check-in Detected (INSERT):", payload.new);
-//               const newCheckin = payload.new; // Type is CheckinRow
-
-//               // --- CORRECTED CHECK ---
-//               // Add to list ONLY IF it's not the current logged-in user's check-in
-//               if (newCheckin && newCheckin.user_id !== currentUserKindeId) { // Compare user_id to Kinde ID
-//                   // --- END CORRECTION ---
-
-//                   const transformedCheckin = transformCheckinRowToSelect(newCheckin);
-//                   if (transformedCheckin) {
-//                        setDisplayedCheckins(prevCheckins => {
-//                           if (!prevCheckins.some(c => c.id === transformedCheckin.id)) {
-//                               console.log(`Adding check-in from user ${newCheckin.user_id} to displayed list:`, transformedCheckin);
-//                               return [...prevCheckins, transformedCheckin];
-//                           }
-//                           return prevCheckins;
-//                        });
-//                   }
-//               } else {
-//                    console.log(`Ignoring check-in insert (likely self or missing data). Checkin UserID: ${newCheckin?.user_id}, Current User KindeID: ${currentUserKindeId}`);
-//               }
-//           }
-//       );
-
-//       // ... other listeners (UPDATE, DELETE on checkins, listeners for chat_sessions) ...
-
-//       channel.subscribe((status, err) => { /* ... */ });
-
-//       // Cleanup
-//       return () => { /* ... remove channel ... */ };
-
-//     // Add props used in logic/filters to dependency array
-//     }, [currentUserCheckinId, currentUserKindeId, supabase, placeId, toast]); // Added currentUserKindeId, placeId
-
-//   // ... rest of component ...
-//   }
+//          if (!insertResult?.[0]?.id) throw new Error("Database insertion failed.");
+//         checkinId = insertResult[0].id;
+//         operationType = 'insert';
+//     }
+// } catch (error: unknown) {
+//     console.error(`ACTION: Check-in DB operation failed:`, error); // Ensure catch logs error
+//     // ... return error ...
+// }
+// // ... logging success & redirect ...
