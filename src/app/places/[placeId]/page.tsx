@@ -3,7 +3,7 @@ import { placesTable, checkinsTable, type SelectCheckin } from "@/db/schema";
 import { eq, and, gt, desc } from "drizzle-orm";
 import { notFound } from "next/navigation";
 import { getKindeServerSession } from "@kinde-oss/kinde-auth-nextjs/server";
-import CheckinAndChatController from "./_components/CheckinAndChatController";
+import CheckinAndMessageController from "./_components/CheckinAndMessageController";
 
 const CURRENT_WINDOW_MS = 2 * 60 * 60 * 1000;
 
@@ -90,7 +90,7 @@ export default async function PlaceDetailPage(props: PlaceDetailPageProps) {
           {placeDetails.lastFetchedAt.toLocaleTimeString()}
         </p>
       </section>
-      <CheckinAndChatController
+      <CheckinAndMessageController
         otherCheckins={otherCheckins}
         placeId={placeId}
         currentUserCheckinId={currentUserCheckin?.id ?? null}

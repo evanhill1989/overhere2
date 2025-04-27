@@ -11,7 +11,7 @@ import {
 import { sendMessage } from "@/app/_actions/chatActions";
 
 // Define a simple type for messages received/stored in state (matches Supabase snake_case)
-interface ChatMessage {
+interface Message {
   id: number;
   chat_session_id: string;
   sender_checkin_id: number;
@@ -19,7 +19,7 @@ interface ChatMessage {
   created_at: string; // ISO String timestamp
 }
 
-interface ChatWindowProps {
+interface MessageWindowProps {
   sessionId: string;
   currentUserCheckinId: number;
   partnerCheckinId: number; // Keep if needed for context/UI
@@ -44,13 +44,13 @@ if (supabaseUrl && supabaseAnonKey) {
   );
 }
 
-export default function ChatWindow({
+export default function MessageWindow({
   sessionId,
   currentUserCheckinId,
 
   onClose,
-}: ChatWindowProps) {
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
+}: MessageWindowProps) {
+  const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState<string>("");
   const [isSending, setIsSending] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
@@ -116,17 +116,17 @@ export default function ChatWindow({
         (payload) => {
           console.log("New message received via subscription:", payload.new);
           // Append the new message to the existing messages state
-          // Ensure the payload structure matches your ChatMessage interface
+          // Ensure the payload structure matches your Message interface
           setMessages((currentMessages) => {
             // Avoid adding duplicates if fetch happened around the same time
             if (
               currentMessages.some(
-                (msg) => msg.id === (payload.new as ChatMessage).id
+                (msg) => msg.id === (payload.new as Message).id
               )
             ) {
               return currentMessages;
             }
-            return [...currentMessages, payload.new as ChatMessage];
+            return [...currentMessages, payload.new as Message];
           });
         }
       )

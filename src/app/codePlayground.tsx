@@ -1,135 +1,110 @@
-// useEffect(() => {
-//     // Guard clauses
-//     if (!supabase || !currentUserCheckinId) {
-//       console.log("Supabase client or currentUserCheckinId missing, skipping subscription.");
-//       return;
-//     }
+// // Inside the return statement of CheckinAndChatController:
 
-//     // REMOVED the unused handlePostgresChanges function definition
+//   // ... (Error message display logic remains the same) ...
 
-//     const channelName = `realtime_chat_user_${currentUserCheckinId}`;
-//     console.log(`Attempting to subscribe to channel: ${channelName}`);
-//     const channel = supabase.channel(channelName);
+//   {/* List of Other Users / Check-ins */}
+//   <div>
+//     <h2 className="text-xl font-semibold mb-3 dark:text-white">
+//       Checked In Nearby
+//     </h2>
 
-//     // Listener 1: For new INCOMING chat requests (INSERT where I am receiver)
-//     channel.on<ChatSessionRow>(
-//         'postgres_changes',
-//         {
-//             event: 'INSERT',
-//             schema: 'public',
-//             table: 'chat_sessions',
-//             filter: `receiver_checkin_id=eq.${currentUserCheckinId}`
-//         },
-//         (payload) => {
-//             // Handler for incoming inserts (seems correct)
-//             console.log('Incoming Request (INSERT):', payload);
-//             if (payload.new) {
-//                 const newSession = payload.new;
-//                 setChatRequests((currentRequests) => {
-//                     if (!currentRequests.some((req) => req.id === newSession.id)) {
-//                         return [...currentRequests, newSession];
-//                     }
-//                     return currentRequests;
-//                 });
-//             }
-//         }
-//     );
+//     {/* ... ("No one else checked in" message remains the same) ... */}
 
-//     // Listener 2: For updates on chats I INITIATED (e.g., receiver accepted/rejected)
-//     channel.on<ChatSessionRow>(
-//         'postgres_changes',
-//         {
-//             event: 'UPDATE',
-//             schema: 'public',
-//             table: 'chat_sessions',
-//             filter: `initiator_checkin_id=eq.${currentUserCheckinId}`
-//         },
-//         (payload) => {
-//             // Handler for updates on sessions I initiated
-//             console.log('My Outgoing Session Update (UPDATE):', payload);
-//             if (payload.new) {
-//                 const updatedSession = payload.new;
+//     {otherCheckins.length > 0 && (
+//       <ul className="space-y-3">
+//         {otherCheckins.map((checkin) => {
+//           // --- Determine the state relative to this specific checkin ---
 
-//                 // Check for ACCEPTANCE (Removed payload.old.status check)
-//                 if (updatedSession.status === 'active') {
-//                      // Optional: Add client check if already processing this to prevent flicker
-//                      // if (activeChatSessionId === updatedSession.id) return;
+//           // 1. Is an outgoing request pending TO this person?
+//           const pendingOutgoing = pendingOutgoingRequests.find( // Use find to get the specific request if needed later
+//             (req) => req.receiverCheckinId === checkin.id
+//           );
+//           const isPendingOutgoing = !!pendingOutgoing;
 
-//                     console.log(`Chat session ${updatedSession.id} accepted by receiver!`);
-//                     setActiveChatSessionId(updatedSession.id);
-//                     setChatPartnerCheckinId(updatedSession.receiver_checkin_id);
-//                     setPendingOutgoingRequests(prev => prev.filter(req => req.sessionId !== updatedSession.id));
-//                     setChatRequests((prev) => prev.filter((r) => r.initiator_checkin_id !== updatedSession.receiver_checkin_id));
-//                 }
-//                 // Check for REJECTION (Removed payload.old.status check)
-//                 else if (updatedSession.status === 'rejected') {
-//                     console.log(`Chat session ${updatedSession.id} rejected by receiver.`);
-//                     setPendingOutgoingRequests(prev => prev.filter(req => req.sessionId !== updatedSession.id));
-//                     toast({ // Assuming toast is initialized via useToast()
-//                         title: "Request Dismissed",
-//                         description: "The other user dismissed your chat request.",
-//                     });
-//                 }
-//                  // Handle other status updates if needed
-//             }
-//         }
-//     );
+//           // 2. Is there an incoming request FROM this person?
+//           // Use the renamed state 'incomingRequests' if you renamed it
+//           const incomingRequest = incomingRequests.find(
+//             (req) => req.initiator_checkin_id === checkin.id
+//           );
 
-//     // Listener 3: For DELETES of sessions I was involved in (Listen broadly, filter client-side)
-//     channel.on<ChatSessionRow>(
-//         'postgres_changes',
-//         {
-//             event: 'DELETE',
-//             schema: 'public',
-//             table: 'chat_sessions',
-//             // No server-side filter, as payload.old only has ID
-//         },
-//         (payload) => {
-//             console.log('Chat Session Potentially Deleted:', payload.old);
-//             // payload.old ONLY contains the primary key (id) reliably here
-//             const deletedSessionId = payload.old?.id;
+//           // --- End State Determination ---
 
-//             if (deletedSessionId && currentUserCheckinId) {
-//                  // Check local state to see if this delete affects us
-//                  const relevantIncoming = chatRequests.some(req => req.id === deletedSessionId);
-//                  const relevantOutgoing = pendingOutgoingRequests.some(req => req.sessionId === deletedSessionId);
-//                  // You might need a way to check if it was the *active* chat session ID
-//                  // const relevantActive = activeChatSessionId === deletedSessionId;
+//           return (
+//             <li
+//               key={checkin.id}
+//               className={`p-3 rounded-md border bg-white dark:bg-gray-800 dark:border-gray-700 flex justify-between items-center transition-opacity ${
+//                 // Dim others slightly only when initiating a *new* connection
+//                 isLoadingConnection && !isPendingOutgoing && !incomingRequest
+//                   ? "opacity-60 pointer-events-none"
+//                   : ""
+//               }`}
+//             >
+//               {/* Display User Info (Status/Topic) - unchanged */}
+//               <div>
+//                  <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium mr-2 ${ checkin.status === "available" ? /* green */ : /* red */ }`}>
+//                    {checkin.status === "available" ? "Available" : "Busy"}
+//                  </span>
+//                  {checkin.topic ? ( <span className="text-gray-800 dark:text-gray-200 italic">{checkin.topic}</span>) : ( <span className="text-gray-500 dark:text-gray-400">Open to connect</span>)}
+//               </div>
 
-//                  if (relevantIncoming || relevantOutgoing /*|| relevantActive*/) {
-//                      console.log(`Processing DELETE event for relevant session: ${deletedSessionId}`);
-//                      // Perform cleanup using the ID
-//                      setChatRequests((currentRequests) => currentRequests.filter((req) => req.id !== deletedSessionId));
-//                      setPendingOutgoingRequests((prev) => prev.filter((req) => req.sessionId !== deletedSessionId));
-//                      // if (relevantActive) { /* Close chat window logic */ }
-//                  } else {
-//                       console.log("Ignoring DELETE event not relevant to current user's active/pending state.");
-//                  }
-//             } else {
-//                 console.log("Ignoring DELETE event due to missing ID or user ID.");
-//             }
-//         }
-//     );
+//               {/* --- Conditional Action Buttons --- */}
+//               <div className="flex gap-x-2"> {/* Use gap for spacing */}
+//                 {/* Case 1: Incoming Request from this user */}
+//                 {incomingRequest && (
+//                   <>
+//                     <Button
+//                        variant="outline" // Example style (adjust)
+//                        size="sm" // Example size
+//                        onClick={() => handleAcceptConnection(incomingRequest)}
+//                        disabled={isLoadingConnection}
+//                     >
+//                       Accept
+//                     </Button>
+//                     <Button
+//                        variant="ghost" // Example style (adjust)
+//                        size="sm"
+//                        onClick={() => handleDismissRequest(incomingRequest)}
+//                        disabled={isLoadingConnection}
+//                     >
+//                       Dismiss
+//                     </Button>
+//                   </>
+//                 )}
 
-//     // Subscribe AFTER setting up all listeners
-//     channel.subscribe((status, err) => {
-//         if (status === 'SUBSCRIBED') {
-//             console.log(`Successfully subscribed to channel ${channelName} with multiple listeners`);
-//         } else if (err) {
-//             console.error(`Subscription error on ${channelName}:`, err);
-//             setErrorMessage("Realtime connection issue.");
-//         }
-//         // Handle other statuses like CHANNEL_ERROR, TIMED_OUT
-//     });
+//                 {/* Case 2: Outgoing Request is Pending to this user */}
+//                 {!incomingRequest && isPendingOutgoing && (
+//                   <Button
+//                     disabled={true}
+//                     variant="secondary" // Example style
+//                     size="sm"
+//                     className="cursor-default"
+//                   >
+//                     Request Pending
+//                   </Button>
+//                 )}
 
-//     // Cleanup function
-//     return () => {
-//         if (channel && supabase) {
-//             console.log(`Unsubscribing from channel ${channelName}`);
-//             supabase.removeChannel(channel)
-//               .then(() => console.log(`Successfully removed channel ${channelName}`))
-//               .catch(err => console.error(`Error removing channel ${channelName}:`, err));
-//         }
-//     };
-//   // Add 'toast' to dependency array if it's from useToast hook
-// }, [currentUserCheckinId, supabase, toast, activeChatSessionId, chatRequests, pendingOutgoingRequests]); // Added potentially relevant state dependencies
+//                 {/* Case 3: User is Available, no pending/incoming requests */}
+//                 {!incomingRequest && !isPendingOutgoing && checkin.status === "available" && (
+//                   <Button
+//                      variant="default" // Example style (adjust to match your primary button)
+//                      size="sm"
+//                     onClick={() => handleInitiateConnection(checkin)}
+//                     disabled={isLoadingConnection || !currentUserCheckinId}
+//                     title={!currentUserCheckinId ? "Check in to connect" : "Send connection request"}
+//                   >
+//                     {isLoadingConnection ? "Sending..." : "Connect"}
+//                   </Button>
+//                 )}
+
+//                  {/* Case 4: User is Busy, no pending/incoming requests */}
+//                  {!incomingRequest && !isPendingOutgoing && checkin.status === 'busy' && (
+//                     <span className="px-3 py-1 text-gray-500 text-sm italic">Busy</span>
+//                  )}
+//               </div>
+//               {/* --- End Conditional Action Buttons --- */}
+//             </li>
+//           );
+//         })}
+//       </ul>
+//     )}
+//   </div>
