@@ -3,9 +3,10 @@
 
 import { db } from "@/index";
 import { checkinsTable, placesTable, type SelectPlace } from "@/db/schema";
+import type { InsertCheckin, SelectCheckin } from "@/db/schema"; // Import types
 import { getKindeServerSession } from "@kinde-oss/kinde-auth-nextjs/server";
 import { redirect } from "next/navigation";
-import { eq, sql } from "drizzle-orm";
+import { and, desc, eq, sql } from "drizzle-orm";
 
 export type ActionResult = {
   success: boolean;
@@ -14,7 +15,7 @@ export type ActionResult = {
 };
 
 const CACHE_STALE_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
-
+const CHECKIN_UPDATE_WINDOW_MS = 2 * 60 * 60 * 1000;
 async function fetchAndCacheGooglePlaceDetails(
   placeId: string
 ): Promise<SelectPlace | null> {
@@ -122,64 +123,136 @@ async function fetchAndCacheGooglePlaceDetails(
 }
 
 export async function submitCheckIn(
-  previousState: ActionResult | null,
+  previousState: ActionResult | null, // For useActionState
   formData: FormData
 ): Promise<ActionResult> {
+  // 1. Authentication
   const { getUser, isAuthenticated } = getKindeServerSession();
   const authenticated = await isAuthenticated();
   const user = await getUser();
 
   if (!authenticated || !user?.id) {
-    return {
-      success: false,
-      message: "User not authenticated or details missing.",
-    };
+    return { success: false, message: "User not authenticated." };
   }
   const userKindeId = user.id;
 
+  // 2. Get Data from Form
   const selectedPlaceId = formData.get("selectedPlaceId") as string | null;
-  // --- Get Topic from Form Data ---
-  const topicPreference = formData.get("topicPreference") as string | null; // Name this field in your form
+  const topicPreference = formData.get("topicPreference") as string | null;
+  const statusPreference = formData.get("status") as
+    | SelectCheckin["status"]
+    | null; // Get status
 
   if (!selectedPlaceId) {
     return { success: false, message: "No place selected." };
   }
+  // Validate status (ensure it's one of the allowed enum values)
+  if (!statusPreference || !["available", "busy"].includes(statusPreference)) {
+    return { success: false, message: "Invalid status selected." };
+  }
 
+  // 3. Get Place Details
   const placeDetails = await fetchAndCacheGooglePlaceDetails(selectedPlaceId);
   if (!placeDetails) {
     return { success: false, message: "Could not retrieve place details." };
   }
 
   let checkinId: number | undefined;
+  let operationType: "insert" | "update" | null = null;
+
   try {
-    const newCheckin = await db
-      .insert(checkinsTable)
-      .values({
+    // --- 4. Check for Existing Recent Check-in ---
+    const thresholdTime = new Date(Date.now() - CHECKIN_UPDATE_WINDOW_MS);
+    const existingCheckin = await db.query.checkinsTable.findFirst({
+      where: and(
+        eq(checkinsTable.userId, userKindeId),
+        eq(checkinsTable.placeId, placeDetails.id)
+        // Optional: only update if it was recent? Or update regardless?
+        // Let's update even older ones to "refresh" them if found for this user/place
+        // gt(checkinsTable.createdAt, thresholdTime)
+      ),
+      orderBy: desc(checkinsTable.createdAt), // Find the absolute latest for this user/place
+      columns: { id: true }, // We only need the ID
+    });
+
+    // --- 5. Perform Update or Insert ---
+    if (existingCheckin) {
+      // --- 5a. UPDATE Existing Check-in ---
+      operationType = "update";
+      console.log(
+        `Updating existing check-in ${existingCheckin.id} for user ${userKindeId}`
+      );
+      const updateResult = await db
+        .update(checkinsTable)
+        .set({
+          // Refresh timestamp to keep it visible/active
+          createdAt: new Date(),
+          // Update status and topic from form
+          status: statusPreference,
+          topic: topicPreference?.trim() || null,
+          // Optionally update location details again
+          latitude: placeDetails.latitude,
+          longitude: placeDetails.longitude,
+          placeName: placeDetails.name,
+          placeAddress: placeDetails.address,
+        })
+        .where(eq(checkinsTable.id, existingCheckin.id))
+        .returning({ id: checkinsTable.id });
+
+      if (!updateResult?.[0]?.id) {
+        throw new Error("Database update failed for existing check-in.");
+      }
+      checkinId = updateResult[0].id;
+    } else {
+      // --- 5b. INSERT New Check-in ---
+      operationType = "insert";
+      console.log(
+        `Inserting new check-in for user ${userKindeId} at place ${placeDetails.id}`
+      );
+      const newCheckinData: InsertCheckin = {
         userId: userKindeId,
         placeId: placeDetails.id,
         placeName: placeDetails.name,
         placeAddress: placeDetails.address,
         latitude: placeDetails.latitude,
         longitude: placeDetails.longitude,
-        status: "available", // Default to available on new check-in
-        topic: topicPreference?.trim() || null, // Save topic or null if empty/missing
-      })
-      .returning({ id: checkinsTable.id });
+        status: statusPreference, // Use status from form
+        topic: topicPreference?.trim() || null,
+      };
+      const insertResult = await db
+        .insert(checkinsTable)
+        .values(newCheckinData)
+        .returning({ id: checkinsTable.id });
 
-    if (!newCheckin?.[0]?.id) {
-      throw new Error("Database insertion failed.");
+      if (!insertResult?.[0]?.id) {
+        throw new Error("Database insertion failed for new check-in.");
+      }
+      checkinId = insertResult[0].id;
     }
-    checkinId = newCheckin[0].id;
   } catch (error: unknown) {
-    console.error(`Check-in DB operation failed:`, error);
-    return {
-      success: false,
-      message: `Check-in failed: ${"Database error."}`,
-    };
+    console.error(
+      `Check-in DB operation (${operationType || "find"}) failed:`,
+      error
+    );
+    let message = "Database error during check-in.";
+    if (error instanceof Error && error.message) {
+      // Avoid leaking detailed DB errors, but maybe log them
+      message = "A database error occurred.";
+    }
+    return { success: false, message: message };
   }
 
+  // 6. Success -> Redirect
   console.log(
-    `User ${userKindeId} checked into ${placeDetails.name} (ID: ${checkinId})`
+    `User ${userKindeId} ${
+      operationType === "update" ? "updated check-in" : "checked into"
+    } ${placeDetails.name} (Checkin ID: ${checkinId})`
   );
+
+  // Redirect on server action success
   redirect(`/places/${placeDetails.id}`);
+
+  // Note: The return below is technically unreachable due to redirect,
+  // but good practice for function signature if redirect were conditional
+  // return { success: true, message: "Checked in successfully!", checkinId };
 }

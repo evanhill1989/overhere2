@@ -93,7 +93,7 @@
 //                     title={!currentUserCheckinId ? "Check in to connect" : "Send connection request"}
 //                   >
 //                     {isLoadingConnection ? "Sending..." : "Connect"}
-//                   </Button>
+//                   </Button> ""
 //                 )}
 
 //                  {/* Case 4: User is Busy, no pending/incoming requests */}

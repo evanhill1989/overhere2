@@ -481,7 +481,7 @@ export default function CheckinAndMessageController({
         <h2 className="text-xl font-semibold mb-3 dark:text-white">
           Checked In Nearby
         </h2>
-        {otherCheckins.length === 0 &&
+        {displayedCheckins.length === 0 &&
           incomingRequests.length === 0 &&
           !errorMessage && (
             <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg text-center">
