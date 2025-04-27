@@ -33,6 +33,7 @@ interface InteractiveCheckinListProps {
   otherCheckins: SelectCheckin[];
   placeId: string;
   currentUserCheckinId: number | null;
+  currentUserKindeId: string | null;
 }
 
 // Initialize Supabase client (consider moving to a shared utility file)
@@ -53,6 +54,7 @@ export default function CheckinAndMessageController({
   otherCheckins,
   placeId,
   currentUserCheckinId,
+  currentUserKindeId,
 }: InteractiveCheckinListProps) {
   const [activeCId, setActiveConnectionId] = useState<string | null>(null);
   const [connectionPartnerCheckinId, setConnectionPartnerCheckinId] = useState<
@@ -72,15 +74,18 @@ export default function CheckinAndMessageController({
 
   useEffect(() => {
     // Guard clauses: Ensure Supabase client and user check-in ID are available
-    if (!supabase || !currentUserCheckinId || !placeId) {
+    if (!supabase || !currentUserCheckinId || !placeId || !currentUserKindeId) {
       console.log(
         "Supabase client or currentUserCheckinId missing, skipping subscription."
       );
+      if (!supabase || !placeId) return; // Simplified guard
       return;
     }
 
     // Create a unique channel name for this user's chat-related subscriptions
-    const channelName = `realtime_chat_user_${currentUserCheckinId}`;
+    const channelName = `realtime_updates_place_${placeId}_user_${
+      currentUserKindeId ?? "anon"
+    }`;
     console.log(`Attempting to subscribe to channel: ${channelName}`);
     const channel = supabase.channel(channelName);
 
@@ -213,7 +218,7 @@ export default function CheckinAndMessageController({
         const newCheckin = payload.new;
         // Add to list ONLY IF it's not the current user's check-in
         // AND it's not already in the list (prevent duplicates)
-        if (newCheckin.id !== currentUserCheckinId) {
+        if (newCheckin && newCheckin.user_id !== currentUserKindeId) {
           const transformedCheckin = transformCheckinRowToSelect(newCheckin);
           if (transformedCheckin) {
             console.log("Transformed Check-in:", transformedCheckin);
@@ -329,6 +334,7 @@ export default function CheckinAndMessageController({
     currentUserCheckinId,
     incomingRequests,
     pendingOutgoingRequests,
+    currentUserKindeId,
     placeId,
   ]); // Ensure dependencies are correct
 

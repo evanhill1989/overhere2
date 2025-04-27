@@ -1,110 +1,66 @@
-// // Inside the return statement of CheckinAndChatController:
+// // Inside CheckinAndChatController.tsx
 
-//   // ... (Error message display logic remains the same) ...
+// export default function CheckinAndChatController({
+//     otherCheckins,
+//     placeId,
+//     currentUserCheckinId,
+//     currentUserKindeId, // <-- Destructure the new prop
+//   }: CheckinAndChatControllerProps) {
 
-//   {/* List of Other Users / Check-ins */}
-//   <div>
-//     <h2 className="text-xl font-semibold mb-3 dark:text-white">
-//       Checked In Nearby
-//     </h2>
+//     // ... state ...
 
-//     {/* ... ("No one else checked in" message remains the same) ... */}
+//     useEffect(() => {
+//       // Update guard clause
+//       if (!supabase || !currentUserCheckinId /* Maybe remove this check? */ || !placeId || !currentUserKindeId /* Add check for kindeId maybe? */ ) {
+//            console.log("Dependencies missing, skipping subscription.");
+//            // Decide if subscription should run even if user isn't checked in (currentUserCheckinId is null)
+//            // If yes, remove currentUserCheckinId from guard. Let's assume yes for now.
+//            // If user isn't logged in (currentUserKindeId is null), maybe skip?
+//            if (!supabase || !placeId) return; // Simplified guard
+//            // return;
+//       }
 
-//     {otherCheckins.length > 0 && (
-//       <ul className="space-y-3">
-//         {otherCheckins.map((checkin) => {
-//           // --- Determine the state relative to this specific checkin ---
+//       const channelName = `realtime_updates_place_${placeId}_user_${currentUserKindeId ?? 'anon'}`; // Adjust name
+//       const channel = supabase.channel(channelName);
 
-//           // 1. Is an outgoing request pending TO this person?
-//           const pendingOutgoing = pendingOutgoingRequests.find( // Use find to get the specific request if needed later
-//             (req) => req.receiverCheckinId === checkin.id
-//           );
-//           const isPendingOutgoing = !!pendingOutgoing;
+//       // Listener 4: New Check-in Created
+//       channel.on<CheckinRow>(
+//           'postgres_changes',
+//           { event: 'INSERT', schema: 'public', table: 'checkins', filter: `place_id=eq.${placeId}` },
+//           (payload) => {
+//               console.log("New Check-in Detected (INSERT):", payload.new);
+//               const newCheckin = payload.new; // Type is CheckinRow
 
-//           // 2. Is there an incoming request FROM this person?
-//           // Use the renamed state 'incomingRequests' if you renamed it
-//           const incomingRequest = incomingRequests.find(
-//             (req) => req.initiator_checkin_id === checkin.id
-//           );
+//               // --- CORRECTED CHECK ---
+//               // Add to list ONLY IF it's not the current logged-in user's check-in
+//               if (newCheckin && newCheckin.user_id !== currentUserKindeId) { // Compare user_id to Kinde ID
+//                   // --- END CORRECTION ---
 
-//           // --- End State Determination ---
+//                   const transformedCheckin = transformCheckinRowToSelect(newCheckin);
+//                   if (transformedCheckin) {
+//                        setDisplayedCheckins(prevCheckins => {
+//                           if (!prevCheckins.some(c => c.id === transformedCheckin.id)) {
+//                               console.log(`Adding check-in from user ${newCheckin.user_id} to displayed list:`, transformedCheckin);
+//                               return [...prevCheckins, transformedCheckin];
+//                           }
+//                           return prevCheckins;
+//                        });
+//                   }
+//               } else {
+//                    console.log(`Ignoring check-in insert (likely self or missing data). Checkin UserID: ${newCheckin?.user_id}, Current User KindeID: ${currentUserKindeId}`);
+//               }
+//           }
+//       );
 
-//           return (
-//             <li
-//               key={checkin.id}
-//               className={`p-3 rounded-md border bg-white dark:bg-gray-800 dark:border-gray-700 flex justify-between items-center transition-opacity ${
-//                 // Dim others slightly only when initiating a *new* connection
-//                 isLoadingConnection && !isPendingOutgoing && !incomingRequest
-//                   ? "opacity-60 pointer-events-none"
-//                   : ""
-//               }`}
-//             >
-//               {/* Display User Info (Status/Topic) - unchanged */}
-//               <div>
-//                  <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium mr-2 ${ checkin.status === "available" ? /* green */ : /* red */ }`}>
-//                    {checkin.status === "available" ? "Available" : "Busy"}
-//                  </span>
-//                  {checkin.topic ? ( <span className="text-gray-800 dark:text-gray-200 italic">{checkin.topic}</span>) : ( <span className="text-gray-500 dark:text-gray-400">Open to connect</span>)}
-//               </div>
+//       // ... other listeners (UPDATE, DELETE on checkins, listeners for chat_sessions) ...
 
-//               {/* --- Conditional Action Buttons --- */}
-//               <div className="flex gap-x-2"> {/* Use gap for spacing */}
-//                 {/* Case 1: Incoming Request from this user */}
-//                 {incomingRequest && (
-//                   <>
-//                     <Button
-//                        variant="outline" // Example style (adjust)
-//                        size="sm" // Example size
-//                        onClick={() => handleAcceptConnection(incomingRequest)}
-//                        disabled={isLoadingConnection}
-//                     >
-//                       Accept
-//                     </Button>
-//                     <Button
-//                        variant="ghost" // Example style (adjust)
-//                        size="sm"
-//                        onClick={() => handleDismissRequest(incomingRequest)}
-//                        disabled={isLoadingConnection}
-//                     >
-//                       Dismiss
-//                     </Button>
-//                   </>
-//                 )}
+//       channel.subscribe((status, err) => { /* ... */ });
 
-//                 {/* Case 2: Outgoing Request is Pending to this user */}
-//                 {!incomingRequest && isPendingOutgoing && (
-//                   <Button
-//                     disabled={true}
-//                     variant="secondary" // Example style
-//                     size="sm"
-//                     className="cursor-default"
-//                   >
-//                     Request Pending
-//                   </Button>
-//                 )}
+//       // Cleanup
+//       return () => { /* ... remove channel ... */ };
 
-//                 {/* Case 3: User is Available, no pending/incoming requests */}
-//                 {!incomingRequest && !isPendingOutgoing && checkin.status === "available" && (
-//                   <Button
-//                      variant="default" // Example style (adjust to match your primary button)
-//                      size="sm"
-//                     onClick={() => handleInitiateConnection(checkin)}
-//                     disabled={isLoadingConnection || !currentUserCheckinId}
-//                     title={!currentUserCheckinId ? "Check in to connect" : "Send connection request"}
-//                   >
-//                     {isLoadingConnection ? "Sending..." : "Connect"}
-//                   </Button> ""
-//                 )}
+//     // Add props used in logic/filters to dependency array
+//     }, [currentUserCheckinId, currentUserKindeId, supabase, placeId, toast]); // Added currentUserKindeId, placeId
 
-//                  {/* Case 4: User is Busy, no pending/incoming requests */}
-//                  {!incomingRequest && !isPendingOutgoing && checkin.status === 'busy' && (
-//                     <span className="px-3 py-1 text-gray-500 text-sm italic">Busy</span>
-//                  )}
-//               </div>
-//               {/* --- End Conditional Action Buttons --- */}
-//             </li>
-//           );
-//         })}
-//       </ul>
-//     )}
-//   </div>
+//   // ... rest of component ...
+//   }

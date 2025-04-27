@@ -94,6 +94,7 @@ export default async function PlaceDetailPage(props: PlaceDetailPageProps) {
         otherCheckins={otherCheckins}
         placeId={placeId}
         currentUserCheckinId={currentUserCheckin?.id ?? null}
+        currentUserKindeId={currentUserKindeId ?? null} // <-- Pass Kinde ID
       />
     </div>
   );
