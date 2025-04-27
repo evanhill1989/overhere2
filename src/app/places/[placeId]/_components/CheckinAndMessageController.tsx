@@ -9,26 +9,23 @@ import {
 } from "@/app/_actions/chatActions";
 import MessageWindow from "./MessageWindow";
 // Import Supabase client stuff
-import {
-  createClient,
-  SupabaseClient,
-  RealtimeChannel,
-} from "@supabase/supabase-js";
+import { createClient, SupabaseClient } from "@supabase/supabase-js";
 
 import type { Tables } from "@/types/supabase";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { transformCheckinRowToSelect } from "@/lib/utils";
 
 // Define the RealtimePayload structure again
-interface RealtimePayload<T = unknown> {
-  schema: string;
-  table: string;
-  commit_timestamp: string;
-  eventType: "INSERT" | "UPDATE" | "DELETE";
-  new: T;
-  old: Partial<T>;
-  errors: string[] | null;
-}
+// interface RealtimePayload<T = unknown> {
+//   schema: string;
+//   table: string;
+//   commit_timestamp: string;
+//   eventType: "INSERT" | "UPDATE" | "DELETE";
+//   new: T;
+//   old: Partial<T>;
+//   errors: string[] | null;
+// }
 
 type ChatSessionRow = Tables<"chat_sessions">;
 
@@ -70,13 +67,12 @@ export default function CheckinAndMessageController({
   const [pendingOutgoingRequests, setPendingOutgoingRequests] = useState<
     Array<{ receiverCheckinId: number; sessionId: string }>
   >([]);
-
-  // Effect for Subscribing to Chat Request Notifications
-  // State variables assumed to exist from your component:
+  const [displayedCheckins, setDisplayedCheckins] =
+    useState<SelectCheckin[]>(otherCheckins);
 
   useEffect(() => {
     // Guard clauses: Ensure Supabase client and user check-in ID are available
-    if (!supabase || !currentUserCheckinId) {
+    if (!supabase || !currentUserCheckinId || !placeId) {
       console.log(
         "Supabase client or currentUserCheckinId missing, skipping subscription."
       );
@@ -156,7 +152,7 @@ export default function CheckinAndMessageController({
         }
       }
     );
-
+    // Listener 3: For chat session DELETIONS (e.g., closed or deleted)
     channel.on<ChatSessionRow>(
       "postgres_changes",
       {
@@ -199,6 +195,93 @@ export default function CheckinAndMessageController({
         }
       }
     );
+
+    // --- ADD Listeners for Check-in Table Changes ---
+    type CheckinRow = Tables<"checkins">; // Use generated type
+
+    // Listener 4: New Check-in Created at this Place
+    channel.on<CheckinRow>(
+      "postgres_changes",
+      {
+        event: "INSERT",
+        schema: "public",
+        table: "checkins",
+        filter: `place_id=eq.${placeId}`, // Only for this place
+      },
+      (payload) => {
+        console.log("New Check-in Detected (INSERT):", payload.new);
+        const newCheckin = payload.new;
+        // Add to list ONLY IF it's not the current user's check-in
+        // AND it's not already in the list (prevent duplicates)
+        if (newCheckin.id !== currentUserCheckinId) {
+          const transformedCheckin = transformCheckinRowToSelect(newCheckin);
+          if (transformedCheckin) {
+            console.log("Transformed Check-in:", transformedCheckin);
+            setDisplayedCheckins((prevCheckins) => {
+              if (!prevCheckins.some((c) => c.id === newCheckin.id)) {
+                console.log(
+                  "Adding new check-in to displayed list:",
+                  newCheckin
+                );
+                return [...prevCheckins, transformedCheckin];
+              }
+              return prevCheckins;
+            });
+          }
+        }
+      }
+    );
+
+    // Listener 5: Check-in Updated at this Place (e.g., status/topic change)
+    channel.on<CheckinRow>(
+      "postgres_changes",
+      {
+        event: "UPDATE",
+        schema: "public",
+        table: "checkins",
+        filter: `place_id=eq.${placeId}`,
+      },
+      (payload) => {
+        console.log("Check-in Update Detected (UPDATE):", payload.new);
+        const updatedCheckin = payload.new;
+        if (updatedCheckin) {
+          const transformedCheckin =
+            transformCheckinRowToSelect(updatedCheckin);
+          if (transformedCheckin) {
+            // Check if transformation was successful
+            setDisplayedCheckins((prevCheckins) =>
+              prevCheckins.map((c) =>
+                c.id === transformedCheckin.id ? transformedCheckin : c
+              )
+            );
+          }
+        }
+      }
+    );
+
+    // Listener 6: Check-in Deleted at this Place (User left/checked out)
+    channel.on<CheckinRow>(
+      "postgres_changes",
+      {
+        event: "DELETE",
+        schema: "public",
+        table: "checkins",
+        filter: `place_id=eq.${placeId}`,
+        // Note: payload.old for checkins might also only contain the ID (primary key 'id')
+      },
+      (payload) => {
+        console.log("Check-in Deletion Detected (DELETE):", payload.old);
+        const deletedCheckinId = payload.old?.id; // ID is usually included in 'old' for DELETE
+        if (deletedCheckinId) {
+          // Remove the check-in from the displayed list
+          setDisplayedCheckins((prevCheckins) =>
+            prevCheckins.filter((c) => c.id !== deletedCheckinId)
+          );
+        }
+      }
+    );
+    // --- End Listeners for Check-in Table Changes ---
+
     channel.subscribe((status, err) => {
       if (status === "SUBSCRIBED") {
         console.log(
@@ -242,7 +325,12 @@ export default function CheckinAndMessageController({
         );
       }
     };
-  }, [currentUserCheckinId, supabase]);
+  }, [
+    currentUserCheckinId,
+    incomingRequests,
+    pendingOutgoingRequests,
+    placeId,
+  ]); // Ensure dependencies are correct
 
   const handleInitiateConnection = async (receiverCheckin: SelectCheckin) => {
     if (!currentUserCheckinId || isLoadingConnection) return;
@@ -403,9 +491,9 @@ export default function CheckinAndMessageController({
             </div>
           )}
 
-        {otherCheckins.length > 0 && (
+        {displayedCheckins.length > 0 && (
           <ul className="space-y-3">
-            {otherCheckins.map((checkin) => {
+            {displayedCheckins.map((checkin) => {
               // --- Determine the state relative to this specific checkin ---
 
               const pendingOutgoing = pendingOutgoingRequests.find(
@@ -416,6 +504,7 @@ export default function CheckinAndMessageController({
               const incomingRequest = incomingRequests.find(
                 (req) => req.initiator_checkin_id === checkin.id
               );
+              console.log("Incoming Requests State:", incomingRequest);
 
               return (
                 <li
