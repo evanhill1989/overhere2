@@ -1,30 +1,23 @@
-// // Inside submitCheckIn action...
-// try {
-//     // ... find existingCheckin ...
+//  setDisplayedCheckins(prevCheckins => {
+//     console.log(`--- setDisplayedCheckins (UPDATE for ID ${transformedCheckin.id}) ---`);
+//     // Log the IDs currently in state BEFORE the update
+//     console.log(`   Prev state IDs (${prevCheckins.length} items):`, prevCheckins.map(c => c.id));
+//     // Check if the ID we want to update actually exists in the previous state
+//     const foundIndex = prevCheckins.findIndex(c => c.id === transformedCheckin.id);
+//     console.log(`   Checkin ID ${transformedCheckin.id} found in prev state at index: ${foundIndex}`); // <<< CRITICAL LOG
 
-//     if (existingCheckin) {
-//         // --- UPDATE Existing Check-in ---
-//         console.log(`ACTION: Attempting to UPDATE checkin ID ${existingCheckin.id} for user ${userKindeId}`); // Log before
-//         const updateResult = await db.update(checkinsTable).set({ /* ... data ... */ }).where(eq(checkinsTable.id, existingCheckin.id)).returning({ id: checkinsTable.id });
-//         console.log(`ACTION: Update Result:`, updateResult); // Log after
-
-//         if (!updateResult?.[0]?.id) throw new Error("Database update failed.");
-//         checkinId = updateResult[0].id;
-//         operationType = 'update';
-
-//     } else {
-//         // --- INSERT New Check-in ---
-//         console.log(`ACTION: Attempting to INSERT new checkin for user ${userKindeId} at place ${placeDetails.id}`); // Log before
-//         const newCheckinData: InsertCheckin = { /* ... data ... */ };
-//         const insertResult = await db.insert(checkinsTable).values(newCheckinData).returning({ id: checkinsTable.id });
-//         console.log(`ACTION: Insert Result:`, insertResult); // Log after
-
-//          if (!insertResult?.[0]?.id) throw new Error("Database insertion failed.");
-//         checkinId = insertResult[0].id;
-//         operationType = 'insert';
+//     // Only proceed if found, otherwise log a warning
+//     if (foundIndex === -1) {
+//         console.warn(`   CANNOT UPDATE: Checkin ID ${transformedCheckin.id} not found in previous state array.`);
+//         return prevCheckins; // Return unchanged state
 //     }
-// } catch (error: unknown) {
-//     console.error(`ACTION: Check-in DB operation failed:`, error); // Ensure catch logs error
-//     // ... return error ...
-// }
-// // ... logging success & redirect ...
+
+//     // If found, map to update
+//     const newState = prevCheckins.map(c =>
+//       c.id === transformedCheckin.id ? transformedCheckin : c
+//     );
+//     console.log(`   UPDATING: New state IDs (${newState.length} items):`, newState.map(c => c.id));
+//     console.log(`--- End setDisplayedCheckins (UPDATE) ---`);
+//     return newState;
+//   });
+//   // --- End Logs ---
