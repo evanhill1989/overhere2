@@ -4,17 +4,23 @@ import { db } from "@/index";
 import { chatSessionsTable, checkinsTable, messagesTable } from "@/db/schema";
 import type { InsertChatSession, InsertMessage } from "@/db/schema";
 import { getKindeServerSession } from "@kinde-oss/kinde-auth-nextjs/server";
-import { and, eq, or, gt, desc } from "drizzle-orm";
+import { and, eq, or, desc } from "drizzle-orm";
 // import { revalidatePath } from "next/cache";
 
 // Consider making this configurable or sharing from elsewhere
-const CHAT_SESSION_WINDOW_MS = 2 * 60 * 60 * 1000;
+// const CHAT_SESSION_WINDOW_MS = 2 * 60 * 60 * 1000;
 
 export async function createOrGetChatSession(
   initiatorCheckinId: number,
   receiverCheckinId: number,
   placeId: string
-): Promise<{ sessionId: string | null; error?: string }> {
+): Promise<{
+  sessionId: string | null;
+  error?: string;
+  existingStatus?: "pending" | "active" | "rejected" | string;
+  existingInitiatorId?: number;
+  existingReceiverId?: number;
+}> {
   const { getUser, isAuthenticated } = getKindeServerSession();
   if (!(await isAuthenticated()))
     return { sessionId: null, error: "Not authenticated." };
@@ -26,22 +32,10 @@ export async function createOrGetChatSession(
   }
 
   try {
-    // Security: Verify initiator check-in belongs to the logged-in user
-    const initiatorCheckin = await db.query.checkinsTable.findFirst({
+    const existingPendingSession = await db.query.chatSessionsTable.findFirst({
       where: and(
-        eq(checkinsTable.id, initiatorCheckinId),
-        eq(checkinsTable.userId, user.id)
-      ),
-      columns: { id: true },
-    });
-    if (!initiatorCheckin)
-      return { sessionId: null, error: "Invalid initiator." };
-
-    // Check for recent existing session between these two check-ins
-    const thresholdTime = new Date(Date.now() - CHAT_SESSION_WINDOW_MS);
-    const existingSession = await db.query.chatSessionsTable.findFirst({
-      where: and(
-        gt(chatSessionsTable.createdAt, thresholdTime),
+        // Optional: gt(chatSessionsTable.createdAt, thresholdTime), // Only reuse RECENT pending
+        eq(chatSessionsTable.status, "pending"), // <<< ADD THIS STATUS CHECK
         or(
           and(
             eq(chatSessionsTable.initiatorCheckinId, initiatorCheckinId),
@@ -53,28 +47,56 @@ export async function createOrGetChatSession(
           )
         )
       ),
-      orderBy: desc(chatSessionsTable.createdAt), // Get newest if duplicates exist
+      orderBy: desc(chatSessionsTable.createdAt), // Get newest pending if somehow duplicates exist
+      columns: {
+        id: true,
+        status: true,
+        initiatorCheckinId: true,
+        receiverCheckinId: true,
+      },
     });
 
-    if (existingSession) {
-      return { sessionId: existingSession.id };
+    if (existingPendingSession) {
+      // A request is already pending. Return its info.
+      // The client can decide if it wants to show "Pending" again or handle differently.
+      console.log(
+        `Found existing PENDING session ${existingPendingSession.id}`
+      );
+      return {
+        sessionId: existingPendingSession.id,
+        existingStatus: existingPendingSession.status,
+        existingInitiatorId: existingPendingSession.initiatorCheckinId,
+        existingReceiverId: existingPendingSession.receiverCheckinId,
+      };
+    } else {
+      // No pending session found. Create a NEW one.
+      // (Security check for initiator ownership is still important before insert)
+      const initiatorCheckin = await db.query.checkinsTable.findFirst({
+        where: and(
+          eq(checkinsTable.id, initiatorCheckinId),
+          eq(checkinsTable.userId, user.id)
+        ),
+        columns: { id: true },
+      });
+      if (!initiatorCheckin)
+        return { sessionId: null, error: "Invalid initiator." };
+
+      const newSessionData: InsertChatSession = {
+        placeId: placeId,
+        initiatorCheckinId: initiatorCheckinId,
+        receiverCheckinId: receiverCheckinId,
+      };
+      const newSessionResult = await db
+        .insert(chatSessionsTable)
+        .values(newSessionData)
+        .returning({ id: chatSessionsTable.id });
+
+      if (!newSessionResult?.[0]?.id)
+        throw new Error("Failed to create session.");
+
+      console.log(`New chat session created: ${newSessionResult[0].id}`);
+      return { sessionId: newSessionResult[0].id };
     }
-
-    const newSessionData: InsertChatSession = {
-      placeId: placeId,
-      initiatorCheckinId: initiatorCheckinId,
-      receiverCheckinId: receiverCheckinId,
-    };
-    const newSessionResult = await db
-      .insert(chatSessionsTable)
-      .values(newSessionData)
-      .returning({ id: chatSessionsTable.id });
-
-    if (!newSessionResult?.[0]?.id)
-      throw new Error("Failed to create session.");
-
-    console.log(`New chat session created: ${newSessionResult[0].id}`);
-    return { sessionId: newSessionResult[0].id };
   } catch (error: unknown) {
     console.error("Error in createOrGetChatSession:", error);
     return {
