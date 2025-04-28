@@ -17,7 +17,7 @@ export function useNearbyPlaces(location: LocationData | null) {
       const response = await fetch("/api/places/nearby", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ latitude: lat, longitude: lon }),
+        body: JSON.stringify({ latitude: 27.7676, longitude: -82.6422 }),
       });
       const data = await response.json();
       if (!response.ok)

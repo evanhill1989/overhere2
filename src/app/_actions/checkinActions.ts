@@ -6,7 +6,7 @@ import { checkinsTable, placesTable, type SelectPlace } from "@/db/schema";
 import type { InsertCheckin, SelectCheckin } from "@/db/schema"; // Import types
 import { getKindeServerSession } from "@kinde-oss/kinde-auth-nextjs/server";
 import { redirect } from "next/navigation";
-import { and, desc, eq, sql } from "drizzle-orm";
+import { and, eq, gt, sql } from "drizzle-orm";
 
 export type ActionResult = {
   success: boolean;
@@ -166,12 +166,13 @@ export async function submitCheckIn(
     const existingCheckin = await db.query.checkinsTable.findFirst({
       where: and(
         eq(checkinsTable.userId, userKindeId),
-        eq(checkinsTable.placeId, placeDetails.id)
+        eq(checkinsTable.placeId, placeDetails.id),
+        gt(checkinsTable.createdAt, thresholdTime)
         // Optional: only update if it was recent? Or update regardless?
         // Let's update even older ones to "refresh" them if found for this user/place
         // gt(checkinsTable.createdAt, thresholdTime)
       ),
-      orderBy: desc(checkinsTable.createdAt), // Find the absolute latest for this user/place
+
       columns: { id: true }, // We only need the ID
     });
 
@@ -185,12 +186,9 @@ export async function submitCheckIn(
       const updateResult = await db
         .update(checkinsTable)
         .set({
-          // Refresh timestamp to keep it visible/active
           createdAt: new Date(),
-          // Update status and topic from form
           status: statusPreference,
           topic: topicPreference?.trim() || null,
-          // Optionally update location details again
           latitude: placeDetails.latitude,
           longitude: placeDetails.longitude,
           placeName: placeDetails.name,
@@ -198,7 +196,6 @@ export async function submitCheckIn(
         })
         .where(eq(checkinsTable.id, existingCheckin.id))
         .returning({ id: checkinsTable.id });
-      console.log(`ACTION: Update Result:`, updateResult); // Log after
 
       if (!updateResult?.[0]?.id) {
         throw new Error("Database update failed for existing check-in.");
@@ -243,17 +240,13 @@ export async function submitCheckIn(
     return { success: false, message: message };
   }
 
-  // 6. Success -> Redirect
   console.log(
     `User ${userKindeId} ${
       operationType === "update" ? "updated check-in" : "checked into"
     } ${placeDetails.name} (Checkin ID: ${checkinId})`
   );
 
-  // Redirect on server action success
   redirect(`/places/${placeDetails.id}`);
 
-  // Note: The return below is technically unreachable due to redirect,
-  // but good practice for function signature if redirect were conditional
-  // return { success: true, message: "Checked in successfully!", checkinId };
+  return { success: true, message: "Checked in successfully!", checkinId };
 }
