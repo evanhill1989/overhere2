@@ -66,8 +66,51 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    /* --- Dark Mode Palette --- */
+
+    /* Backgrounds */
+    --background: oklch(
+      0.18 0.01 50
+    ); /* Very Dark Warm Neutral (Espresso-inspired) */
+    --card: oklch(0.24 0.015 60); /* Dark Warm Neutral (Beige/Latte-inspired) */
+    --popover: oklch(
+      0.22 0.012 55
+    ); /* Slightly darker than card for popovers */
+    --muted: oklch(0.28 0.01 65); /* Subtle dark neutral, lighter than card */
+    --secondary: var(--card); /* Reuse card for secondary background */
+
+    /* Foregrounds / Text */
+    --foreground: oklch(0.95 0.01 90); /* Light Off-White (Cream-inspired) */
+    --card-foreground: var(--foreground); /* Use main text color on cards */
+    --popover-foreground: var(
+      --foreground
+    ); /* Use main text color on popovers */
+    --primary-foreground: oklch(
+      1 0 0
+    ); /* White (for max contrast on Primary) */
+    --secondary-foreground: var(
+      --foreground
+    ); /* Use main text color on secondary */
+    --muted-foreground: oklch(0.75 0.015 54); /* Lighter Latte */
+    --accent-foreground: oklch(1 0 0); /* White (for max contrast on Accent) */
+    --destructive-foreground: oklch(1 0 0); /* White */
+
+    /* Brand Colors (Adjusted for Dark Mode) */
+    --primary: oklch(0.7 0.14 34); /* Brighter Terracotta */
+    --accent: oklch(0.72 0.08 211); /* Brighter Teal */
+
+    /* Interactive Elements */
+    --border: oklch(
+      0.3 0.015 60
+    ); /* Subtle border, slightly lighter than card */
+    --input: oklch(0.3 0.015 60); /* Input background, matching border */
+    --ring: oklch(0.7 0.14 34); /* Focus Ring - Use adjusted Terracotta */
+
+    /* Destructive */
+    --destructive: oklch(0.65 0.2 15); /* Example Dark-Mode-Friendly Red */
+
+    /* --- Ensure all variables from light mode are defined --- */
+    /* If you add more variables later, add their dark mode equivalents here */
   }
 }
 
