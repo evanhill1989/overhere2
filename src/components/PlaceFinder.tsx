@@ -159,7 +159,7 @@ export default function PlaceFinder() {
       </div>
 
       {/* Map Area (as before) */}
-      <div className="flex-grow bg-muted relative">
+      <div className="relative h-1/2 bg-muted flex-shrink-0">
         <UserMap
           places={displayedPlaces}
           selectedPlace={selectedPlaceForCheckin}
@@ -171,7 +171,7 @@ export default function PlaceFinder() {
       </div>
 
       {/* Results List / CheckIn Form Area */}
-      <div className="h-1/3 border-t border-border overflow-y-auto bg-background p-2">
+      <div className="flex-grow border-t border-border overflow-y-auto bg-background p-2 min-h-0">
         {isLoading && (
           <div className="text-center p-4 flex justify-center items-center">
             <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Loading...
