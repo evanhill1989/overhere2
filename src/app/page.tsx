@@ -14,14 +14,11 @@ export default async function HomePage() {
   const isLoggedIn = await isAuthenticated();
 
   return (
-    // Consider if the main element needs specific height/width like h-screen
-    // The PlaceFinder component itself defines its internal layout (e.g., flex col h-screen)
     <main>
       {isLoggedIn ? (
-        <PlaceFinder /> // Delegate all place finding UI and logic here
+        <PlaceFinder />
       ) : (
-        // Simple centered login prompt for non-authenticated users
-        <div className="flex flex-col items-center justify-center min-h-screen bg-background p-8 text-center">
+        <div className="flex flex-col items-center justify-center bg-background p-8 text-center">
           <h1 className="text-4xl font-bold text-primary mb-4 font-heading">
             Welcome to overhere
           </h1>

@@ -34,10 +34,11 @@ export default async function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${fontHeading.variable} ${fontSans.variable} antialiased`}
+        className={`${fontHeading.variable} ${fontSans.variable} antialiased
+                   grid grid-rows-[auto_1fr_auto] min-h-screen`}
       >
         <Header isLoggedIn={isLoggedIn} />
-        <main>{children}</main>
+        <main className="m-auto">{children}</main>
         <Footer />
         <Toaster />
       </body>
