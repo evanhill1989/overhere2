@@ -7,6 +7,7 @@ import type { InsertCheckin, SelectCheckin } from "@/db/schema"; // Import types
 import { getKindeServerSession } from "@kinde-oss/kinde-auth-nextjs/server";
 import { redirect } from "next/navigation";
 import { and, eq, gt, sql } from "drizzle-orm";
+import { calculateDistance } from "@/lib/utils";
 
 export type ActionResult = {
   success: boolean;
@@ -16,6 +17,11 @@ export type ActionResult = {
 
 const CACHE_STALE_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
 const CHECKIN_UPDATE_WINDOW_MS = 2 * 60 * 60 * 1000;
+
+// --- DEFINE PROXIMITY THRESHOLD ---
+const MAX_CHECKIN_DISTANCE_METERS = 200; // Allow check-in within 200 meters (adjust as needed)
+// ---
+
 async function fetchAndCacheGooglePlaceDetails(
   placeId: string
 ): Promise<SelectPlace | null> {
@@ -141,20 +147,61 @@ export async function submitCheckIn(
   const topicPreference = formData.get("topicPreference") as string | null;
   const statusPreference = formData.get("status") as
     | SelectCheckin["status"]
-    | null; // Get status
+    | null;
+  const userLatitudeStr = formData.get("userLatitude") as string | null;
+  const userLongitudeStr = formData.get("userLongitude") as string | null;
 
   if (!selectedPlaceId) {
     return { success: false, message: "No place selected." };
   }
-  // Validate status (ensure it's one of the allowed enum values)
+
   if (!statusPreference || !["available", "busy"].includes(statusPreference)) {
     return { success: false, message: "Invalid status selected." };
+  }
+
+  // Validate received user location ---
+  if (!userLatitudeStr || !userLongitudeStr) {
+    return {
+      success: false,
+      message: "Your location could not be determined for check-in.",
+    };
+  }
+  const userLatitude = parseFloat(userLatitudeStr);
+  const userLongitude = parseFloat(userLongitudeStr);
+  if (isNaN(userLatitude) || isNaN(userLongitude)) {
+    return { success: false, message: "Invalid location data received." };
   }
 
   // 3. Get Place Details
   const placeDetails = await fetchAndCacheGooglePlaceDetails(selectedPlaceId);
   if (!placeDetails) {
     return { success: false, message: "Could not retrieve place details." };
+  }
+  if (placeDetails.latitude == null || placeDetails.longitude == null) {
+    return {
+      success: false,
+      message: "Cannot verify proximity: Place location is unknown.",
+    };
+  }
+
+  const distance = calculateDistance(
+    userLatitude,
+    userLongitude,
+    placeDetails.latitude,
+    placeDetails.longitude
+  );
+
+  console.log(
+    `Distance Check: User to ${placeDetails.name} = ${distance.toFixed(
+      1
+    )} meters.`
+  );
+
+  if (distance > MAX_CHECKIN_DISTANCE_METERS) {
+    return {
+      success: false,
+      message: `You seem too far away to check in here. Please get closer.`,
+    };
   }
 
   let checkinId: number | undefined;

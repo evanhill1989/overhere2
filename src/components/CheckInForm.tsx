@@ -13,6 +13,7 @@ import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Loader2, X } from "lucide-react";
 import { useEffect } from "react";
+import type { LocationData } from "@/hooks/useGeolocation";
 // Assuming you might use Sonner for notifications later
 // import { toast } from "sonner";
 
@@ -24,9 +25,14 @@ const initialCheckinState: ActionResult = {
 interface CheckInFormProps {
   place: Place; // The place selected for check-in
   onCancel: () => void; // Function to call when cancelling/closing the form
+  currentUserLocation: LocationData | null; // Receive user location as prop
 }
 
-export function CheckInForm({ place, onCancel }: CheckInFormProps) {
+export function CheckInForm({
+  place,
+  onCancel,
+  currentUserLocation,
+}: CheckInFormProps) {
   // Use useActionState for the check-in form submission
   const [state, formAction, isPending] = useActionState(
     submitCheckIn,
@@ -50,6 +56,14 @@ export function CheckInForm({ place, onCancel }: CheckInFormProps) {
     }
   }, [state, isPending]);
 
+  // Optional: Show toast messages
+  useEffect(() => {
+    /* ... */
+  }, [state, isPending]);
+
+  // Disable form submission if user location isn't available
+  const canSubmit = !!currentUserLocation;
+
   return (
     <div className="p-4 border border-primary rounded-lg mt-4 bg-card shadow-md relative">
       <Button
@@ -68,7 +82,22 @@ export function CheckInForm({ place, onCancel }: CheckInFormProps) {
       <form action={formAction}>
         {/* Hidden input to pass the selected place ID */}
         <input type="hidden" name="selectedPlaceId" value={place.id} />
-
+        {/* --- NEW: Hidden inputs for user location --- */}
+        {currentUserLocation && (
+          <>
+            <input
+              type="hidden"
+              name="userLatitude"
+              value={currentUserLocation.latitude}
+            />
+            <input
+              type="hidden"
+              name="userLongitude"
+              value={currentUserLocation.longitude}
+            />
+          </>
+        )}
+        {/* --- END NEW --- */}
         <div className="space-y-4">
           {/* Status Selection */}
           <div>
@@ -111,20 +140,32 @@ export function CheckInForm({ place, onCancel }: CheckInFormProps) {
             </p>
           </div>
 
-          {/* Submit Button */}
-          <Button type="submit" disabled={isPending} className="w-full">
+          {/* Display warning if location isn't available */}
+          {!currentUserLocation && (
+            <p className="text-sm text-orange-600">
+              Cannot check-in: Your current location is unavailable.
+            </p>
+          )}
+
+          {/* Submit Button - Disable if location missing */}
+          <Button
+            type="submit"
+            disabled={isPending || !canSubmit}
+            className="w-full"
+          >
             {isPending ? (
               <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Checking In...
+                {" "}
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Checking In...{" "}
               </>
             ) : (
               "Check In Here"
             )}
           </Button>
 
-          {/* Display non-redirect error messages from the action */}
+          {/* ... (Error message display) ... */}
           {state?.message && !state.success && !isPending && (
-            <p className="mt-2 text-sm text-red-600 text-center">
+            <p className="mt-2 text-lg font-semibold text-red-600 text-center">
               {state.message}
             </p>
           )}

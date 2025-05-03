@@ -178,12 +178,14 @@ export default function PlaceFinder() {
           </div>
         )}
 
-        {/* --- Render CheckInForm OR Place List --- */}
         {!isLoading && selectedPlaceForCheckin ? (
           // If a place is selected, show the CheckInForm
           <CheckInForm
             place={selectedPlaceForCheckin}
             onCancel={handleCancelCheckin}
+            // --- PASS USER LOCATION DOWN ---
+            currentUserLocation={userLocation}
+            // --- END ---
           />
         ) : !isLoading && displayedPlaces.length > 0 ? (
           // If NO place is selected AND we have places, show the list

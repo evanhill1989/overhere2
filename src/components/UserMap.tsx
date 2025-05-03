@@ -122,7 +122,7 @@ export function UserMap({
       zoom={mapZoom} // Use the derived zoom
       scrollWheelZoom={true} // Enable/disable zoom on scroll
       style={{ height: "100%", width: "100%", minHeight: "200px" }} // Ensure container has dimensions
-      className="z-0" // Set z-index if needed for overlays
+      // className="z-0" // Set z-index if needed for overlays
     >
       {/* Base Map Tile Layer */}
       <TileLayer

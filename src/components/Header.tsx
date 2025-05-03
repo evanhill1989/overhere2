@@ -21,16 +21,12 @@ export function Header({ isLoggedIn }: HeaderProps) {
       <nav>
         {/* Conditional Rendering based on prop */}
         {isLoggedIn ? (
-          // User IS logged in: Show LogoutLink
-          <LogoutLink
-            className="px-3 py-1.5 text-sm rounded text-primary hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/30 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors" // Adjusted size/style
-          >
+          <LogoutLink className="px-3 py-1.5 text-sm rounded text-primary hover:bg-red-50 dark:text-primary dark:hover:bg-red-900/30 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors">
             Log Out
           </LogoutLink>
         ) : (
-          // User IS NOT logged in: Show LoginLink
           <LoginLink
-            className="px-3 py-1.5 text-sm rounded text-primary hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-900/30 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors" // Adjusted size/style
+            className="px-3 py-1.5 text-sm rounded text-primary hover:bg-blue-50 dark:text-primary dark:hover:bg-primary/30 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary transition-colors" // Adjusted size/style
           >
             Sign In
           </LoginLink>
