@@ -71,7 +71,7 @@
     /* Backgrounds */
     --background: oklch(
       0.18 0.01 50
-    ); /* Very Dark Warm Neutral (Espresso-inspired) */
+    ); /*Very Dark Warm Neutral (Espresso-inspired) */
     --card: oklch(0.24 0.015 60); /* Dark Warm Neutral (Beige/Latte-inspired) */
     --popover: oklch(
       0.22 0.012 55

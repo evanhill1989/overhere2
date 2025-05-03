@@ -1,63 +1,44 @@
-"use client";
+// src/app/page.tsx
 
-// Import Hooks
+import {
+  getKindeServerSession,
+  LoginLink,
+  RegisterLink,
+} from "@kinde-oss/kinde-auth-nextjs/server";
 
-import { useNearbyPlaces } from "@/hooks/useNearbyPlaces";
+import { Button } from "@/components/ui/button";
+import { PlaceFinder } from "@/components/PlaceFinder";
 
-// Import Components
-import { LocationFinder } from "@/components/LocationFinder";
-import { PlacesSelectionForm } from "@/components/PlacesSelectionForm";
-import { useGeolocation } from "@/hooks/useGeolocation";
-
-import dynamic from "next/dynamic";
-
-const UserMap = dynamic(
-  () => import("@/components/UserMap").then((mod) => mod.UserMap),
-  {
-    ssr: false,
-    loading: () => <p>Loading map...</p>,
-  }
-);
-
-export default function Home() {
-  // Use Custom Hooks
-  const {
-    location,
-    error: locationError,
-    isLoading: isLoadingLocation,
-    requestLocation,
-  } = useGeolocation();
-
-  const {
-    places,
-    error: placesError,
-    isLoading: isLoadingPlaces,
-    // refetch: refetchPlaces, // uncomment if manual refetch needed
-  } = useNearbyPlaces(location); // Pass location data to the places hook
+export default async function HomePage() {
+  const { isAuthenticated } = getKindeServerSession();
+  const isLoggedIn = await isAuthenticated();
 
   return (
-    <div className="p-5 font-sans flex flex-col gap-4 max-w-md mx-auto">
-      <LocationFinder
-        location={location}
-        error={locationError}
-        isLoading={isLoadingLocation}
-        onRequestLocation={requestLocation}
-        isPlacesLoading={isLoadingPlaces} // Pass this down to disable button
-      />
-      {location && !isLoadingLocation && (
-        <UserMap center={location} places={places} zoom={20} /> // Pass location and places
+    // Consider if the main element needs specific height/width like h-screen
+    // The PlaceFinder component itself defines its internal layout (e.g., flex col h-screen)
+    <main>
+      {isLoggedIn ? (
+        <PlaceFinder /> // Delegate all place finding UI and logic here
+      ) : (
+        // Simple centered login prompt for non-authenticated users
+        <div className="flex flex-col items-center justify-center min-h-screen bg-background p-8 text-center">
+          <h1 className="text-4xl font-bold text-primary mb-4 font-heading">
+            Welcome to overhere
+          </h1>
+          <p className="text-lg text-foreground mb-8 max-w-md">
+            Ready to break the ice and connect with people nearby in real life?
+            Log in or sign up to get started.
+          </p>
+          <div className="flex gap-4">
+            <Button asChild>
+              <LoginLink>Log In</LoginLink>
+            </Button>
+            <Button variant="secondary" asChild>
+              <RegisterLink>Sign Up</RegisterLink>
+            </Button>
+          </div>
+        </div>
       )}
-      {!location && (
-        <UserMap
-          center={{ latitude: 27.7677, longitude: -82.6427 }} // Default center if no location
-          places={[]} // No places to show
-        />
-      )}
-      <PlacesSelectionForm
-        places={places}
-        isLoading={isLoadingPlaces}
-        error={placesError}
-      />
-    </div>
+    </main>
   );
 }

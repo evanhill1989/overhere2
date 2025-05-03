@@ -1,3 +1,4 @@
+// src/app/api/places/nearby/route.ts
 import { NextResponse } from "next/server";
 import type { Place } from "@/types/places";
 
@@ -14,6 +15,7 @@ interface GooglePlaceResult {
       lng?: number;
     };
   };
+  types?: string[]; // Keep types, might be useful for debugging/future filtering
 }
 
 export async function POST(request: Request) {
@@ -36,13 +38,14 @@ export async function POST(request: Request) {
     let places: Place[] = [];
 
     if (SERVICE_PROVIDER === "google") {
-      const searchType = "point_of_interest"; // Or 'establishment', 'restaurant', etc.
+      // --- MODIFICATION START ---
+      // Rank by DISTANCE and filter by TYPE = 'cafe'
+      const searchType = "cafe"; // Set the specific type we want
+      // rankby=distance requires *not* using radius. It searches outwards.
       apiUrl = `https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=${latitude}%2C${longitude}&rankby=distance&type=${searchType}&key=${Maps_API_KEY}`;
+      // --- MODIFICATION END ---
 
-      // Option 2: Keep radius but filter by type (If fixed radius is essential)
-      // const radius = 500; // Keep radius if you uncomment this
-      // const searchType = "point_of_interest";
-      // apiUrl = `https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=${latitude}%2C${longitude}&radius=${radius}&type=${searchType}&key=${Maps_API_KEY}`;
+      console.log("Fetching Google Places with URL:", apiUrl); // Log the URL
 
       const response = await fetch(apiUrl);
       if (!response.ok) {
@@ -65,12 +68,19 @@ export async function POST(request: Request) {
           data.status,
           data.error_message
         );
+        console.error("Full Error Response:", JSON.stringify(data, null, 2));
         throw new Error(
           `Google Places API Error: ${data.status} - ${
             data.error_message || "Unknown error"
           }`
         );
       }
+
+      // Log the raw results for inspection
+      console.log(
+        `Raw Google Places Results (type=${searchType}):`,
+        JSON.stringify(data.results, null, 2)
+      );
 
       places = (data.results || []).map(
         (place: GooglePlaceResult): Place => ({
@@ -79,6 +89,8 @@ export async function POST(request: Request) {
           address: place.vicinity || "Address not available",
           lat: place.geometry?.location?.lat,
           lng: place.geometry?.location?.lng,
+          // Optional: keep types if needed later
+          // types: place.types
         })
       );
     } else {
@@ -88,24 +100,33 @@ export async function POST(request: Request) {
       );
     }
 
+    // Log the final processed places
+    console.log("Processed Places:", JSON.stringify(places, null, 2));
+
+    // Check if places array is empty and potentially provide feedback
+    if (places.length === 0) {
+      console.log(
+        `No places found for type 'cafe' near ${latitude}, ${longitude}`
+      );
+      // Depending on desired behavior, you might want to return an empty list
+      // or perhaps try another type if 'cafe' yields nothing. For now, just return empty.
+    }
+
     return NextResponse.json({ places });
   } catch (error: unknown) {
-    // <-- Use unknown instead of any
     console.error("Error fetching nearby places:", error);
 
-    // Safely extract the error message
     let errorMessage = "Unknown error occurred";
     if (error instanceof Error) {
       errorMessage = error.message;
     } else if (typeof error === "string") {
       errorMessage = error;
     }
-    // You could add more checks here for other error types if needed
 
     return NextResponse.json(
       {
         error: "Failed to fetch nearby places",
-        details: errorMessage, // Use the extracted message
+        details: errorMessage,
       },
       { status: 500 }
     );
