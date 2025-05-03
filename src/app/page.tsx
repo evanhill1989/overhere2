@@ -7,7 +7,7 @@ import {
 } from "@kinde-oss/kinde-auth-nextjs/server";
 
 import { Button } from "@/components/ui/button";
-import { PlaceFinder } from "@/components/PlaceFinder";
+import PlaceFinder from "@/components/PlaceFinder";
 
 export default async function HomePage() {
   const { isAuthenticated } = getKindeServerSession();

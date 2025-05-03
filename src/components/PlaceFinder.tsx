@@ -10,10 +10,11 @@ import {
   type SearchActionResult,
 } from "@/app/_actions/placeActions";
 // Other imports
-// import UserMap from './UserMap';
-// import PlaceList from './PlaceList';
+import UserMap from "./UserMap";
+// import PlaceList from "./PlaceList";
 import { useNearbyPlaces } from "@/hooks/useNearbyPlaces"; // Keep using this for nearby
 import { useGeolocation } from "@/hooks/useGeolocation";
+
 import type { Place } from "@/types/places";
 import { CheckInForm } from "@/components/CheckInForm";
 
@@ -24,7 +25,7 @@ const initialSearchState: SearchActionResult = {
   query: undefined,
 };
 
-export function PlaceFinder() {
+export default function PlaceFinder() {
   // --- State Management ---
   // State for the specific search form action
   const [searchState, searchFormAction, isSearchPending] = useActionState(
@@ -144,7 +145,11 @@ export function PlaceFinder() {
 
       {/* Map Area (as before) */}
       <div className="flex-grow bg-muted relative">
-        {/* <UserMap places={displayedPlaces} selectedPlace={selectedPlaceForCheckin} userLocation={userLocation} ... /> */}
+        <UserMap
+          places={displayedPlaces}
+          selectedPlace={selectedPlaceForCheckin}
+          userLocation={userLocation}
+        />
         <p className="absolute inset-0 flex items-center justify-center text-muted-foreground">
           Map Area
         </p>
