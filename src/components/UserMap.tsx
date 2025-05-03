@@ -43,13 +43,12 @@ function ChangeView({
 
 // --- Configure Leaflet Icons (Optional but Recommended) ---
 // Delete default icon behavior which can cause issues with bundlers like Webpack
-delete (L.Icon.Default.prototype as any)._getIconUrl;
 
 // Define custom icons (ensure the image paths are correct relative to your public folder)
 const defaultIcon = L.icon({
-  iconUrl: "/leaflet/marker-icon.png", // Path to default marker icon
-  iconRetinaUrl: "/leaflet/marker-icon-2x.png", // Path to retina marker icon
-  shadowUrl: "/leaflet/marker-shadow.png", // Path to marker shadow
+  iconUrl: "marker-icon.png", // Path to default marker icon
+  iconRetinaUrl: "marker-icon-2x.png", // Path to retina marker icon
+  shadowUrl: "marker-shadow.png", // Path to marker shadow
   iconSize: [25, 41], // Size of the icon
   iconAnchor: [12, 41], // Point of the icon which will correspond to marker's location
   popupAnchor: [1, -34], // Point from which the popup should open relative to the iconAnchor
@@ -57,9 +56,9 @@ const defaultIcon = L.icon({
 });
 
 const selectedIcon = L.icon({
-  iconUrl: "/leaflet/marker-icon-selected.png", // DIFFERENT icon for selected state
-  iconRetinaUrl: "/leaflet/marker-icon-selected-2x.png",
-  shadowUrl: "/leaflet/marker-shadow.png",
+  iconUrl: "marker-icon.png", // Path to default marker icon
+  iconRetinaUrl: "marker-icon-2x.png", // Path to retina marker icon
+  shadowUrl: "marker-shadow.png", // Path to marker shadow
   iconSize: [30, 49], // Slightly larger?
   iconAnchor: [15, 49],
   popupAnchor: [1, -38],
@@ -67,9 +66,9 @@ const selectedIcon = L.icon({
 });
 
 const userIcon = L.icon({
-  iconUrl: "/leaflet/marker-icon-user.png", // DIFFERENT icon for user location
-  iconRetinaUrl: "/leaflet/marker-icon-user-2x.png",
-  shadowUrl: "/leaflet/marker-shadow.png",
+  iconUrl: "person.svg", // DIFFERENT icon for user location
+  // iconRetinaUrl: "/leaflet/marker-icon-user-2x.png",
+  // shadowUrl: "/leaflet/marker-shadow.png",
   iconSize: [25, 41],
   iconAnchor: [12, 41],
   popupAnchor: [1, -34],

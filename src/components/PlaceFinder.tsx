@@ -1,22 +1,37 @@
-"use client"; // Required for hooks like useState, useActionState
+"use client";
 
-import { useState, useActionState, useEffect } from "react"; // Import useActionState
+import { useState, useActionState, useEffect } from "react";
+import dynamic from "next/dynamic"; // Import next/dynamic
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { LocateFixed, Loader2 } from "lucide-react"; // Add Loader icon
-// Action import
+import { LocateFixed, Loader2 } from "lucide-react";
+// Actions
 import {
   searchPlacesByQuery,
   type SearchActionResult,
 } from "@/app/_actions/placeActions";
-// Other imports
-import UserMap from "./UserMap";
-// import PlaceList from "./PlaceList";
-import { useNearbyPlaces } from "@/hooks/useNearbyPlaces"; // Keep using this for nearby
+// Hooks & Types
+import { useNearbyPlaces } from "@/hooks/useNearbyPlaces";
 import { useGeolocation } from "@/hooks/useGeolocation";
-
 import type { Place } from "@/types/places";
+
+// Components
 import { CheckInForm } from "@/components/CheckInForm";
+
+// --- FIX: Dynamically import UserMap with ssr: false ---
+const UserMap = dynamic(
+  () => import("@/components/UserMap"), // Path to your UserMap component file
+  {
+    ssr: false, // This is the crucial part! Disables SSR for UserMap
+    loading: () => (
+      // Optional: Display a loading indicator while the map component loads
+      <div className="flex items-center justify-center h-full w-full bg-muted text-muted-foreground">
+        Loading map...
+      </div>
+    ),
+  }
+);
+// --- END FIX ---
 
 // Initial state for the search action
 const initialSearchState: SearchActionResult = {
