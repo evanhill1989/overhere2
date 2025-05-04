@@ -15,27 +15,26 @@ export default async function HomePage() {
 
   return (
     <main>
-      {isLoggedIn ? (
-        <PlaceFinder />
-      ) : (
-        <div className="flex flex-col items-center justify-center bg-background p-8 text-center">
-          <h1 className="text-4xl font-bold text-primary mb-4 font-heading">
-            Welcome to overhere
-          </h1>
-          <p className="text-lg text-foreground mb-8 max-w-md">
-            Ready to break the ice and connect with people nearby in real life?
-            Log in or sign up to get started.
-          </p>
-          <div className="flex gap-4">
-            <Button asChild>
-              <LoginLink>Log In</LoginLink>
-            </Button>
-            <Button variant="secondary" asChild>
-              <RegisterLink>Sign Up</RegisterLink>
-            </Button>
-          </div>
-        </div>
-      )}
+      <div className="flex flex-col items-center justify-center bg-background p-8 text-center">
+        {isLoggedIn ? (
+          <PlaceFinder />
+        ) : (
+          <>
+            <h1 className="text-7xl font-bold text-primary mb-4 font-heading">
+              Talk to people
+            </h1>
+            <p className="text-lg text-foreground mb-8 max-w-md"></p>
+            <div className="flex gap-4">
+              <Button asChild>
+                <LoginLink>Log In</LoginLink>
+              </Button>
+              <Button variant="secondary" asChild>
+                <RegisterLink>Sign Up</RegisterLink>
+              </Button>
+            </div>
+          </>
+        )}
+      </div>
     </main>
   );
 }

@@ -1,37 +1,22 @@
-"use client";
+"use client"; // Required for hooks like useState, useActionState
 
-import { useState, useActionState, useEffect } from "react";
-import dynamic from "next/dynamic"; // Import next/dynamic
+import { useState, useActionState, useEffect } from "react"; // Import useActionState
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { LocateFixed, Loader2 } from "lucide-react";
-// Actions
+import { LocateFixed, Loader2 } from "lucide-react"; // Add Loader icon
+// Action import
 import {
   searchPlacesByQuery,
   type SearchActionResult,
 } from "@/app/_actions/placeActions";
-// Hooks & Types
-import { useNearbyPlaces } from "@/hooks/useNearbyPlaces";
+// Other imports
+import UserMap from "./UserMap";
+// import PlaceList from "./PlaceList";
+import { useNearbyPlaces } from "@/hooks/useNearbyPlaces"; // Keep using this for nearby
 import { useGeolocation } from "@/hooks/useGeolocation";
+
 import type { Place } from "@/types/places";
-
-// Components
 import { CheckInForm } from "@/components/CheckInForm";
-
-// --- FIX: Dynamically import UserMap with ssr: false ---
-const UserMap = dynamic(
-  () => import("@/components/UserMap"), // Path to your UserMap component file
-  {
-    ssr: false, // This is the crucial part! Disables SSR for UserMap
-    loading: () => (
-      // Optional: Display a loading indicator while the map component loads
-      <div className="flex items-center justify-center h-full w-full bg-muted text-muted-foreground">
-        Loading map...
-      </div>
-    ),
-  }
-);
-// --- END FIX ---
 
 // Initial state for the search action
 const initialSearchState: SearchActionResult = {
@@ -114,14 +99,14 @@ export default function PlaceFinder() {
   };
 
   return (
-    <div className="flex flex-col h-screen">
+    <div className="flex flex-col gap-6">
       {/* Control Bar (as before) */}
-      <div className="p-3 bg-card border-b border-border flex items-center gap-2">
-        <form action={searchFormAction} className="flex-grow flex items-center">
+      <div className="flex items-center gap-2">
+        <form action={searchFormAction} className="flex items-center">
           <Input /* ... name, placeholder, value, onChange, disabled ... */
             name="searchQuery"
             type="search"
-            placeholder="Search place name..."
+            placeholder="Search place name"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full"
@@ -143,9 +128,9 @@ export default function PlaceFinder() {
             )}
           </Button>
         </form>
-        <Button /* ... variant, size, onClick, disabled ... */
+        <p>or</p>
+        <Button
           variant="outline"
-          size="icon"
           onClick={handleNearbySearchClick}
           disabled={isLoading}
           aria-label="Find nearby places"
@@ -153,13 +138,16 @@ export default function PlaceFinder() {
           {isGeoLoading || isNearbyLoading ? (
             <Loader2 className="h-5 w-5 animate-spin" />
           ) : (
-            <LocateFixed className="h-5 w-5" />
+            <>
+              <LocateFixed className="h-5 w-5" />
+              <span className="">Find places nearby</span>
+            </>
           )}
         </Button>
       </div>
 
       {/* Map Area (as before) */}
-      <div className="relative h-1/2 bg-muted flex-shrink-0">
+      <div className="flex-grow bg-muted relative">
         <UserMap
           places={displayedPlaces}
           selectedPlace={selectedPlaceForCheckin}
@@ -171,21 +159,19 @@ export default function PlaceFinder() {
       </div>
 
       {/* Results List / CheckIn Form Area */}
-      <div className="flex-grow border-t border-border overflow-y-auto bg-background p-2 min-h-0">
+      <div className="h-1/3 overflow-y-auto bg-background p-2">
         {isLoading && (
           <div className="text-center p-4 flex justify-center items-center">
             <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Loading...
           </div>
         )}
 
+        {/* --- Render CheckInForm OR Place List --- */}
         {!isLoading && selectedPlaceForCheckin ? (
           // If a place is selected, show the CheckInForm
           <CheckInForm
             place={selectedPlaceForCheckin}
             onCancel={handleCancelCheckin}
-            // --- PASS USER LOCATION DOWN ---
-            currentUserLocation={userLocation}
-            // --- END ---
           />
         ) : !isLoading && displayedPlaces.length > 0 ? (
           // If NO place is selected AND we have places, show the list
