@@ -18,14 +18,14 @@ export function Footer() {
         {/* Add links to essential pages - create these pages later */}
         <nav className="flex justify-center gap-x-4 gap-y-1 text-xs">
           <Link
-            href="/privacy"
+            href="#"
             className="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white hover:underline"
           >
             Privacy Policy
           </Link>
           <span className="text-gray-300 dark:text-gray-600">|</span>
           <Link
-            href="/terms"
+            href="#"
             className="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white hover:underline"
           >
             Terms of Service

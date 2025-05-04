@@ -9,15 +9,26 @@ import {
   searchPlacesByQuery,
   type SearchActionResult,
 } from "@/app/_actions/placeActions";
-// Other imports
-import UserMap from "./UserMap";
-// import PlaceList from "./PlaceList";
+
 import { useNearbyPlaces } from "@/hooks/useNearbyPlaces"; // Keep using this for nearby
 import { useGeolocation } from "@/hooks/useGeolocation";
 
 import type { Place } from "@/types/places";
 import { CheckInForm } from "@/components/CheckInForm";
+import dynamic from "next/dynamic";
 
+const UserMap = dynamic(
+  () => import("@/components/UserMap"), // Direct import for default export
+  {
+    ssr: false,
+    loading: () => (
+      <div className="flex h-full w-full items-center justify-center bg-muted">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground mr-2" />
+        <span className="text-muted-foreground">Loading map...</span>
+      </div>
+    ),
+  }
+);
 // Initial state for the search action
 const initialSearchState: SearchActionResult = {
   places: [],
@@ -60,22 +71,20 @@ export default function PlaceFinder() {
   const isLoading = isSearchPending || isGeoLoading || isNearbyLoading;
 
   useEffect(() => {
-    console.log(searchAttempted, "searchAttmpted state");
     if (searchState?.places) {
       setDisplayedPlaces(searchState.places);
       setSelectedPlaceForCheckin(null);
-      // setSearchAttempted(true);
+
       if (searchState.error)
         console.error("Search Action Error:", searchState.error);
     }
   }, [searchState]);
 
   useEffect(() => {
-    console.log(searchAttempted, "searchAttmpted state");
     if (nearbyPlaces.length > 0) {
       setDisplayedPlaces(nearbyPlaces);
       setSelectedPlaceForCheckin(null);
-      // setSearchAttempted(true);
+
       if (nearbyError) console.error("Nearby Search Hook Error:", nearbyError);
     } else if (!isNearbyLoading && userLocation) {
       // Handle case where nearby search finishes with zero results
@@ -84,9 +93,19 @@ export default function PlaceFinder() {
     }
   }, [nearbyPlaces, nearbyError, isNearbyLoading, userLocation]);
 
+  useEffect(() => {
+    console.log("Search pending:", isSearchPending);
+    if (isSearchPending) {
+      // setSearchAttempted(true);
+      setSelectedPlaceForCheckin(null);
+      setDisplayedPlaces([]);
+    }
+  }, [isSearchPending]);
+
   // --- Handlers ---
   const handleNearbySearchClick = () => {
-    // Clear specific search results maybe? Or just let the effect override?
+    // // Clear specific search results maybe? Or just let the effect override?
+    // setSearchAttempted(true);
     setDisplayedPlaces([]); // Clear previous results immediately
     setSearchQuery(""); // Clear search input
     if (userLocation) {
@@ -163,10 +182,10 @@ export default function PlaceFinder() {
       {/* Control Bar (as before) */}
       <div className="flex items-center gap-2">
         <form action={searchFormAction} className="flex items-center">
-          <Input /* ... name, placeholder, value, onChange, disabled ... */
+          <Input
             name="searchQuery"
             type="search"
-            placeholder="Search place name"
+            placeholder="Search places"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full"
@@ -228,7 +247,7 @@ export default function PlaceFinder() {
 
         {/* --- Render CheckInForm OR Place List --- */}
         {/* Results List / CheckIn Form Area */}
-        <div className="flex-grow border-t border-border overflow-y-auto bg-background p-2 min-h-0">
+        <div className="flex-grow overflow-y-auto bg-background p-2 min-h-0">
           {/* Render the determined content */}
           {resultsContent}
 
