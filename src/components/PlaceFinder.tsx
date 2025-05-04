@@ -232,9 +232,6 @@ export default function PlaceFinder() {
           selectedPlace={selectedPlaceForCheckin}
           userLocation={userLocation}
         />
-        <p className="absolute inset-0 flex items-center justify-center text-muted-foreground">
-          Map Area
-        </p>
       </div>
 
       {/* Results List / CheckIn Form Area */}

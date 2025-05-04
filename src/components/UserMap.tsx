@@ -65,6 +65,7 @@ export default function UserMap({
       center={mapCenter}
       zoom={mapZoom}
       scrollWheelZoom={true}
+      dragging={true}
       zoomControl={true} // Ensure zoom controls are enabled
       style={{ height: "100%", width: "100%", minHeight: "200px" }}
     >
