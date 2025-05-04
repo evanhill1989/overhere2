@@ -140,7 +140,7 @@ export default function PlaceFinder() {
           ) : (
             <>
               <LocateFixed className="h-5 w-5" />
-              <span className="">Find places nearby</span>
+              <span className="">Find places</span>
             </>
           )}
         </Button>
@@ -172,6 +172,7 @@ export default function PlaceFinder() {
           <CheckInForm
             place={selectedPlaceForCheckin}
             onCancel={handleCancelCheckin}
+            currentUserLocation={userLocation}
           />
         ) : !isLoading && displayedPlaces.length > 0 ? (
           // If NO place is selected AND we have places, show the list
