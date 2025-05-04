@@ -105,7 +105,7 @@ export default function PlaceFinder() {
   // --- Handlers ---
   const handleNearbySearchClick = () => {
     // // Clear specific search results maybe? Or just let the effect override?
-    // setSearchAttempted(true);
+    setSearchAttempted(true);
     setDisplayedPlaces([]); // Clear previous results immediately
     setSearchQuery(""); // Clear search input
     if (userLocation) {
