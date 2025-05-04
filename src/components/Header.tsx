@@ -1,5 +1,7 @@
 import { LoginLink, LogoutLink } from "@kinde-oss/kinde-auth-nextjs/components";
 import { HandWaving } from "@phosphor-icons/react/dist/ssr";
+import Link from "next/link";
+import { Button } from "./ui/button";
 
 // Define props for the component
 interface HeaderProps {
@@ -19,18 +21,31 @@ export function Header({ isLoggedIn }: HeaderProps) {
       </div>
 
       <nav>
-        {/* Conditional Rendering based on prop */}
-        {isLoggedIn ? (
-          <LogoutLink className="px-3 py-1.5 text-sm rounded text-primary hover:bg-red-50 dark:text-primary dark:hover:bg-red-900/30 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors">
-            Log Out
-          </LogoutLink>
-        ) : (
-          <LoginLink
-            className="px-3 py-1.5 text-sm rounded text-primary hover:bg-blue-50 dark:text-primary dark:hover:bg-primary/30 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary transition-colors" // Adjusted size/style
-          >
-            Sign In
-          </LoginLink>
-        )}
+        <ul className="flex items-center gap-4">
+          {" "}
+          {/* Use flex and gap for layout */}
+          <li>
+            {/* Your new About link */}
+            <Link
+              href="/about" // Or whatever your about page route is
+              className="px-3 py-1.5 text-sm rounded text-foreground/80 hover:text-primary hover:bg-primary/10 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary transition-colors" // Example styling - adjust as needed
+            >
+              About
+            </Link>
+          </li>
+          <li>
+            {isLoggedIn ? (
+              <Button asChild>
+                <LogoutLink className="">Log Out</LogoutLink>
+              </Button>
+            ) : (
+              <Button asChild>
+                <LoginLink className="">Log In</LoginLink>
+              </Button>
+            )}
+          </li>
+          {/* Add more <li> items here if needed later */}
+        </ul>
       </nav>
     </header>
   );
