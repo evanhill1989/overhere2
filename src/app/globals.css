@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@plugin "@tailwindcss/typography";
 
 :root {
   /* #F4F1EA (Cream) -> ~ oklch(0.96 0.0098 87.47) */
