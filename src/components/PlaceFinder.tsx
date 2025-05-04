@@ -53,22 +53,29 @@ export default function PlaceFinder() {
   const [selectedPlaceForCheckin, setSelectedPlaceForCheckin] =
     useState<Place | null>(null);
 
+  // --- NEW STATE: Track if a search has been attempted ---
+  const [searchAttempted, setSearchAttempted] = useState(false);
+  // --- END NEW STATE ---
   // Determine overall loading state
   const isLoading = isSearchPending || isGeoLoading || isNearbyLoading;
 
   useEffect(() => {
+    console.log(searchAttempted, "searchAttmpted state");
     if (searchState?.places) {
       setDisplayedPlaces(searchState.places);
-      setSelectedPlaceForCheckin(null); // Clear selection when new search results load
+      setSelectedPlaceForCheckin(null);
+      // setSearchAttempted(true);
       if (searchState.error)
         console.error("Search Action Error:", searchState.error);
     }
   }, [searchState]);
 
   useEffect(() => {
+    console.log(searchAttempted, "searchAttmpted state");
     if (nearbyPlaces.length > 0) {
       setDisplayedPlaces(nearbyPlaces);
-      setSelectedPlaceForCheckin(null); // Clear selection when new nearby results load
+      setSelectedPlaceForCheckin(null);
+      // setSearchAttempted(true);
       if (nearbyError) console.error("Nearby Search Hook Error:", nearbyError);
     } else if (!isNearbyLoading && userLocation) {
       // Handle case where nearby search finishes with zero results
@@ -97,6 +104,59 @@ export default function PlaceFinder() {
   const handleCancelCheckin = () => {
     setSelectedPlaceForCheckin(null);
   };
+
+  // --- REFACTORED: Determine results content using if/else ---
+  let resultsContent: React.ReactNode = null;
+
+  if (isLoading) {
+    resultsContent = (
+      <div className="text-center p-4 flex justify-center items-center">
+        <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Loading...
+      </div>
+    );
+  } else if (selectedPlaceForCheckin) {
+    // If a place is selected, show the CheckInForm
+    resultsContent = (
+      <CheckInForm
+        place={selectedPlaceForCheckin}
+        onCancel={handleCancelCheckin}
+        currentUserLocation={userLocation}
+      />
+    );
+  } else if (displayedPlaces.length > 0) {
+    // If NO place is selected AND we have places, show the list
+    resultsContent = (
+      <ul className="space-y-1 pb-2">
+        {displayedPlaces.map((p) => (
+          <li key={p.id}>
+            <button
+              onClick={() => handlePlaceSelect(p)}
+              className="w-full text-left p-2 border border-transparent rounded hover:bg-muted hover:border-border focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary"
+              aria-label={`Select ${p.name}`}
+            >
+              <span className="font-medium">{p.name}</span>
+              <br />
+              <span className="text-xs text-muted-foreground">{p.address}</span>
+            </button>
+          </li>
+        ))}
+      </ul>
+    );
+  } else if (searchAttempted && displayedPlaces.length === 0) {
+    // If NO place selected, search WAS attempted, and NO places found
+    resultsContent = (
+      <p className="text-center p-4 text-muted-foreground">
+        No places found. Try searching nearby or using a different name.
+      </p>
+    );
+  } else if (!searchAttempted) {
+    // Initial state before any search attempt
+    resultsContent = (
+      <p className="text-center p-4 text-muted-foreground">
+        Find places nearby or search for a specific spot.
+      </p>
+    );
+  }
 
   return (
     <div className="flex flex-col gap-6">
@@ -167,43 +227,26 @@ export default function PlaceFinder() {
         )}
 
         {/* --- Render CheckInForm OR Place List --- */}
-        {!isLoading && selectedPlaceForCheckin ? (
-          // If a place is selected, show the CheckInForm
-          <CheckInForm
-            place={selectedPlaceForCheckin}
-            onCancel={handleCancelCheckin}
-            currentUserLocation={userLocation}
-          />
-        ) : !isLoading && displayedPlaces.length > 0 ? (
-          // If NO place is selected AND we have places, show the list
-          <ul className="space-y-1">
-            {displayedPlaces.map((p) => (
-              <li key={p.id}>
-                {/* Make the whole item clickable */}
-                <button
-                  onClick={() => handlePlaceSelect(p)}
-                  className="w-full text-left p-2 border border-transparent rounded hover:bg-muted hover:border-border focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary"
-                  aria-label={`Select ${p.name}`}
-                >
-                  <span className="font-medium">{p.name}</span>
-                  <br />
-                  <span className="text-xs text-muted-foreground">
-                    {p.address}
-                  </span>
-                </button>
-              </li>
-            ))}
-          </ul>
-        ) : (
-          !isLoading &&
-          displayedPlaces.length === 0 && (
-            // If NO place selected and NO places found
-            <p className="text-center p-4 text-muted-foreground">
-              No places found. Try searching nearby or using a different name.
+        {/* Results List / CheckIn Form Area */}
+        <div className="flex-grow border-t border-border overflow-y-auto bg-background p-2 min-h-0">
+          {/* Render the determined content */}
+          {resultsContent}
+
+          {/* Display Errors Separately (keeps logic clean) */}
+          {!isLoading && geoError && (
+            <p className="text-center p-2 text-red-600">{geoError}</p>
+          )}
+          {!isLoading && searchState?.error && !isSearchPending && (
+            <p className="text-center p-2 text-red-600">
+              Search failed: {searchState.error}
             </p>
-          )
-        )}
-        {/* --- End Conditional Rendering --- */}
+          )}
+          {!isLoading && nearbyError && !isNearbyLoading && (
+            <p className="text-center p-2 text-red-600">
+              Nearby search failed: {nearbyError}
+            </p>
+          )}
+        </div>
 
         {/* Display Errors (as before) */}
         {geoError && <p className="text-center p-2 text-red-600">{geoError}</p>}
