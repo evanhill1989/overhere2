@@ -1,0 +1,29 @@
+/* src/components/animated/CssEphemeralText.css */
+
+@keyframes evaporateChar {
+  0% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-20px); /* Move character up */
+  }
+}
+
+.ephemeral-text-container .ephemeral-char {
+  display: inline-block; /* Required for transforms and to prevent layout shifts on space characters */
+  opacity: 1;
+  transform: translateY(0);
+  /* Transition for when animateOut becomes false, allowing a smooth return (optional) */
+  /* transition: opacity 0.3s ease, transform 0.3s ease; */
+}
+
+/* Apply animation when the parent container has the 'animate-out-active' class */
+.ephemeral-text-container.animate-out-active .ephemeral-char {
+  animation-name: evaporateChar;
+  animation-timing-function: ease-in-out;
+  animation-fill-mode: forwards; /* Keeps the state of the element at the end of the animation */
+  /* animation-duration will be set by inline style */
+  /* animation-delay will be set by inline style */
+}

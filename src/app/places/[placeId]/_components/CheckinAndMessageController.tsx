@@ -15,6 +15,7 @@ import type { Tables } from "@/types/supabase";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { transformCheckinRowToSelect } from "@/lib/utils";
+import { CssEphemeralText } from "@/components/animated/CssEphemeralText";
 
 // Define the RealtimePayload structure again
 // interface RealtimePayload<T = unknown> {
@@ -56,6 +57,9 @@ export default function CheckinAndMessageController({
   currentUserCheckinId,
   currentUserKindeId,
 }: InteractiveCheckinListProps) {
+  const [startFade, setStartFade] = useState(false);
+  const someText = "These words will evaporate.";
+
   const [activeConnectionId, setActiveConnectionId] = useState<string | null>(
     null
   );
@@ -652,6 +656,28 @@ export default function CheckinAndMessageController({
               );
             })}
           </ul>
+        )}
+      </div>
+      <div>
+        <Button onClick={() => setStartFade(true)}>Evaporate Text</Button>
+        <Button onClick={() => setStartFade(false)} className="ml-2">
+          Reset
+        </Button>
+        <div className="my-4">
+          <CssEphemeralText
+            text={someText}
+            animateOut={startFade}
+            staggerDelay={0.07}
+            charAnimationDuration={0.6}
+            className="text-2xl text-foreground" // Example Tailwind classes
+            tag="h2"
+          />
+        </div>
+        {/* Example showing reset behavior */}
+        {!startFade && (
+          <p className="text-sm text-muted-foreground">
+            Text is reset. Click Evaporate Text to see the animation.
+          </p>
         )}
       </div>
     </section>

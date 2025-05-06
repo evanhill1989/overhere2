@@ -19,7 +19,8 @@ const CACHE_STALE_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
 const CHECKIN_UPDATE_WINDOW_MS = 2 * 60 * 60 * 1000;
 
 // --- DEFINE PROXIMITY THRESHOLD ---
-const MAX_CHECKIN_DISTANCE_METERS = 200; // Allow check-in within 200 meters (adjust as needed)
+const MAX_CHECKIN_DISTANCE_METERS = 2000; // Allow check-in within 200 meters (adjust as needed)
+//#TODO
 // ---
 
 async function fetchAndCacheGooglePlaceDetails(

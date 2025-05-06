@@ -13,12 +13,14 @@ export function Header({ isLoggedIn }: HeaderProps) {
   return (
     // Added padding, adjusted border color for light/dark mode
     <header className="flex justify-between items-center p-4 border-b border-gray-200 dark:border-gray-700">
-      <div className="flex items-center gap-2">
-        <h1 className="text-3xl font-bold font-heading dark:text-white">
-          overhere
-        </h1>
-        <HandWaving size={40} />
-      </div>
+      <Link href="/" passHref legacyBehavior={false}>
+        <div className="flex items-center gap-2">
+          <h1 className="text-3xl font-bold font-heading dark:text-white">
+            overhere
+          </h1>
+          <HandWaving size={40} />
+        </div>
+      </Link>
 
       <nav>
         <ul className="flex items-center gap-4">
