@@ -27,25 +27,20 @@ export default function AboutPage() {
           {/* Paragraph 2: NEW User Story */}
           <p>
             Picture this: you're grabbing coffee alone, enjoying the buzz of the
-            cafe. You glance around – maybe others feel like a brief chat too, a
-            simple break from their screens or thoughts. But how do you know?
-            Approaching strangers randomly feels inefficient, maybe even
-            intrusive. And initiating conversation can feel loaded, potentially
-            sending signals beyond just wanting a friendly, platonic chat. It’s
-            a common hurdle – wanting connection but lacking a smooth,
-            low-stakes way to find it.
+            cafe, and suddenly you're in the mood to talk. Approaching strangers
+            randomly feels inefficient and intrusive. It’s a common hurdle –
+            wanting connection but lacking a smooth, low-stakes way to find it.
           </p>
 
           {/* Paragraph 3: NEW Features/Philosophy Summary */}
           <p>
-            That's the gap Overhere fills. It’s a different approach focused on
-            enabling low-pressure, platonic moments. We prioritize your privacy
-            and comfort: there are no public profiles to browse, and connections
-            are made anonymously with a person verified to be at your location.
-            You connect based on a shared, simple topic interest you both select
-            for that moment. Think of it as a temporary digital nod that
-            disappears without leaving a trace in chat history or saved
-            connections.
+            That's the gap Overhere fills. Overhere enables low-pressure,
+            platonic introduction. We prioritize your privacy and comfort: there
+            are no public profiles to browse, and connections are made
+            anonymously with a person verified to be at your location. You can
+            connect based on a specific topic , or with someone looking for a
+            general chat. Think of it as a temporary digital nod that disappears
+            without leaving a trace in chat history or saved connections.
           </p>
         </section>
         {/* Section 2: How does it work? - NEW */}
@@ -62,10 +57,9 @@ export default function AboutPage() {
               specific place via the app. This verifies your presence.
             </li>
             <li>
-              Set Your Status (Optional): You can indicate if you're generally
-              'available' or 'busy' and optionally add a simple topic (e.g.,
-              "local events," "reading," "tech") to hint at what you might like
-              to chat about.
+              Set Your Status: You can indicate if you're generally 'available'
+              or 'busy' and add a topic (e.g., "local events," "reading,"
+              "tech") about which you are interested in talking.
             </li>
             <li>
               Discover Anonymously: The app shows if other checked-in users are
@@ -73,19 +67,19 @@ export default function AboutPage() {
               identities. You might see counts or topic interests.
             </li>
             <li>
-              Signal Interest: If you want to potentially chat, you send out a
-              signal. The app may connect you randomly with another available
-              user or someone interested in the same topic.
+              Signal Interest: If you want to potentially chat with a user, you
+              send a request to message.
             </li>
             <li>
               Connect (If Accepted): The other user receives your anonymous
               request and can accept or ignore it. If they accept, a temporary,
-              minimal chat opens.
+              messaging window opens.
             </li>
             <li>
-              Break the Ice Briefly: Use the chat for a quick "Hello!" and to
-              arrange the real-world meeting (e.g., "Hey, I'm by the window with
-              the green laptop, want to chat for a bit?").
+              Break the Ice : Use messages to introduce yourself and address any
+              reservations you might have with officially meeting the other
+              person. Arrange the real-world meeting (e.g., "Hey, I'm by the
+              window with the green laptop, want to chat for a bit?").
             </li>
             <li>
               Meet IRL: The goal! Move your conversation offline into the real

@@ -38,7 +38,7 @@ export default async function RootLayout({
                    grid grid-rows-[auto_1fr_auto] min-h-screen`}
       >
         <Header isLoggedIn={isLoggedIn} />
-        <main className="m-auto">{children}</main>
+        <main className="">{children}</main>
         <Footer />
         <Toaster />
       </body>
