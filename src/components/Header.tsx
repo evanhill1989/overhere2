@@ -12,13 +12,13 @@ interface HeaderProps {
 export function Header({ isLoggedIn }: HeaderProps) {
   return (
     // Added padding, adjusted border color for light/dark mode
-    <header className="flex justify-between items-center p-4 border-b border-gray-200 dark:border-gray-700">
+    <header className="flex items-center justify-between border-b border-gray-200 p-4 dark:border-gray-700">
       <Link href="/" passHref legacyBehavior={false}>
         <div className="flex items-center gap-2">
-          <h1 className="text-3xl font-bold font-heading dark:text-white">
+          <h1 className="font-heading text-xl font-bold md:text-3xl dark:text-white">
             overhere
           </h1>
-          <HandWaving size={40} />
+          <HandWaving className="h-5 w-5 md:h-8 md:w-8" />
         </div>
       </Link>
 
@@ -30,7 +30,7 @@ export function Header({ isLoggedIn }: HeaderProps) {
             {/* Your new About link */}
             <Link
               href="/about" // Or whatever your about page route is
-              className="px-3 py-1.5 text-sm rounded text-foreground/80 hover:text-primary hover:bg-primary/10 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary transition-colors" // Example styling - adjust as needed
+              className="text-foreground/80 hover:text-primary hover:bg-primary/10 focus:ring-primary rounded px-3 py-1.5 text-sm transition-colors focus:ring-2 focus:ring-offset-2 focus:outline-none" // Example styling - adjust as needed
             >
               About
             </Link>

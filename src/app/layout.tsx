@@ -34,8 +34,7 @@ export default async function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${fontHeading.variable} ${fontSans.variable} antialiased
-                   grid grid-rows-[auto_1fr_auto] min-h-screen`}
+        className={`${fontHeading.variable} ${fontSans.variable} grid min-h-[100dvh] grid-rows-[auto_1fr_auto] antialiased`}
       >
         <Header isLoggedIn={isLoggedIn} />
         <main className="">{children}</main>
