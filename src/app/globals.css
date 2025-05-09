@@ -131,3 +131,31 @@ h6 {
   color: var(--foreground);
   font-family: theme(fontFamily.heading), sans-serif;
 }
+
+@keyframes waveMotion {
+  0%,
+  100% {
+    transform: rotate(0deg);
+  }
+  20%,
+  60% {
+    transform: rotate(-20deg);
+  }
+  40%,
+  80% {
+    transform: rotate(15deg);
+  }
+  /* Add more steps for a more complex wave if desired */
+}
+
+@utility animate-wave-load {
+  animation: waveMotion 1s ease-in-out 1; /* name duration timing-function iteration-count */
+  /* You might still need to set transform-origin here or on the element itself */
+  /* transform-origin: 70% 70%; (Example) */
+}
+
+/* Custom utility for the hover animation */
+@utility animate-wave-hover {
+  animation: waveMotion 1s ease-in-out 2;
+  /* transform-origin: 70% 70%; (Example - keep consistent if needed) */
+}

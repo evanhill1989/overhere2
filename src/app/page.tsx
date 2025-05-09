@@ -14,7 +14,7 @@ export default async function HomePage() {
   const isLoggedIn = await isAuthenticated();
 
   return (
-    <div className="bg-background grid h-full grid-rows-[3fr_7fr] text-center">
+    <div className="bg-background grid h-full grid-rows-[1fr_4fr] text-center">
       {isLoggedIn ? (
         <>
           <div></div> {/* Spacer row */}
@@ -23,15 +23,17 @@ export default async function HomePage() {
       ) : (
         <>
           <div></div> {/* Spacer row */}
-          <div className="flex flex-col items-center gap-6 text-center">
-            <h1 className="text-primary font-heading text-3xl font-bold md:text-7xl">
+          <div className="flex flex-col items-center gap-6 p-4 text-center">
+            <h1 className="text-primary font-heading text-4xl font-bold md:text-7xl">
               Talk to people
             </h1>
             <p className="text-foreground max-w-md md:text-lg">
-              Discover people nearby looking for casual, platonic conversation.
+              Overhere shows you people nearby open to talking <i>right now</i>.
+              Why not make it a little easier to break the ice and spark a
+              genuine conversation?
             </p>
             <div className="mt-4 flex gap-4">
-              <Button asChild>
+              <Button asChild className="">
                 <LoginLink>Log In</LoginLink>
               </Button>
               <Button variant="secondary" asChild>

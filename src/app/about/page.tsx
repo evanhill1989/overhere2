@@ -7,23 +7,14 @@ import React from "react";
 export default function AboutPage() {
   return (
     <main className="container mx-auto px-4 py-12 md:py-16 lg:py-20">
-      <article className="prose prose-sm md:prose-lg lg:prose-xl mx-auto text-muted-foreground">
+      <article className="prose prose-sm md:prose-lg lg:prose-xl text-muted-foreground mx-auto">
         {/* Main Heading */}
-        <h1 className="text-4xl md:text-5xl font-bold mb-6 text-center text-foreground">
+        <h1 className="text-foreground mb-6 text-center text-4xl font-bold md:text-5xl">
           Talk to people
         </h1>
 
-        {/* Paragraph 1: Short Introductory Section - Unchanged */}
-        <p className="text-lg md:text-xl text-center mb-10 text-muted-foreground">
-          We're inspired by spontaneous, real-world connection, offering a
-          simple alternative to purely digital interactions. Overhere provides a
-          private way to discover who nearby might be open to chatting{" "}
-          <i>right now</i>. It's about making it a little easier to break the
-          ice and spark a genuine conversation.
-        </p>
-
         {/* Longer Detailed Section - NEW STRUCTURE */}
-        <section className="space-y-6 text-base md:text-lg text-foreground">
+        <section className="text-foreground space-y-6 text-base md:text-lg">
           {/* Paragraph 2: NEW User Story */}
           <p>
             Picture this: you're grabbing coffee alone, enjoying the buzz of the
@@ -47,14 +38,14 @@ export default function AboutPage() {
         <section className="mb-12">
           {" "}
           {/* Added mb-12 for spacing */}
-          <h2 className="text-2xl md:text-3xl font-semibold mb-4 text-foreground">
+          <h2 className="text-foreground mb-4 text-2xl font-semibold md:text-3xl">
             How does it work?
           </h2>
-          <ol className="list-decimal list-outside pl-6 space-y-3 text-base md:text-lg text-foreground">
+          <ol className="text-foreground list-outside list-decimal space-y-3 pl-6 text-base md:text-lg">
             <li>
               Check In: When you're at a location (like a cafe, bar, park, or
-              co-working space) and open to a potential chat, check into that
-              specific place via the app. This verifies your presence.
+              co-working space) and looking to talk, check into that specific
+              place via the app. This verifies your presence.
             </li>
             <li>
               Set Your Status: You can indicate if you're generally 'available'
@@ -62,27 +53,31 @@ export default function AboutPage() {
               "tech") about which you are interested in talking.
             </li>
             <li>
-              Discover Anonymously: The app shows if other checked-in users are
-              nearby and available, but without revealing profiles or
-              identities. You might see counts or topic interests.
+              Discover Anonymously: The app shows when other people are
+              checked-in where you are and what their topical interests are.
             </li>
             <li>
-              Signal Interest: If you want to potentially chat with a user, you
+              Signal Interest: If you want to potentially talk with a user, you
               send a request to message.
             </li>
             <li>
-              Connect (If Accepted): The other user receives your anonymous
-              request and can accept or ignore it. If they accept, a temporary,
-              messaging window opens.
+              Connect (If Accepted): The other user receives your request and
+              can accept or ignore it. If they accept, a temporary, messaging
+              window opens.
             </li>
             <li>
-              Break the Ice : Use messages to introduce yourself and address any
-              reservations you might have with officially meeting the other
-              person. Arrange the real-world meeting (e.g., "Hey, I'm by the
-              window with the green laptop, want to chat for a bit?").
+              Break the Ice : Use messages to introduce yourself and determine
+              if you're interested in talking face to face.
             </li>
             <li>
-              Meet IRL: The goal! Move your conversation offline into the real
+              Don't meet them: No hard feelings! If you don't want to meet them,
+              you can just end the chat. There are no user names, no profiles,
+              no pictures, no way of knowing who it is in the room you are
+              messaging, and they won't know who you are either. The only
+              identifier is the topic interest you gave when you checked in.
+            </li>
+            <li>
+              Meet them!: The goal! Move your conversation offline into the real
               world.
             </li>
             <li>
@@ -95,10 +90,10 @@ export default function AboutPage() {
 
         {/* Section 3: Useful tips - NEW */}
         <section>
-          <h2 className="text-2xl md:text-3xl font-semibold mb-4 text-foreground">
+          <h2 className="text-foreground mb-4 text-2xl font-semibold md:text-3xl">
             Useful tips
           </h2>
-          <ul className="list-disc list-outside pl-6 space-y-3 text-base md:text-lg text-foreground">
+          <ul className="text-foreground list-outside list-disc space-y-3 pl-6 text-base md:text-lg">
             <li>
               Be Present & Ready: Check in when you genuinely have some time and
               are open to a conversation relatively soon.
@@ -110,6 +105,19 @@ export default function AboutPage() {
             <li>
               Topics Can Help: Adding a simple topic can be a great, low-stakes
               way to find common ground for an initial chat.
+            </li>
+            <li>
+              Define clear parameters via messaging: If you are looking for a
+              specific topic of conversation, clarify details to make sure
+              you're both on the same page. Other things to consider going over
+              in messages:
+              <ul className="list-disc space-y-2 pl-6">
+                <li>How long you want to talk?</li>
+                <li>
+                  Whether you want to talk to members of the opposite sex?
+                </li>
+                <li>What topics don't you want to talk about?</li>
+              </ul>
             </li>
             <li>
               Be Patient: Connection depends on others being checked in,

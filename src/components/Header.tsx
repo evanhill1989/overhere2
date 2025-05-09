@@ -14,11 +14,14 @@ export function Header({ isLoggedIn }: HeaderProps) {
     // Added padding, adjusted border color for light/dark mode
     <header className="flex items-center justify-between border-b border-gray-200 p-4 dark:border-gray-700">
       <Link href="/" passHref legacyBehavior={false}>
-        <div className="flex items-center gap-2">
-          <h1 className="font-heading text-xl font-bold md:text-3xl dark:text-white">
+        <div className="group flex items-center gap-2">
+          <h1 className="font-heading active:underline active:underline-offset-2">
             overhere
           </h1>
-          <HandWaving className="h-5 w-5 md:h-8 md:w-8" />
+
+          <div className="icon-wrapper group-hover:animate-wave-hover origin-[appropriate-for-wrapper]">
+            <HandWaving className="animate-wave-load h-5 w-5 origin-[appropriate-for-icon] ..." />
+          </div>
         </div>
       </Link>
 
