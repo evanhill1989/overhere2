@@ -1,6 +1,5 @@
 import React, {
   useRef,
-  useEffect,
   ElementType,
   ComponentPropsWithoutRef,
   ReactNode,
