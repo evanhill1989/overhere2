@@ -1,91 +1,58 @@
-// src/components/animated/EphemeralText.tsx
-"use client";
+import React, {
+  useRef,
+  useEffect,
+  ElementType,
+  ComponentPropsWithoutRef,
+  ReactNode,
+} from "react";
 
-import React, { useRef, useMemo, useEffect, useCallback, JSX } from "react"; // <--- Add this line
-import gsap from "gsap";
-import { useGSAP } from "@gsap/react";
-
-// ... (rest of the component code remains the same)
-
-type EphemeralTextProps = {
-  text: string;
-  tag?: keyof JSX.IntrinsicElements; // This line should be recognized now
+// Define the props for your component, making it generic over the tag type T
+interface EphemeralTextProps<T extends ElementType = "span"> {
+  // Default to 'span' if not specified
+  as?: T; // The 'as' prop allows specifying the tag
+  children: ReactNode;
   className?: string;
-  animateOnMount?: boolean;
-  stagger?: number;
-  duration?: number;
-  yOffset?: number;
-  triggerAnimation?: boolean;
-};
+  // Add any other specific props your EphemeralText component needs
+  // For example:
+  // duration?: number;
+  // stagger?: number;
+}
 
-export function EphemeralText({
-  text,
-  tag: Tag = "p",
+// Use Omit to allow passing through other valid HTML/SVG attributes
+// while preventing clashes with your explicitly defined props.
+export function EphemeralText<T extends ElementType = "span">({
+  as,
+  children,
   className,
-  animateOnMount = true,
-  stagger = 0.03,
-  duration = 0.5,
-  yOffset = -10,
-  triggerAnimation,
-}: EphemeralTextProps) {
-  // ... (rest of the component code remains the same)
+  // ...destructure other specific props here
+  ...rest // Spread the rest of the props to the Tag
+}: EphemeralTextProps<T> &
+  Omit<ComponentPropsWithoutRef<T>, keyof EphemeralTextProps<T>>) {
+  // Determine the tag to use, defaulting to 'span' (or T's default)
+  const Tag = as || ("span" as ElementType); // Explicitly type 'span' if T can be undefined from default
 
-  // Use useRef with a broader type or specific common types
-  const containerRef = useRef<HTMLElement>(null);
+  // Use React.ElementRef to get the correct ref type based on the Tag
+  const containerRef =
+    useRef<React.ComponentPropsWithRef<typeof Tag>["ref"]>(null);
 
-  const characters = useMemo(
-    () =>
-      text.split("").map((char, index) => (
-        <span
-          key={index}
-          style={{ display: "inline-block", whiteSpace: "pre" }}
-          className="char"
-        >
-          {char}
-        </span>
-      )),
-    [text]
+  // Your existing character animation logic, useEffects, etc. would go here
+  // For example, a simplified representation of characters:
+  const characters = React.Children.toArray(children).map((child, i) =>
+    typeof child === "string"
+      ? child.split("").map((char, j) => (
+          <span
+            key={`${i}-${j}`}
+            style={{ display: "inline-block" /* for animation */ }}
+          >
+            {char === " " ? "\u00A0" : char}
+          </span>
+        ))
+      : child
   );
-
-  const { contextSafe } = useGSAP({ scope: containerRef });
-
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  const runAnimation = useCallback(
-    contextSafe(() => {
-      // Changed useMemo to useCallback
-      if (containerRef.current?.querySelectorAll) {
-        gsap.to(containerRef.current.querySelectorAll(".char"), {
-          opacity: 0,
-          y: yOffset,
-          stagger: stagger,
-          duration: duration,
-          ease: "power1.inOut",
-        });
-      } else {
-        console.warn(
-          "EphemeralText: containerRef not ready or invalid for animation."
-        );
-      }
-    }),
-
-    [contextSafe, stagger, duration, yOffset]
-  );
-
-  useEffect(() => {
-    if (animateOnMount) {
-      runAnimation();
-    }
-  }, [animateOnMount, runAnimation]);
-
-  useEffect(() => {
-    if (triggerAnimation === true) {
-      runAnimation();
-    }
-  }, [triggerAnimation, runAnimation]);
 
   return (
-    // Using HTMLElement for ref type simplifies dynamic tag usage
-    <Tag ref={containerRef} className={className}>
+    // Pass the ref and spread the rest of the compatible props
+    <Tag ref={containerRef} className={className} {...rest}>
       {characters}
     </Tag>
   );
