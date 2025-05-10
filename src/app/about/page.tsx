@@ -62,23 +62,23 @@ export default function AboutPage() {
             </li>
             <li>
               Connect (If Accepted): The other user receives your request and
-              can accept or ignore it. If they accept, a temporary, messaging
-              window opens.
+              can accept or ignore it. If they accept, a messaging window opens.
             </li>
             <li>
-              Break the Ice : Use messages to introduce yourself and determine
-              if you're interested in talking face to face.
+              Break the Ice : Use messages to introduce yourself and decide if
+              you're interested in talking face to face.
             </li>
             <li>
-              Don't meet them: No hard feelings! If you don't want to meet them,
-              you can just end the chat. There are no user names, no profiles,
-              no pictures, no way of knowing who it is in the room you are
-              messaging, and they won't know who you are either. The only
-              identifier is the topic interest you gave when you checked in.
+              <strong>Don't meet them</strong>: No hard feelings! If you don't
+              want to meet them, you can just end the chat. There are no user
+              names, no profiles, no pictures, no way of knowing who it is in
+              the room you are messaging, and they won't know who you are
+              either. The only identifier is the topic interest you gave when
+              you checked in.
             </li>
             <li>
-              Meet them!: The goal! Move your conversation offline into the real
-              world.
+              <strong>Meet them!</strong>: The goal! Move your conversation
+              offline into the real world.
             </li>
             <li>
               It Disappears: The chat session and the connection record are
@@ -100,11 +100,12 @@ export default function AboutPage() {
             </li>
             <li>
               Keep it Light & Platonic: Remember, the aim is a casual, friendly,
-              low-pressure interaction. This isn't a dating app.
+              low-pressure interaction.{" "}
+              <strong>This isn't a dating app.</strong>
             </li>
             <li>
-              Topics Can Help: Adding a simple topic can be a great, low-stakes
-              way to find common ground for an initial chat.
+              Topics Can Help: Adding a simple topic is a great way to find
+              common ground.
             </li>
             <li>
               Define clear parameters via messaging: If you are looking for a
@@ -135,8 +136,9 @@ export default function AboutPage() {
               your intuition.
             </li>
             <li>
-              Respect Boundaries: If someone doesn't accept a chat request or
-              respond, simply respect their choice.
+              Behave like you would in real life because{" "}
+              <strong> you are in real life</strong>. These are other real
+              people who happen to be in the same place as you.
             </li>
             <li>
               It's Just an Opener: Think of Overhere as just the very first step

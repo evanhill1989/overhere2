@@ -176,3 +176,19 @@ h6 {
   animation: waveMotion 1s ease-in-out 2;
   /* transform-origin: 70% 70%; (Example - keep consistent if needed) */
 }
+
+input[type="search"]::-webkit-search-decoration,
+input[type="search"]::-webkit-search-cancel-button,
+input[type="search"]::-webkit-search-results-button,
+input[type="search"]::-webkit-search-results-decoration {
+  -webkit-appearance: none; /* For WebKit-based browsers (Chrome, Safari, Edge) */
+  appearance: none; /* Standard property */
+  display: none; /* Extra measure to ensure it's hidden */
+}
+
+/* For older Edge and IE (less common now but good for completeness) */
+input[type="search"]::-ms-clear {
+  display: none;
+  width: 0;
+  height: 0;
+}

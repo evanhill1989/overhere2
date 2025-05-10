@@ -37,7 +37,7 @@ export default async function RootLayout({
         className={`${fontHeading.variable} ${fontSans.variable} grid min-h-[100dvh] grid-rows-[auto_1fr_auto] antialiased`}
       >
         <Header isLoggedIn={isLoggedIn} />
-        <main className="">{children}</main>
+        <main className="mx-auto">{children}</main>
         <Footer />
         <Toaster />
       </body>

@@ -3,7 +3,7 @@
 import { useState, useActionState, useEffect } from "react"; // Import useActionState
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { LocateFixed, Loader2 } from "lucide-react"; // Add Loader icon
+import { LocateFixed, Loader2, CheckCircle2 } from "lucide-react"; // Add Loader icon
 // Action import
 import {
   searchPlacesByQuery,
@@ -22,12 +22,12 @@ const UserMap = dynamic(
   {
     ssr: false,
     loading: () => (
-      <div className="flex h-full w-full items-center justify-center bg-muted">
-        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground mr-2" />
+      <div className="bg-muted flex h-full w-full items-center justify-center">
+        <Loader2 className="text-muted-foreground mr-2 h-6 w-6 animate-spin" />
         <span className="text-muted-foreground">Loading map...</span>
       </div>
     ),
-  }
+  },
 );
 // Initial state for the search action
 const initialSearchState: SearchActionResult = {
@@ -41,7 +41,7 @@ export default function PlaceFinder() {
   // State for the specific search form action
   const [searchState, searchFormAction, isSearchPending] = useActionState(
     searchPlacesByQuery,
-    initialSearchState // Provide initial state matching SearchActionResult
+    initialSearchState, // Provide initial state matching SearchActionResult
   );
 
   const {
@@ -129,7 +129,7 @@ export default function PlaceFinder() {
 
   if (isLoading) {
     resultsContent = (
-      <div className="text-center p-4 flex justify-center items-center">
+      <div className="flex items-center justify-center p-4 text-center">
         <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Loading...
       </div>
     );
@@ -150,12 +150,21 @@ export default function PlaceFinder() {
           <li key={p.id}>
             <button
               onClick={() => handlePlaceSelect(p)}
-              className="w-full text-left p-2 border border-transparent rounded hover:bg-muted hover:border-border focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary"
+              className="hover:bg-muted hover:border-border focus:ring-primary focus:border-primary w-full rounded border border-transparent p-2 text-left focus:ring-1 focus:outline-none"
               aria-label={`Select ${p.name}`}
             >
-              <span className="font-medium">{p.name}</span>
+              <div className="flex items-center gap-1">
+                {" "}
+                {/* Wrapper for name and icon */}
+                <span className="font-medium">{p.name}</span>
+                {p.isVerified && (
+                  <span title="Verified by overHere">
+                    <CheckCircle2 className="h-4 w-4 shrink-0 text-blue-500" />
+                  </span>
+                )}
+              </div>
               <br />
-              <span className="text-xs text-muted-foreground">{p.address}</span>
+              <span className="text-muted-foreground text-xs">{p.address}</span>
             </button>
           </li>
         ))}
@@ -164,31 +173,25 @@ export default function PlaceFinder() {
   } else if (searchAttempted && displayedPlaces.length === 0) {
     // If NO place selected, search WAS attempted, and NO places found
     resultsContent = (
-      <p className="text-center p-4 text-muted-foreground">
+      <p className="text-muted-foreground p-4 text-center">
         No places found. Try searching nearby or using a different name.
       </p>
     );
   } else if (!searchAttempted) {
     // Initial state before any search attempt
-    resultsContent = (
-      <p className="text-center p-4 text-muted-foreground">
-        Find places nearby or search for a specific spot.
-      </p>
-    );
+    resultsContent = <></>;
   }
 
   return (
     <div className="flex flex-col gap-6">
-      {/* Control Bar (as before) */}
-      <div className="flex items-center gap-2">
+      <div className="flex flex-col items-center justify-center gap-2">
         <form action={searchFormAction} className="flex items-center">
           <Input
             name="searchQuery"
             type="search"
-            placeholder="Search places"
+            placeholder="Search specific places"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full"
             aria-label="Search for a specific place"
             disabled={isLoading}
           />
@@ -196,7 +199,7 @@ export default function PlaceFinder() {
             type="submit"
             size="icon"
             variant="ghost"
-            className="-ml-9 z-10"
+            className="z-10 -ml-9"
             disabled={isLoading || !searchQuery.trim()}
             aria-label="Submit search"
           >
@@ -219,14 +222,14 @@ export default function PlaceFinder() {
           ) : (
             <>
               <LocateFixed className="h-5 w-5" />
-              <span className="">Find places</span>
+              <span className="">Find nearby places</span>
             </>
           )}
         </Button>
       </div>
 
       {/* Map Area (as before) */}
-      <div className="flex-grow bg-muted relative">
+      <div className="bg-muted relative flex-grow">
         <UserMap
           places={displayedPlaces}
           selectedPlace={selectedPlaceForCheckin}
@@ -235,44 +238,44 @@ export default function PlaceFinder() {
       </div>
 
       {/* Results List / CheckIn Form Area */}
-      <div className="h-1/3 overflow-y-auto bg-background p-2">
+      <div className="h-1/3 overflow-y-auto p-2">
         {isLoading && (
-          <div className="text-center p-4 flex justify-center items-center">
+          <div className="flex items-center justify-center p-4 text-center">
             <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Loading...
           </div>
         )}
 
         {/* --- Render CheckInForm OR Place List --- */}
         {/* Results List / CheckIn Form Area */}
-        <div className="flex-grow overflow-y-auto bg-background p-2 min-h-0">
+        <div className="min-h-0 flex-grow overflow-y-auto p-2">
           {/* Render the determined content */}
           {resultsContent}
 
           {/* Display Errors Separately (keeps logic clean) */}
           {!isLoading && geoError && (
-            <p className="text-center p-2 text-red-600">{geoError}</p>
+            <p className="p-2 text-center text-red-600">{geoError}</p>
           )}
           {!isLoading && searchState?.error && !isSearchPending && (
-            <p className="text-center p-2 text-red-600">
+            <p className="p-2 text-center text-red-600">
               Search failed: {searchState.error}
             </p>
           )}
           {!isLoading && nearbyError && !isNearbyLoading && (
-            <p className="text-center p-2 text-red-600">
+            <p className="p-2 text-center text-red-600">
               Nearby search failed: {nearbyError}
             </p>
           )}
         </div>
 
         {/* Display Errors (as before) */}
-        {geoError && <p className="text-center p-2 text-red-600">{geoError}</p>}
+        {geoError && <p className="p-2 text-center text-red-600">{geoError}</p>}
         {searchState?.error && !isSearchPending && (
-          <p className="text-center p-2 text-red-600">
+          <p className="p-2 text-center text-red-600">
             Search failed: {searchState.error}
           </p>
         )}
         {nearbyError && !isNearbyLoading && (
-          <p className="text-center p-2 text-red-600">
+          <p className="p-2 text-center text-red-600">
             Nearby search failed: {nearbyError}
           </p>
         )}

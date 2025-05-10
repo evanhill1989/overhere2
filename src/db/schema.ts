@@ -8,7 +8,8 @@ import {
   index,
   pgEnum,
   uuid,
-  text, // Import pgEnum for status
+  text,
+  boolean, // Import pgEnum for status
 } from "drizzle-orm/pg-core";
 
 // Define an Enum for status (optional but recommended)
@@ -34,6 +35,7 @@ export const placesTable = pgTable("places", {
   lastFetchedAt: timestamp("last_fetched_at", { withTimezone: true })
     .notNull()
     .defaultNow(),
+  isVerified: boolean("is_verified").notNull().default(false),
 });
 
 export const checkinsTable = pgTable(
@@ -57,7 +59,7 @@ export const checkinsTable = pgTable(
     placeIdx: index("checkins_place_idx").on(table.placeId),
     statusIdx: index("checkins_status_idx").on(table.status),
     createdAtIndex: index("checkins_created_at_idx").on(table.createdAt),
-  })
+  }),
 );
 
 export const chatSessionStatusEnum = pgEnum("chat_session_status", [
@@ -86,13 +88,13 @@ export const chatSessionsTable = pgTable(
   },
   (table) => ({
     initiatorIdx: index("chat_session_initiator_idx").on(
-      table.initiatorCheckinId
+      table.initiatorCheckinId,
     ),
     receiverIdx: index("chat_session_receiver_idx").on(table.receiverCheckinId),
     placeIdx: index("chat_session_place_idx").on(table.placeId),
     // Optional: Index the status column if you query by it often
     statusIdx: index("chat_session_status_idx").on(table.status),
-  })
+  }),
 );
 
 export const messagesTable = pgTable(
@@ -117,7 +119,7 @@ export const messagesTable = pgTable(
     senderIdx: index("message_sender_idx").on(table.senderCheckinId),
     // Index for ordering messages chronologically
     createdAtIdx: index("message_created_at_idx").on(table.createdAt),
-  })
+  }),
 );
 
 // --- Type Exports ---

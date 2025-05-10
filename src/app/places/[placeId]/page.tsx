@@ -4,6 +4,7 @@ import { eq, and, gt, desc } from "drizzle-orm";
 import { notFound } from "next/navigation";
 import { getKindeServerSession } from "@kinde-oss/kinde-auth-nextjs/server";
 import CheckinAndMessageController from "./_components/CheckinAndMessageController";
+import { CheckCircle2 } from "lucide-react";
 
 const CURRENT_WINDOW_MS = 2 * 60 * 60 * 1000;
 
@@ -47,8 +48,8 @@ export default async function PlaceDetailPage(props: PlaceDetailPageProps) {
       .where(
         and(
           eq(checkinsTable.placeId, placeId),
-          gt(checkinsTable.createdAt, thresholdTime)
-        )
+          gt(checkinsTable.createdAt, thresholdTime),
+        ),
       )
       .orderBy(desc(checkinsTable.createdAt)); // Get most recent first
 
@@ -57,7 +58,7 @@ export default async function PlaceDetailPage(props: PlaceDetailPageProps) {
         recentCheckins.find((c) => c.userId === currentUserKindeId) ?? null;
 
       otherCheckins = recentCheckins.filter(
-        (c) => c.userId !== currentUserKindeId
+        (c) => c.userId !== currentUserKindeId,
       );
     } else {
       otherCheckins = recentCheckins;
@@ -67,17 +68,22 @@ export default async function PlaceDetailPage(props: PlaceDetailPageProps) {
   }
 
   return (
-    <div className="p-5 font-sans flex flex-col gap-4 max-w-lg mx-auto">
+    <div className="mx-auto flex max-w-lg flex-col gap-4 p-5 font-sans">
       <header>
-        <h1 className="text-3xl text-white font-bold mb-1">
-          {placeDetails.name}
-        </h1>
+        <div className="mb-1 flex items-center gap-2">
+          <h1 className="text-3xl font-bold">{placeDetails.name}</h1>
+          {placeDetails.isVerified && (
+            <span title="Verified by overHere">
+              <CheckCircle2 className="h-4 w-4 shrink-0 text-blue-500" />
+            </span>
+          )}
+        </div>
         <address className="text-gray-600 not-italic">
           {placeDetails.address}
         </address>
       </header>
 
-      <section className="text-sm text-gray-500 border-t pt-4 mt-4">
+      <section className="mt-4 border-t pt-4 text-sm text-gray-500">
         {placeDetails.latitude !== null && placeDetails.longitude !== null && (
           <p className="mb-1">
             Coordinates: {placeDetails.latitude?.toFixed(5)},{" "}

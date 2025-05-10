@@ -14,7 +14,7 @@ export default async function HomePage() {
   const isLoggedIn = await isAuthenticated();
 
   return (
-    <div className="grid h-full grid-rows-[1fr_4fr] text-center">
+    <div className="grid h-full w-3xl grid-rows-[1fr_4fr] text-center">
       {isLoggedIn ? (
         <>
           <div></div> {/* Spacer row */}
@@ -23,7 +23,7 @@ export default async function HomePage() {
       ) : (
         <>
           <div></div> {/* Spacer row */}
-          <div className="flex flex-col items-center gap-4 p-4 text-center">
+          <div className="flex flex-col items-center gap-6 p-4 text-center">
             <h1 className="text-primary font-heading text-4xl font-bold md:text-7xl">
               Talk to people
             </h1>

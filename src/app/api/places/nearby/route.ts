@@ -1,134 +1,98 @@
 // src/app/api/places/nearby/route.ts
 import { NextResponse } from "next/server";
+import { db } from "@/index";
+import { placesTable } from "@/db/schema";
+import { inArray } from "drizzle-orm";
 import type { Place } from "@/types/places";
 
-const SERVICE_PROVIDER = "google"; // or 'mapbox', 'other'
 const Maps_API_KEY = process.env.Maps_API_KEY;
 
-interface GooglePlaceResult {
+interface GoogleNearbySearchResult {
   place_id: string;
   name: string;
   vicinity?: string;
   geometry?: {
     location?: {
-      lat?: number;
-      lng?: number;
+      lat: number;
+      lng: number;
     };
   };
-  types?: string[]; // Keep types, might be useful for debugging/future filtering
 }
 
 export async function POST(request: Request) {
   if (!Maps_API_KEY) {
-    console.error("Mapping API Key/Token is missing");
     return NextResponse.json({ error: "Configuration error" }, { status: 500 });
   }
 
   try {
-    const { latitude, longitude } = await request.json();
+    const body = await request.json();
+    const { latitude, longitude } = body;
 
-    if (typeof latitude !== "number" || typeof longitude !== "number") {
+    if (latitude == null || longitude == null) {
       return NextResponse.json(
-        { error: "Invalid latitude or longitude" },
-        { status: 400 }
+        { error: "Latitude and longitude are required." },
+        { status: 400 },
       );
     }
 
-    let apiUrl = "";
-    let places: Place[] = [];
+    const searchType =
+      "cafe|bar|restaurant|library|park|book_store|art_gallery|museum";
+    const apiUrl = `https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=${latitude}%2C${longitude}&rankby=distance&type=${searchType}&key=${Maps_API_KEY}`;
 
-    if (SERVICE_PROVIDER === "google") {
-      // --- MODIFICATION START ---
-      // Rank by DISTANCE and filter by TYPE = 'cafe'
-      const searchType = "cafe"; // Set the specific type we want
-      // rankby=distance requires *not* using radius. It searches outwards.
-      apiUrl = `https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=${latitude}%2C${longitude}&rankby=distance&type=${searchType}&key=${Maps_API_KEY}`;
-      // --- MODIFICATION END ---
-
-      console.log("Fetching Google Places with URL:", apiUrl); // Log the URL
-
-      const response = await fetch(apiUrl);
-      if (!response.ok) {
-        console.error(
-          "Google Places API request failed:",
-          response.status,
-          response.statusText
-        );
-        const errorBody = await response.text();
-        console.error("Error Body:", errorBody);
-        throw new Error(
-          `Google Places API request failed: ${response.statusText}`
-        );
-      }
-      const data = await response.json();
-
-      if (data.status !== "OK" && data.status !== "ZERO_RESULTS") {
-        console.error(
-          "Google Places API Error:",
-          data.status,
-          data.error_message
-        );
-        console.error("Full Error Response:", JSON.stringify(data, null, 2));
-        throw new Error(
-          `Google Places API Error: ${data.status} - ${
-            data.error_message || "Unknown error"
-          }`
-        );
-      }
-
-      // Log the raw results for inspection
-      console.log(
-        `Raw Google Places Results (type=${searchType}):`,
-        JSON.stringify(data.results, null, 2)
+    const response = await fetch(apiUrl);
+    if (!response.ok)
+      throw new Error(
+        `Google Places API request failed: ${response.statusText}`,
       );
+    const data = await response.json();
+    if (data.status !== "OK" && data.status !== "ZERO_RESULTS") {
+      throw new Error(
+        `Google Places API Error: ${data.status} - ${data.error_message || "Unknown error"}`,
+      );
+    }
 
-      places = (data.results || []).map(
-        (place: GooglePlaceResult): Place => ({
-          id: place.place_id,
-          name: place.name,
-          address: place.vicinity || "Address not available",
-          lat: place.geometry?.location?.lat,
-          lng: place.geometry?.location?.lng,
-          // Optional: keep types if needed later
-          // types: place.types
+    const placesFromGoogleApi: Omit<Place, "isVerified">[] = (
+      data.results || []
+    ).map(
+      (place: GoogleNearbySearchResult): Omit<Place, "isVerified"> => ({
+        id: place.place_id,
+        name: place.name,
+        address: place.vicinity || "Address not available",
+        lat: place.geometry?.location?.lat,
+        lng: place.geometry?.location?.lng,
+      }),
+    );
+
+    let enrichedPlaces: Place[] = [];
+
+    if (placesFromGoogleApi.length > 0) {
+      const placeIdsFromGoogle = placesFromGoogleApi.map((p) => p.id);
+      const verificationStatuses = await db
+        .select({
+          id: placesTable.id,
+          isVerified: placesTable.isVerified,
         })
+        .from(placesTable)
+        .where(inArray(placesTable.id, placeIdsFromGoogle));
+
+      const verificationMap = new Map(
+        verificationStatuses.map((vs) => [vs.id, vs.isVerified]),
       );
-    } else {
-      return NextResponse.json(
-        { error: "Invalid service provider configured" },
-        { status: 500 }
-      );
+
+      enrichedPlaces = placesFromGoogleApi.map((p) => ({
+        ...p,
+        isVerified: verificationMap.get(p.id) ?? false,
+      }));
     }
 
-    // Log the final processed places
-    console.log("Processed Places:", JSON.stringify(places, null, 2));
-
-    // Check if places array is empty and potentially provide feedback
-    if (places.length === 0) {
-      console.log(
-        `No places found for type 'cafe' near ${latitude}, ${longitude}`
-      );
-      // Depending on desired behavior, you might want to return an empty list
-      // or perhaps try another type if 'cafe' yields nothing. For now, just return empty.
-    }
-
-    return NextResponse.json({ places });
+    return NextResponse.json({ places: enrichedPlaces });
   } catch (error: unknown) {
-    console.error("Error fetching nearby places:", error);
-
     let errorMessage = "Unknown error occurred";
-    if (error instanceof Error) {
-      errorMessage = error.message;
-    } else if (typeof error === "string") {
-      errorMessage = error;
-    }
-
+    if (error instanceof Error) errorMessage = error.message;
+    else if (typeof error === "string") errorMessage = error;
     return NextResponse.json(
-      {
-        error: "Failed to fetch nearby places",
-        details: errorMessage,
-      },
-      { status: 500 }
+      { error: "Failed to fetch nearby places", details: errorMessage },
+      { status: 500 },
     );
   }
 }
