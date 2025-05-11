@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Loader2, X } from "lucide-react";
+import { CheckCircle2, Loader2, X } from "lucide-react";
 import { useEffect } from "react";
 import type { LocationData } from "@/hooks/useGeolocation";
 // Assuming you might use Sonner for notifications later
@@ -24,27 +24,25 @@ const initialCheckinState: ActionResult = {
 
 interface CheckInFormProps {
   place: Place; // The place selected for check-in
-  onCancel: () => void; // Function to call when cancelling/closing the form
+
   currentUserLocation: LocationData | null; // Receive user location as prop
 }
 
 export function CheckInForm({
   place,
-  onCancel,
+
   currentUserLocation,
 }: CheckInFormProps) {
   // Use useActionState for the check-in form submission
   const [state, formAction, isPending] = useActionState(
     submitCheckIn,
-    initialCheckinState
+    initialCheckinState,
   );
 
-  // Optional: Show toast messages based on the action result
   useEffect(() => {
     if (state?.message && !isPending) {
-      // Using console.log for now, replace with toast later if desired
       console.log(
-        `Check-in attempt: ${state.message} (Success: ${state.success})`
+        `Check-in attempt: ${state.message} (Success: ${state.success})`,
       );
       // if (state.success) {
       //   toast.success(state.message);
@@ -65,24 +63,10 @@ export function CheckInForm({
   const canSubmit = !!currentUserLocation;
 
   return (
-    <div className="p-4 border border-primary rounded-lg mt-4 bg-card shadow-md relative">
-      <Button
-        variant="ghost"
-        size="icon"
-        className="absolute top-1 right-1"
-        onClick={onCancel}
-        aria-label="Cancel check-in"
-      >
-        <X className="h-4 w-4" />
-      </Button>
-      <h3 className="text-lg font-semibold mb-1 font-heading">Check in at:</h3>
-      <p className="mb-1 font-medium">{place.name}</p>
-      <p className="text-sm text-muted-foreground mb-4">{place.address}</p>
-
+    <div className="relative">
       <form action={formAction}>
-        {/* Hidden input to pass the selected place ID */}
         <input type="hidden" name="selectedPlaceId" value={place.id} />
-        {/* --- NEW: Hidden inputs for user location --- */}
+
         {currentUserLocation && (
           <>
             <input
@@ -97,9 +81,8 @@ export function CheckInForm({
             />
           </>
         )}
-        {/* --- END NEW --- */}
-        <div className="space-y-4">
-          {/* Status Selection */}
+
+        <div className="flex flex-col space-y-6">
           <div>
             <Label className="mb-2 block font-medium">Your Status:</Label>
             <RadioGroup
@@ -123,40 +106,38 @@ export function CheckInForm({
             </RadioGroup>
           </div>
 
-          {/* Topic Preference */}
           <div>
             <Label htmlFor="topicPreference" className="mb-1 block font-medium">
-              Topic (Optional):
+              Topic :
             </Label>
             <Input
               id="topicPreference"
               name="topicPreference"
               placeholder="e.g., 'Talking tech', 'Reading', 'Open to chat'"
               maxLength={120} // Match schema limit
-              className="bg-background"
+              className="bg-background shadow-sm"
             />
-            <p className="text-xs text-muted-foreground mt-1">
+            <p className="text-muted-foreground mt-1 text-xs">
               What are you up for discussing?
             </p>
           </div>
 
-          {/* Display warning if location isn't available */}
           {!currentUserLocation && (
             <p className="text-sm text-orange-600">
               Cannot check-in: Your current location is unavailable.
             </p>
           )}
 
-          {/* Submit Button - Disable if location missing */}
           <Button
+            className="self-end"
             type="submit"
             disabled={isPending || !canSubmit}
-            className="w-full"
           >
             {isPending ? (
               <>
                 {" "}
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Checking In...{" "}
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Checking
+                In...{" "}
               </>
             ) : (
               "Check In Here"
@@ -165,7 +146,7 @@ export function CheckInForm({
 
           {/* ... (Error message display) ... */}
           {state?.message && !state.success && !isPending && (
-            <p className="mt-2 text-lg font-semibold text-red-600 text-center">
+            <p className="mt-2 text-center text-lg font-semibold text-red-600">
               {state.message}
             </p>
           )}

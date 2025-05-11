@@ -9,7 +9,7 @@ import { Toaster } from "@/components/ui/sonner";
 const fontSans = Nunito_Sans({
   subsets: ["latin"],
   variable: "--font-nunito-sans",
-  weight: ["400", "500", "600", "700"],
+  weight: ["300", "400", "500", "600", "700"],
 });
 
 const fontHeading = Lexend({

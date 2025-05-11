@@ -14,12 +14,9 @@ export default async function HomePage() {
   const isLoggedIn = await isAuthenticated();
 
   return (
-    <div className="grid h-full w-3xl grid-rows-[1fr_4fr] text-center">
+    <div className="grid h-full max-w-3xl py-8 text-center md:max-w-full">
       {isLoggedIn ? (
-        <>
-          <div></div> {/* Spacer row */}
-          <PlaceFinder />
-        </>
+        <PlaceFinder />
       ) : (
         <>
           <div></div> {/* Spacer row */}

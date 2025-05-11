@@ -74,7 +74,7 @@ export default async function PlaceDetailPage(props: PlaceDetailPageProps) {
           <h1 className="text-3xl font-bold">{placeDetails.name}</h1>
           {placeDetails.isVerified && (
             <span title="Verified by overHere">
-              <CheckCircle2 className="h-4 w-4 shrink-0 text-blue-500" />
+              <CheckCircle2 className="text-primary h-4 w-4 shrink-0" />
             </span>
           )}
         </div>
