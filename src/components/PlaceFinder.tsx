@@ -3,12 +3,7 @@
 import { useState, useActionState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import {
-  LocateFixed,
-  Loader2,
-  CheckCircle2,
-  Search as SearchIcon,
-} from "lucide-react";
+import { LocateFixed, Loader2, Search as SearchIcon } from "lucide-react";
 import {
   searchPlacesByQuery,
   type SearchActionResult,
@@ -16,16 +11,9 @@ import {
 import { useNearbyPlaces } from "@/hooks/useNearbyPlaces";
 import { useGeolocation } from "@/hooks/useGeolocation";
 import type { Place } from "@/types/places";
-import { CheckInForm } from "@/components/CheckInForm";
+
 import dynamic from "next/dynamic";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogTrigger,
-} from "@/components/ui/dialog";
+
 import { CheckInDialog } from "./CheckInDialog";
 
 const UserMap = dynamic(() => import("@/components/UserMap"), {

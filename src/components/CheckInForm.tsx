@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { CheckCircle2, Loader2, X } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { useEffect } from "react";
 import type { LocationData } from "@/hooks/useGeolocation";
 // Assuming you might use Sonner for notifications later
