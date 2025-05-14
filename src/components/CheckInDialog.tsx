@@ -30,7 +30,7 @@ export function CheckInDialog({
     <Dialog>
       <DialogTrigger asChild>
         <button
-          className="hover:bg-muted hover:border-border focus:ring-primary focus:border-primary w-full rounded border border-transparent p-2 text-left focus:ring-1 focus:outline-none"
+          className="hover:bg-muted hover:border-border focus:ring-primary focus:border-primary flex flex-col rounded border border-transparent p-2 text-left focus:ring-1 focus:outline-none"
           aria-label={`Check in at ${place.name}`}
         >
           <div className="flex items-center gap-1">
@@ -41,8 +41,11 @@ export function CheckInDialog({
               </span>
             )}
           </div>
-          <br />
+
           <span className="text-muted-foreground text-xs">{place.address}</span>
+          <span className="text-muted-foreground text-xs">
+            {place.generative_summary}
+          </span>
         </button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">

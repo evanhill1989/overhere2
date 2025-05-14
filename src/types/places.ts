@@ -5,4 +5,5 @@ export interface Place {
   lat?: number;
   lng?: number;
   isVerified?: boolean;
+  generative_summary?: string;
 }

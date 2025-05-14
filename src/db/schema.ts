@@ -36,6 +36,7 @@ export const placesTable = pgTable("places", {
     .notNull()
     .defaultNow(),
   isVerified: boolean("is_verified").notNull().default(false),
+  generativeSummary: text("generative_summary"),
 });
 
 export const checkinsTable = pgTable(
