@@ -19,6 +19,7 @@ interface GoogleTextSearchResult {
     };
   };
   // Add other fields you might use from Google's response
+  generative_summary?: string;
 }
 
 export interface SearchActionResult {
@@ -69,6 +70,7 @@ export async function searchPlacesByQuery(
         address: place.formatted_address || "Address not available",
         lat: place.geometry?.location?.lat,
         lng: place.geometry?.location?.lng,
+        generative_summary: place.generative_summary || "",
       }),
     );
 

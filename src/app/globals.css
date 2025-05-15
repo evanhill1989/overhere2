@@ -177,6 +177,21 @@ h6 {
   /* transform-origin: 70% 70%; (Example - keep consistent if needed) */
 }
 
+@keyframes dialogOpen {
+  0% {
+    transform: scale(0);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@utility animate-dialog-open {
+  animation: dialogOpen 0.3s ease-in-out forwards;
+}
+
 input[type="search"]::-webkit-search-decoration,
 input[type="search"]::-webkit-search-cancel-button,
 input[type="search"]::-webkit-search-results-button,

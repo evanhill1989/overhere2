@@ -128,63 +128,60 @@ export function LocationPermissionProvider({
   const [geoError, setGeoError] = useState<string | null>(null);
   const isFetchingRef = useRef(false); // Ref to track if a fetch is in progress
 
-  const requestDeviceLocation = useCallback(
-    (isInitialGrant = false) => {
-      if (!navigator.geolocation) {
-        setGeoError("Geolocation is not supported.");
-        setPermissionStatus("unsupported");
-        return;
-      }
-      if (isFetchingRef.current && !isInitialGrant) return; // Prevent re-entry if already fetching unless it's an initial grant
+  const requestDeviceLocation = useCallback((isInitialGrant = false) => {
+    if (!navigator.geolocation) {
+      setGeoError("Geolocation is not supported.");
+      setPermissionStatus("unsupported");
+      return;
+    }
+    if (isFetchingRef.current && !isInitialGrant) return; // Prevent re-entry if already fetching unless it's an initial grant
 
-      setGeoError(null);
-      setIsLoadingGeo(true);
-      setPermissionStatus("fetching_location");
-      isFetchingRef.current = true;
+    setGeoError(null);
+    setIsLoadingGeo(true);
+    setPermissionStatus("fetching_location");
+    isFetchingRef.current = true;
 
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          setLocation({
-            latitude: position.coords.latitude,
-            longitude: position.coords.longitude,
-          });
-          setPermissionStatus("granted");
-          setIsLoadingGeo(false);
-          isFetchingRef.current = false;
-        },
-        (error) => {
-          setIsLoadingGeo(false);
-          isFetchingRef.current = false;
-          let message = "";
-          switch (error.code) {
-            case error.PERMISSION_DENIED:
-              message =
-                "Location permission was denied. To use overHere, please enable location access in your browser settings and then click 'Try Again'.";
-              setPermissionStatus("denied");
-              break;
-            case error.POSITION_UNAVAILABLE:
-              message =
-                "Location information is currently unavailable. Please ensure your device's location service is on.";
-              setPermissionStatus("error");
-              break;
-            case error.TIMEOUT:
-              message =
-                "The request to get your location timed out. Please try again.";
-              setPermissionStatus("error");
-              break;
-            default:
-              message =
-                "An unknown error occurred while trying to get your location.";
-              setPermissionStatus("error");
-              break;
-          }
-          setGeoError(message);
-        },
-        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 },
-      );
-    },
-    [location],
-  ); // Added location to dep array of requestDeviceLocation due to its use in onchange logic
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setLocation({
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude,
+        });
+        setPermissionStatus("granted");
+        setIsLoadingGeo(false);
+        isFetchingRef.current = false;
+      },
+      (error) => {
+        setIsLoadingGeo(false);
+        isFetchingRef.current = false;
+        let message = "";
+        switch (error.code) {
+          case error.PERMISSION_DENIED:
+            message =
+              "Location permission was denied. To use overHere, please enable location access in your browser settings and then click 'Try Again'.";
+            setPermissionStatus("denied");
+            break;
+          case error.POSITION_UNAVAILABLE:
+            message =
+              "Location information is currently unavailable. Please ensure your device's location service is on.";
+            setPermissionStatus("error");
+            break;
+          case error.TIMEOUT:
+            message =
+              "The request to get your location timed out. Please try again.";
+            setPermissionStatus("error");
+            break;
+          default:
+            message =
+              "An unknown error occurred while trying to get your location.";
+            setPermissionStatus("error");
+            break;
+        }
+        setGeoError(message);
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 },
+    );
+  }, []); // Added location to dep array of requestDeviceLocation due to its use in onchange logic
 
   const checkInitialPermission = useCallback(async () => {
     if (!navigator.geolocation) {
