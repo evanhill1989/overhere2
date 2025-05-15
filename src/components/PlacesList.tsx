@@ -17,35 +17,29 @@ export default function PlacesList({
   currentUserLocation,
 }: PlacesListProps) {
   const container = useRef<HTMLDivElement>(null);
-  const onClickBox = useRef<HTMLDivElement>(null);
+  //   const onClickBox = useRef<HTMLDivElement>(null);
   //   const onLoadBox = useRef<HTMLDivElement>(null);
 
   useGSAP(
     () => {
-      gsap.to(".onLoadBox", { rotation: 360, duration: 1 });
-
-      const onClickBoxAnimate = () => gsap.to(".onClickBox", { rotation: 360 });
-      const currentOnClickBoxTarget = onClickBox.current;
-      currentOnClickBoxTarget?.addEventListener("click", onClickBoxAnimate);
-
-      //   const currentOnClickBoxTarget = onClickBox.current;
-      //   if (currentOnClickBoxTarget) {
-      //     onClickBox.current.addEventListener("click", onClickBoxAnimate);
-      //     console.log("context", context);
-      //     return () => {
-      //       currentOnClickBoxTarget.removeEventListener(
-      //         "click",
-      //         onClickBoxAnimate,
-      //       );
-      //     };
-      //   }
+      gsap.fromTo(
+        ".onLoadBox",
+        { rotation: 0 },
+        { rotation: 360, duration: 1, stagger: 0.1, ease: "power1.inOut" },
+      );
     },
-    { scope: container },
+    { scope: container, dependencies: [displayedPlaces] },
   );
-  //   const box = useRef<HTMLDivElement>(null);
+
   const { contextSafe } = useGSAP({ scope: container });
-  const onClickGood = contextSafe(() => {
-    gsap.to(".box", { rotation: 360 });
+
+  const onClickGood = contextSafe((event: React.MouseEvent<HTMLDivElement>) => {
+    gsap.to(event.currentTarget, {
+      rotation: "+=360",
+      duration: 0.5,
+      ease: "power1.out",
+      overwrite: "auto",
+    });
   });
 
   return (
