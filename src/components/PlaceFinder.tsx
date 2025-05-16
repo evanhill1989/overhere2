@@ -167,22 +167,6 @@ export default function PlaceFinder() {
             )}
           </Button>
         </form>
-        <p>or</p>
-        <Button
-          onClick={handleNearbySearchClick}
-          disabled={isLoadingOverall || permissionStatus !== "granted"}
-          aria-label="Find nearby places"
-        >
-          {(isLoadingGeo && !userLocationFromContext) ||
-          (isNearbyLoading && searchAttempted && !searchQuery) ? (
-            <Loader2 className="h-5 w-5 animate-spin" />
-          ) : (
-            <>
-              <LocateFixed className="h-5 w-5" />
-              <span>Find nearby places</span>
-            </>
-          )}
-        </Button>
       </div>
 
       <div className="bg-muted relative flex-grow">

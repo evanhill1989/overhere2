@@ -207,3 +207,9 @@ input[type="search"]::-ms-clear {
   width: 0;
   height: 0;
 }
+
+.wrapper {
+  max-inline-size: 720px;
+  margin-inline: auto;
+  padding-inline: 1rem;
+}

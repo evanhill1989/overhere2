@@ -12,7 +12,7 @@ interface HeaderProps {
 export function Header({ isLoggedIn }: HeaderProps) {
   return (
     // Added padding, adjusted border color for light/dark mode
-    <header className="flex items-center justify-between border-b border-gray-200 p-4 dark:border-gray-700">
+    <header className="flex items-center justify-between border-b border-gray-200 dark:border-gray-700">
       <Link href="/" passHref legacyBehavior={false}>
         <div className="group flex items-center gap-2">
           <h1 className="font-heading active:underline active:underline-offset-2">
