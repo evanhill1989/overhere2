@@ -1,0 +1,1 @@
+ALTER TABLE "places" ADD COLUMN "primary_type" varchar(255);

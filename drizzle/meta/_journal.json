@@ -57,6 +57,20 @@
       "when": 1747164202344,
       "tag": "0007_tough_epoch",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1747769419680,
+      "tag": "0008_loud_nekra",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1747772644533,
+      "tag": "0009_amusing_ares",
+      "breakpoints": true
     }
   ]
 }

@@ -38,7 +38,7 @@ export default async function RootLayout({
         className={`${fontHeading.variable} ${fontSans.variable} grid min-h-[100dvh] grid-rows-[auto_1fr_auto] antialiased`}
       >
         <Header isLoggedIn={isLoggedIn} />
-        <main className="mx-auto w-full">
+        <main className="w-full">
           {" "}
           {/* Ensure main can take width */}
           {isLoggedIn ? (

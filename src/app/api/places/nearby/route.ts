@@ -5,23 +5,24 @@ import { placesTable } from "@/db/schema";
 import { inArray } from "drizzle-orm";
 import type { Place } from "@/types/places";
 
-const Maps_API_KEY = process.env.Maps_API_KEY;
+const PLACES_API_KEY = process.env.PLACES_API_KEY;
 
-interface GoogleNearbySearchResult {
-  place_id: string;
-  name: string;
-  vicinity?: string;
-  geometry?: {
-    location?: {
-      lat: number;
-      lng: number;
-    };
-  };
+interface GoogleApiNewPlace {
+  id: string;
+  displayName?: { text: string; languageCode?: string };
+  formattedAddress?: string;
+  location?: { latitude: number; longitude: number };
+  types?: string[];
+  primaryTypeDisplayName?: { text: string; languageCode?: string };
+  // Add other fields here if requested in FieldMask
 }
 
 export async function POST(request: Request) {
-  if (!Maps_API_KEY) {
-    return NextResponse.json({ error: "Configuration error" }, { status: 500 });
+  if (!PLACES_API_KEY) {
+    return NextResponse.json(
+      { error: "API Key configuration error" },
+      { status: 500 },
+    );
   }
 
   try {
@@ -35,38 +36,67 @@ export async function POST(request: Request) {
       );
     }
 
-    const searchType =
-      "cafe|bar|restaurant|library|park|book_store|art_gallery|museum";
-    const apiUrl = `https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=${latitude}%2C${longitude}&rankby=distance&type=${searchType}&key=${Maps_API_KEY}`;
+    const requestBody = {
+      includedTypes: [
+        "cafe",
+        "bar",
+        "restaurant",
+        "library",
+        "park",
+        "book_store",
+      ],
+      maxResultCount: 15,
+      locationRestriction: {
+        circle: {
+          center: { latitude: latitude, longitude: longitude },
+          radius: 2000.0, // Example: 2km radius
+        },
+      },
+      // rankPreference: "DISTANCE" // Only if includedTypes has ONE entry or is empty
+    };
 
-    const response = await fetch(apiUrl);
-    if (!response.ok)
+    const response = await fetch(
+      "https://places.googleapis.com/v1/places:searchNearby",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Goog-Api-Key": PLACES_API_KEY,
+          "X-Goog-FieldMask":
+            "places.id,places.displayName,places.formattedAddress,places.location,places.types,places.primaryTypeDisplayName",
+        },
+        body: JSON.stringify(requestBody),
+      },
+    );
+
+    if (!response.ok) {
+      const errorData = await response
+        .json()
+        .catch(() => ({ error: { message: response.statusText } }));
       throw new Error(
-        `Google Places API request failed: ${response.statusText}`,
-      );
-    const data = await response.json();
-    if (data.status !== "OK" && data.status !== "ZERO_RESULTS") {
-      throw new Error(
-        `Google Places API Error: ${data.status} - ${data.error_message || "Unknown error"}`,
+        `Google Places API (New) request failed: ${response.status} ${errorData.error?.message || response.statusText}`,
       );
     }
 
-    const placesFromGoogleApi: Omit<Place, "isVerified">[] = (
-      data.results || []
-    ).map(
-      (place: GoogleNearbySearchResult): Omit<Place, "isVerified"> => ({
-        id: place.place_id,
-        name: place.name,
-        address: place.vicinity || "Address not available",
-        lat: place.geometry?.location?.lat,
-        lng: place.geometry?.location?.lng,
+    const data = await response.json();
+
+    let placesFromGoogle: Place[] = (data.places || []).map(
+      (place: GoogleApiNewPlace): Place => ({
+        id: place.id,
+        name: place.displayName?.text || "Unknown Name",
+        address:
+          place.formattedAddress ||
+          place.types?.join(", ") ||
+          "Address not available",
+        lat: place.location?.latitude,
+        lng: place.location?.longitude,
+        primaryType: place.primaryTypeDisplayName?.text, // Store primary type if needed
+        isVerified: false,
       }),
     );
 
-    let enrichedPlaces: Place[] = [];
-
-    if (placesFromGoogleApi.length > 0) {
-      const placeIdsFromGoogle = placesFromGoogleApi.map((p) => p.id);
+    if (placesFromGoogle.length > 0) {
+      const placeIdsFromGoogle = placesFromGoogle.map((p) => p.id);
       const verificationStatuses = await db
         .select({
           id: placesTable.id,
@@ -78,18 +108,16 @@ export async function POST(request: Request) {
       const verificationMap = new Map(
         verificationStatuses.map((vs) => [vs.id, vs.isVerified]),
       );
-
-      enrichedPlaces = placesFromGoogleApi.map((p) => ({
+      placesFromGoogle = placesFromGoogle.map((p) => ({
         ...p,
         isVerified: verificationMap.get(p.id) ?? false,
       }));
     }
 
-    return NextResponse.json({ places: enrichedPlaces });
+    return NextResponse.json({ places: placesFromGoogle });
   } catch (error: unknown) {
-    let errorMessage = "Unknown error occurred";
+    let errorMessage = "Unknown error fetching nearby places";
     if (error instanceof Error) errorMessage = error.message;
-    else if (typeof error === "string") errorMessage = error;
     return NextResponse.json(
       { error: "Failed to fetch nearby places", details: errorMessage },
       { status: 500 },

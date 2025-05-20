@@ -45,10 +45,10 @@ export function CheckInDialog({
           </div>
 
           <span className="text-muted-foreground text-xs">{place.address}</span>
-          <span className="text-muted-foreground text-xs">
+          {/* <span className="text-muted-foreground text-xs">
             Generative Summary:
             {place.generative_summary}
-          </span>
+          </span> */}
         </button>
       </DialogTrigger>
       <DialogContent className="animate-dialog-open sm:max-w-[425px]">
@@ -68,10 +68,10 @@ export function CheckInDialog({
             )}
           </DialogTitle>
           <DialogDescription>{place.address}</DialogDescription>
-          <span className="text-muted-foreground text-xs">
+          {/* <span className="text-muted-foreground text-xs">
             Generative Summary:
             {place.generative_summary}
-          </span>
+          </span> */}
         </DialogHeader>
         <CheckInForm
           place={place}

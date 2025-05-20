@@ -1,25 +1,21 @@
 // src/app/_actions/placeActions.ts
 "use server";
 
-import { db } from "@/index"; // Adjust path to your db instance
-import { placesTable } from "@/db/schema"; // Adjust path
+import { db } from "@/index";
+import { placesTable } from "@/db/schema";
 import { inArray } from "drizzle-orm";
-import type { Place } from "@/types/places"; // Ensure this type includes isVerified?: boolean
+import type { Place } from "@/types/places"; // Ensure Place type includes isVerified and optionally primaryType
 
-const Maps_API_KEY = process.env.Maps_API_KEY;
+const PLACES_API_KEY = process.env.PLACES_API_KEY;
 
-interface GoogleTextSearchResult {
-  place_id: string;
-  name: string;
-  formatted_address?: string;
-  geometry?: {
-    location?: {
-      lat: number;
-      lng: number;
-    };
-  };
-  // Add other fields you might use from Google's response
-  generative_summary?: string;
+interface GoogleApiNewTextSearchResult {
+  id: string;
+  displayName?: { text: string; languageCode?: string };
+  formattedAddress?: string;
+  location?: { latitude: number; longitude: number };
+  types?: string[];
+  primaryTypeDisplayName?: { text: string; languageCode?: string };
+  // Add other fields here if requested in FieldMask
 }
 
 export interface SearchActionResult {
@@ -32,9 +28,9 @@ export async function searchPlacesByQuery(
   previousState: SearchActionResult | null,
   formData: FormData,
 ): Promise<SearchActionResult> {
-  if (!Maps_API_KEY) {
+  if (!PLACES_API_KEY) {
     return {
-      error: "Configuration error.",
+      error: "API Key configuration error",
       query: (formData.get("searchQuery") as string) || undefined,
     };
   }
@@ -44,40 +40,60 @@ export async function searchPlacesByQuery(
   }
   const trimmedQuery = query.trim();
 
-  const apiUrl = `https://maps.googleapis.com/maps/api/place/textsearch/json?query=${encodeURIComponent(
-    trimmedQuery,
-  )}&key=${Maps_API_KEY}`;
+  const requestBody = {
+    textQuery: trimmedQuery,
+    maxResultCount: 10,
+    // Optional: Add languageCode, regionCode, locationBias, etc. if needed
+    // "locationBias": {
+    //   "circle": {
+    //     "center": { "latitude": userLat, "longitude": userLng }, // You'd need user's current location here
+    //     "radius": 20000.0 // e.g., 20km bias
+    //   }
+    // }
+  };
 
   try {
-    const response = await fetch(apiUrl);
-    if (!response.ok)
+    const response = await fetch(
+      "https://places.googleapis.com/v1/places:searchText",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Goog-Api-Key": PLACES_API_KEY,
+          "X-Goog-FieldMask":
+            "places.id,places.displayName,places.formattedAddress,places.location,places.types,places.primaryTypeDisplayName",
+        },
+        body: JSON.stringify(requestBody),
+      },
+    );
+
+    if (!response.ok) {
+      const errorData = await response
+        .json()
+        .catch(() => ({ error: { message: response.statusText } }));
       throw new Error(
-        `Google Places API request failed: ${response.statusText}`,
-      );
-    const data = await response.json();
-    if (data.status !== "OK" && data.status !== "ZERO_RESULTS") {
-      throw new Error(
-        `Google Places API Error: ${data.status} - ${data.error_message || "Unknown error"}`,
+        `Google Places API (New) Text Search failed: ${response.status} ${errorData.error?.message || response.statusText}`,
       );
     }
+    const data = await response.json();
 
-    const placesFromGoogleApi: Omit<Place, "isVerified">[] = (
-      data.results || []
-    ).map(
-      (place: GoogleTextSearchResult): Omit<Place, "isVerified"> => ({
-        id: place.place_id,
-        name: place.name,
-        address: place.formatted_address || "Address not available",
-        lat: place.geometry?.location?.lat,
-        lng: place.geometry?.location?.lng,
-        generative_summary: place.generative_summary || "",
+    let placesFromGoogle: Place[] = (data.places || []).map(
+      (place: GoogleApiNewTextSearchResult): Place => ({
+        id: place.id,
+        name: place.displayName?.text || "Unknown Name",
+        address:
+          place.formattedAddress ||
+          place.types?.join(", ") ||
+          "Address not available",
+        lat: place.location?.latitude,
+        lng: place.location?.longitude,
+        primaryType: place.primaryTypeDisplayName?.text,
+        isVerified: false,
       }),
     );
 
-    let enrichedPlaces: Place[] = [];
-
-    if (placesFromGoogleApi.length > 0) {
-      const placeIdsFromGoogle = placesFromGoogleApi.map((p) => p.id);
+    if (placesFromGoogle.length > 0) {
+      const placeIdsFromGoogle = placesFromGoogle.map((p) => p.id);
       const verificationStatuses = await db
         .select({
           id: placesTable.id,
@@ -89,19 +105,15 @@ export async function searchPlacesByQuery(
       const verificationMap = new Map(
         verificationStatuses.map((vs) => [vs.id, vs.isVerified]),
       );
-
-      enrichedPlaces = placesFromGoogleApi.map((p) => ({
+      placesFromGoogle = placesFromGoogle.map((p) => ({
         ...p,
         isVerified: verificationMap.get(p.id) ?? false,
       }));
     }
-
-    return { places: enrichedPlaces, query: trimmedQuery };
+    return { places: placesFromGoogle, query: trimmedQuery };
   } catch (error: unknown) {
     let message = "Server error during place search.";
-    if (error instanceof Error) {
-      message = `Failed to search places. ${error.message.includes("API") ? "External API error." : ""}`;
-    }
+    if (error instanceof Error) message = error.message;
     return { error: message, query: trimmedQuery };
   }
 }

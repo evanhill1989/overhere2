@@ -23,7 +23,7 @@ export default function PlacesContent({
   searchQuery,
 }: PlacesContentProps) {
   return (
-    <div className="wrapper dark:bg-background flex h-full w-full flex-col items-center justify-center gap-4 overflow-hidden rounded-lg border border-gray-200 bg-white p-4 shadow-md dark:border-gray-700">
+    <div className="wrapper dark:bg-background flex h-full w-full flex-col items-center justify-center gap-4 overflow-hidden p-4 shadow-md">
       <h3>Places near you</h3>
       <div className="overflow-y-auto">
         {isLoadingOverall && (

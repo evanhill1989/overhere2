@@ -36,7 +36,7 @@ export const placesTable = pgTable("places", {
     .notNull()
     .defaultNow(),
   isVerified: boolean("is_verified").notNull().default(false),
-  generativeSummary: text("generative_summary"),
+  primaryType: varchar("primary_type", { length: 255 }),
 });
 
 export const checkinsTable = pgTable(

@@ -67,8 +67,8 @@ export default function UserMap({
       scrollWheelZoom={true}
       dragging={true}
       zoomControl={true} // Ensure zoom controls are enabled
-      className="dark:bg-background h-full w-full rounded-lg border border-gray-200 bg-white shadow-md dark:border-gray-700"
-      // style={{ height: "100%", width: "100%", minHeight: "200px" }}
+      // className="dark:bg-background h-full w-full bg-white shadow-md"
+      style={{ height: "100%", width: "100%", minHeight: "200px" }}
     >
       <TileLayer
         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'

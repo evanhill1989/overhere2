@@ -5,5 +5,6 @@ export interface Place {
   lat?: number;
   lng?: number;
   isVerified?: boolean;
-  generative_summary?: string;
+  primaryType?: string; // Optional field for primary type
+  // generative_summary?: string;
 }

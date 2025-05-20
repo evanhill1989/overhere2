@@ -44,9 +44,9 @@ async function fetchAndCacheGooglePlaceDetails(
     console.error(`DB cache lookup failed for place ID ${placeId}:`, dbError);
   }
 
-  const apiKey = process.env.Maps_API_KEY;
+  const apiKey = process.env.PLACES_API_KEY;
   if (!apiKey) {
-    console.error("Maps_API_KEY environment variable not set.");
+    console.error("PLACES_API_KEY environment variable not set.");
     return null;
   }
 
@@ -86,7 +86,8 @@ async function fetchAndCacheGooglePlaceDetails(
     latitude: googlePlaceData.geometry?.location?.lat ?? null,
     longitude: googlePlaceData.geometry?.location?.lng ?? null,
     lastFetchedAt: new Date(),
-    generative_summary: googlePlaceData.generative_summary || "",
+    primaryType: googlePlaceData.primaryTypeDisplayName?.text ?? null,
+    // generative_summary: googlePlaceData.generative_summary || "",
     // isVerified will default to false in DB on new insert
   };
 
@@ -133,7 +134,7 @@ async function fetchAndCacheGooglePlaceDetails(
       latitude: placeToCache.latitude,
       longitude: placeToCache.longitude,
       lastFetchedAt: placeToCache.lastFetchedAt,
-      generativeSummary: placeToCache.generative_summary || "",
+      // generativeSummary: placeToCache.generative_summary || "",
       isVerified: false,
     };
     return fallbackData;
