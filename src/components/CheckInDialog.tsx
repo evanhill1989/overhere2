@@ -24,7 +24,9 @@ export function CheckInDialog({
   place,
   currentUserLocation,
 }: CheckInDialogProps) {
-  // No local state needed here for dialog open/close if using uncontrolled DialogTrigger
+  // Are we drilling too far down the places prop?
+
+  console.log("CheckInDialog rendered with place:", place);
 
   return (
     <Dialog>
@@ -44,6 +46,7 @@ export function CheckInDialog({
 
           <span className="text-muted-foreground text-xs">{place.address}</span>
           <span className="text-muted-foreground text-xs">
+            Generative Summary:
             {place.generative_summary}
           </span>
         </button>
@@ -65,6 +68,10 @@ export function CheckInDialog({
             )}
           </DialogTitle>
           <DialogDescription>{place.address}</DialogDescription>
+          <span className="text-muted-foreground text-xs">
+            Generative Summary:
+            {place.generative_summary}
+          </span>
         </DialogHeader>
         <CheckInForm
           place={place}

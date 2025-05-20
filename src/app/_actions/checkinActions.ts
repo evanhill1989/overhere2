@@ -86,6 +86,7 @@ async function fetchAndCacheGooglePlaceDetails(
     latitude: googlePlaceData.geometry?.location?.lat ?? null,
     longitude: googlePlaceData.geometry?.location?.lng ?? null,
     lastFetchedAt: new Date(),
+    generative_summary: googlePlaceData.generative_summary || "",
     // isVerified will default to false in DB on new insert
   };
 
@@ -132,7 +133,8 @@ async function fetchAndCacheGooglePlaceDetails(
       latitude: placeToCache.latitude,
       longitude: placeToCache.longitude,
       lastFetchedAt: placeToCache.lastFetchedAt,
-      isVerified: false, // Assume false as it couldn't be properly cached/retrieved
+      generativeSummary: placeToCache.generative_summary || "",
+      isVerified: false,
     };
     return fallbackData;
   }
