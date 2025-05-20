@@ -3,7 +3,7 @@
 import { useState, useActionState, useEffect, useMemo } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { LocateFixed, Loader2, Search as SearchIcon } from "lucide-react";
+import { Loader2, Search as SearchIcon } from "lucide-react";
 import {
   searchPlacesByQuery,
   type SearchActionResult,
@@ -41,7 +41,7 @@ export default function PlaceFinder() {
     location: userLocationFromContext,
     isLoadingGeo,
     geoError,
-    requestBrowserLocationPermission,
+    // requestBrowserLocationPermission,
     permissionStatus,
   } = useAppLocation();
 
@@ -49,7 +49,7 @@ export default function PlaceFinder() {
     places: nearbyPlaces,
     isLoading: isNearbyLoading,
     error: nearbyError,
-    refetch: refetchNearby,
+    // refetch: refetchNearby,
   } = useNearbyPlaces(userLocationFromContext);
 
   const [searchQuery, setSearchQuery] = useState("");
@@ -97,15 +97,15 @@ export default function PlaceFinder() {
     nearbyPlaces,
   ]);
 
-  const handleNearbySearchClick = () => {
-    setSearchAttempted(true);
-    setSearchQuery("");
-    if (userLocationFromContext) {
-      refetchNearby();
-    } else {
-      requestBrowserLocationPermission();
-    }
-  };
+  // const handleNearbySearchClick = () => {
+  //   setSearchAttempted(true);
+  //   setSearchQuery("");
+  //   if (userLocationFromContext) {
+  //     refetchNearby();
+  //   } else {
+  //     requestBrowserLocationPermission();
+  //   }
+  // };
 
   const handleSearchFormSubmit = () => {
     setSearchAttempted(true);
