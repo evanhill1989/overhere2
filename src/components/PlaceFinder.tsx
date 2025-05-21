@@ -128,6 +128,7 @@ export default function PlaceFinder() {
     setIsResultsDrawerOpen(true);
   };
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const handleNearbySearchClick = () => {
     setSearchAttempted(true);
     setIsResultsDrawerOpen(true);
@@ -138,9 +139,6 @@ export default function PlaceFinder() {
       requestBrowserLocationPermission();
     }
   };
-  if (!userLocationFromContext && permissionStatus === "prompt") {
-    handleNearbySearchClick();
-  }
 
   let placesListRenderContent: React.ReactNode = null;
   if (derivedDisplayedPlaces.length > 0) {
