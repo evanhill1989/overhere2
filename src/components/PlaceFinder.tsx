@@ -3,12 +3,7 @@
 import { useState, useActionState, useEffect, useMemo } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import {
-  Loader2,
-  Search as SearchIcon,
-  ChevronUp,
-  ChevronDown,
-} from "lucide-react";
+import { Loader2, Search as SearchIcon } from "lucide-react";
 import {
   searchPlacesByQuery,
   type SearchActionResult,
@@ -230,12 +225,7 @@ export default function PlaceFinder() {
             className="fixed bottom-4 left-1/2 z-20 flex -translate-x-1/2 items-center gap-2 shadow-lg md:hidden"
             aria-label={isResultsDrawerOpen ? "Hide results" : "Show results"}
           >
-            {isResultsDrawerOpen ? (
-              <ChevronDown className="h-4 w-4" />
-            ) : (
-              <ChevronUp className="h-4 w-4" />
-            )}
-            {isResultsDrawerOpen ? "Hide" : "Results"}
+            Open
           </Button>
         </DrawerTrigger>
         <DrawerContent
@@ -244,7 +234,7 @@ export default function PlaceFinder() {
         >
           <div className="mx-auto flex h-full w-full flex-col">
             <div className="flex flex-shrink-0 cursor-grab justify-center p-4 active:cursor-grabbing md:hidden">
-              <div className="bg-muted h-1.5 w-8 rounded-full" />
+              {/* <div className="bg-muted h-1.5 w-8 rounded-full" /> */}
             </div>
             <DrawerHeader className="px-4 pt-0 text-center md:pt-2 md:text-left">
               <DrawerTitle id="places-drawer-title">
