@@ -10,7 +10,7 @@ import {
 } from "@/app/_actions/placeActions";
 import { useNearbyPlaces } from "@/hooks/useNearbyPlaces";
 import { useAppLocation } from "@/context/LocationPermissionProvider";
-
+// import type { Place } from "@/types/places";
 import dynamic from "next/dynamic";
 import PlacesList from "./PlacesList";
 import PlacesContent from "./PlacesContent";
@@ -18,7 +18,7 @@ import PlacesContent from "./PlacesContent";
 const UserMap = dynamic(() => import("@/components/UserMap"), {
   ssr: false,
   loading: () => (
-    <div className="bg-muted flex h-full w-full items-center justify-center">
+    <div className="bg-muted absolute inset-0 z-0 flex h-full w-full items-center justify-center">
       <Loader2 className="text-muted-foreground mr-2 h-6 w-6 animate-spin" />
       <span className="text-muted-foreground">Loading map...</span>
     </div>
@@ -41,7 +41,7 @@ export default function PlaceFinder() {
     location: userLocationFromContext,
     isLoadingGeo,
     geoError,
-    // requestBrowserLocationPermission,
+    requestBrowserLocationPermission,
     permissionStatus,
   } = useAppLocation();
 
@@ -49,7 +49,7 @@ export default function PlaceFinder() {
     places: nearbyPlaces,
     isLoading: isNearbyLoading,
     error: nearbyError,
-    // refetch: refetchNearby,
+    refetch: refetchNearby,
   } = useNearbyPlaces(userLocationFromContext);
 
   const [searchQuery, setSearchQuery] = useState("");
@@ -69,24 +69,17 @@ export default function PlaceFinder() {
   }, [permissionStatus, userLocationFromContext, searchAttempted, searchQuery]);
 
   const derivedDisplayedPlaces = useMemo(() => {
-    if (isSearchPending) {
-      // If a text search is actively pending, show no results yet
-      return [];
-    }
-    if (searchQuery && searchState?.places) {
-      // If there's an active text search query and it has results
-      return searchState.places;
-    }
+    if (isSearchPending && searchQuery) return [];
+    if (searchQuery && searchState?.places) return searchState.places;
     if (
       !searchQuery &&
       permissionStatus === "granted" &&
       userLocationFromContext &&
       searchAttempted
     ) {
-      // If no active text search, but location is granted and a nearby search was "attempted"
-      return nearbyPlaces; // This will be [] if nearby search yielded no results but completed
+      return nearbyPlaces;
     }
-    return []; // Default to empty if no relevant conditions met
+    return [];
   }, [
     isSearchPending,
     searchQuery,
@@ -97,79 +90,52 @@ export default function PlaceFinder() {
     nearbyPlaces,
   ]);
 
+  const handleSearchFormSubmit = () => {
+    setSearchAttempted(true);
+  };
+
   // const handleNearbySearchClick = () => {
   //   setSearchAttempted(true);
   //   setSearchQuery("");
   //   if (userLocationFromContext) {
   //     refetchNearby();
-  //   } else {
+  //   } else if (permissionStatus === "prompt" || permissionStatus === "denied") {
   //     requestBrowserLocationPermission();
   //   }
   // };
 
-  const handleSearchFormSubmit = () => {
-    setSearchAttempted(true);
-  };
-
-  let placesListContent: React.ReactNode = null;
-
+  let placesListRenderContent: React.ReactNode = null;
   if (derivedDisplayedPlaces.length > 0) {
-    placesListContent = (
+    placesListRenderContent = (
       <PlacesList
         displayedPlaces={derivedDisplayedPlaces}
         currentUserLocation={userLocationFromContext}
       />
     );
   } else if (searchAttempted && !isLoadingOverall) {
-    placesListContent = (
+    placesListRenderContent = (
       <p className="text-muted-foreground p-4 text-center">
-        No places found. Try searching nearby or using a different name.
+        No places found. Try a different search or explore nearby.
       </p>
     );
-  } else if (!searchAttempted && !isLoadingOverall) {
-    placesListContent = (
+  } else if (
+    !searchAttempted &&
+    !isLoadingOverall &&
+    (permissionStatus === "granted" ||
+      permissionStatus === "prompt" ||
+      permissionStatus === "denied" ||
+      permissionStatus === "error")
+  ) {
+    placesListRenderContent = (
       <p className="text-muted-foreground p-4 text-center">
-        Find places nearby or search for a specific spot.
+        Search for places or find what's nearby.
       </p>
     );
   }
 
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex flex-col items-center justify-center gap-2">
-        <form
-          action={searchFormAction}
-          className="flex items-center"
-          onSubmit={handleSearchFormSubmit}
-        >
-          <Input
-            name="searchQuery"
-            type="search"
-            placeholder="Search specific places"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            aria-label="Search for a specific place"
-            disabled={isLoadingOverall}
-            className="pr-10"
-          />
-          <Button
-            type="submit"
-            size="icon"
-            variant="ghost"
-            className="z-10 -ml-9"
-            disabled={isLoadingOverall || !searchQuery.trim()}
-            aria-label="Submit search"
-          >
-            {isSearchPending ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <SearchIcon className="h-4 w-4" />
-            )}
-          </Button>
-        </form>
-      </div>
-
-      <div className="bg-muted relative flex-grow">
+    <div className="relative h-full w-full overflow-hidden">
+      <div className="absolute inset-0 z-0">
         <UserMap
           places={derivedDisplayedPlaces}
           selectedPlace={null}
@@ -177,18 +143,60 @@ export default function PlaceFinder() {
         />
       </div>
 
-      <PlacesContent
-        isLoadingOverall={isLoadingOverall}
-        placesListContent={placesListContent}
-        geoError={geoError ?? undefined}
-        searchStateError={
-          searchState?.query === searchQuery ? searchState?.error : undefined
-        }
-        isSearchPending={isSearchPending && searchQuery === searchState?.query}
-        nearbyError={!searchQuery ? (nearbyError ?? undefined) : undefined}
-        isNearbyLoading={!searchQuery ? isNearbyLoading : false}
-        searchQuery={searchQuery}
-      />
+      <div className="pointer-events-none absolute top-0 right-0 left-0 z-10 flex justify-center p-3 sm:p-4">
+        <div className="bg-background pointer-events-auto flex w-full max-w-md flex-col items-center gap-2 rounded-lg p-3 shadow-xl sm:p-4">
+          <form
+            action={searchFormAction}
+            className="flex w-full items-center"
+            onSubmit={handleSearchFormSubmit}
+          >
+            <Input
+              name="searchQuery"
+              type="search"
+              placeholder="Search places by name"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              aria-label="Search for a specific place"
+              disabled={isLoadingOverall}
+              className="flex-grow pr-10"
+            />
+            <Button
+              type="submit"
+              size="icon"
+              variant="ghost"
+              className="z-10 -ml-9 shrink-0"
+              disabled={isLoadingOverall || !searchQuery.trim()}
+              aria-label="Submit search"
+            >
+              {isSearchPending && searchQuery ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <SearchIcon className="h-4 w-4" />
+              )}
+            </Button>
+          </form>
+        </div>
+      </div>
+
+      <div className="pointer-events-none absolute right-0 bottom-0 left-0 z-10 flex h-[45%] flex-col md:top-[calc(var(--header-height,60px)+1.5rem)] md:right-4 md:bottom-4 md:left-auto md:h-auto md:w-[360px] md:max-w-sm lg:w-[400px]">
+        <PlacesContent
+          isLoadingOverall={isLoadingOverall}
+          placesListContent={placesListRenderContent}
+          geoError={geoError ?? undefined}
+          searchStateError={
+            searchState?.query === searchQuery &&
+            searchState.places?.length === 0
+              ? searchState?.error
+              : undefined
+          }
+          isSearchPending={
+            isSearchPending && searchQuery === searchState?.query
+          }
+          nearbyError={!searchQuery ? (nearbyError ?? undefined) : undefined}
+          isNearbyLoading={!searchQuery ? isNearbyLoading : false}
+          searchQuery={searchQuery}
+        />
+      </div>
     </div>
   );
 }

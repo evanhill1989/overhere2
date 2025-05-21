@@ -14,7 +14,7 @@ export default async function HomePage() {
   const isLoggedIn = await isAuthenticated();
 
   return (
-    <div className="grid h-full max-w-3xl py-8 text-center md:max-w-full">
+    <div className="grid h-full max-w-3xl text-center md:max-w-full">
       {isLoggedIn ? (
         <PlaceFinder />
       ) : (
