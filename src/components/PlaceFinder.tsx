@@ -1,15 +1,7 @@
 "use client";
 
-import { useState } from "react"; // Keep for potential minimal interaction if needed later
 import { Button } from "@/components/ui/button";
-import {
-  LocateFixed,
-  Loader2,
-  Search as SearchIcon,
-  CheckCircle2,
-  ChevronUp,
-  ChevronDown,
-} from "lucide-react"; // Keep icons for potential trigger
+import { LocateFixed, Loader2 } from "lucide-react"; // Keep icons for potential trigger
 import dynamic from "next/dynamic";
 
 import {
