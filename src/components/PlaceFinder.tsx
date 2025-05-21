@@ -3,7 +3,12 @@
 import { useState, useActionState, useEffect, useMemo } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Loader2, Search as SearchIcon } from "lucide-react";
+import {
+  Loader2,
+  Search as SearchIcon,
+  ChevronUp,
+  ChevronDown,
+} from "lucide-react";
 import {
   searchPlacesByQuery,
   type SearchActionResult,
@@ -14,6 +19,15 @@ import { useAppLocation } from "@/context/LocationPermissionProvider";
 import dynamic from "next/dynamic";
 import PlacesList from "./PlacesList";
 import PlacesContent from "./PlacesContent";
+
+import {
+  Drawer,
+  DrawerContent,
+  DrawerTrigger,
+  DrawerHeader,
+  DrawerTitle,
+  // DrawerDescription, // Optional, add if you have more descriptive text
+} from "@/components/ui/drawer";
 
 const UserMap = dynamic(() => import("@/components/UserMap"), {
   ssr: false,
@@ -41,7 +55,7 @@ export default function PlaceFinder() {
     location: userLocationFromContext,
     isLoadingGeo,
     geoError,
-
+    // requestBrowserLocationPermission,
     permissionStatus,
   } = useAppLocation();
 
@@ -54,8 +68,31 @@ export default function PlaceFinder() {
 
   const [searchQuery, setSearchQuery] = useState("");
   const [searchAttempted, setSearchAttempted] = useState(false);
+  const [isResultsDrawerOpen, setIsResultsDrawerOpen] = useState(false);
 
   const isLoadingOverall = isSearchPending || isLoadingGeo || isNearbyLoading;
+
+  useEffect(() => {
+    if (
+      (isSearchPending && searchQuery) ||
+      (isNearbyLoading && !searchQuery) ||
+      (isLoadingGeo && !userLocationFromContext)
+    ) {
+      if (!isResultsDrawerOpen && (searchAttempted || isLoadingOverall))
+        setIsResultsDrawerOpen(true);
+    } else if (searchAttempted && !isLoadingOverall) {
+      setIsResultsDrawerOpen(true);
+    }
+  }, [
+    isLoadingOverall,
+    searchAttempted,
+    isSearchPending,
+    searchQuery,
+    isNearbyLoading,
+    isLoadingGeo,
+    userLocationFromContext,
+    isResultsDrawerOpen,
+  ]);
 
   useEffect(() => {
     if (
@@ -92,10 +129,12 @@ export default function PlaceFinder() {
 
   const handleSearchFormSubmit = () => {
     setSearchAttempted(true);
+    setIsResultsDrawerOpen(true);
   };
 
   // const handleNearbySearchClick = () => {
   //   setSearchAttempted(true);
+  //   setIsResultsDrawerOpen(true);
   //   setSearchQuery("");
   //   if (userLocationFromContext) {
   //     refetchNearby();
@@ -143,7 +182,7 @@ export default function PlaceFinder() {
         />
       </div>
 
-      <div className="pointer-events-none absolute top-0 right-0 left-0 z-10 flex justify-center p-3 sm:p-4">
+      <div className="pointer-events-none absolute top-0 right-0 left-0 z-20 flex justify-center p-3 sm:p-4">
         <div className="bg-background pointer-events-auto flex w-full max-w-md flex-col items-center gap-2 rounded-lg p-3 shadow-xl sm:p-4">
           <form
             action={searchFormAction}
@@ -178,25 +217,64 @@ export default function PlaceFinder() {
         </div>
       </div>
 
-      <div className="pointer-events-none absolute right-0 bottom-0 left-0 z-10 flex h-[45%] flex-col md:top-[calc(var(--header-height,60px)+1.5rem)] md:right-4 md:bottom-4 md:left-auto md:h-auto md:w-[360px] md:max-w-sm lg:w-[400px]">
-        <PlacesContent
-          isLoadingOverall={isLoadingOverall}
-          placesListContent={placesListRenderContent}
-          geoError={geoError ?? undefined}
-          searchStateError={
-            searchState?.query === searchQuery &&
-            searchState.places?.length === 0
-              ? searchState?.error
-              : undefined
-          }
-          isSearchPending={
-            isSearchPending && searchQuery === searchState?.query
-          }
-          nearbyError={!searchQuery ? (nearbyError ?? undefined) : undefined}
-          isNearbyLoading={!searchQuery ? isNearbyLoading : false}
-          searchQuery={searchQuery}
-        />
-      </div>
+      <Drawer
+        open={isResultsDrawerOpen}
+        onOpenChange={setIsResultsDrawerOpen}
+        modal={false}
+      >
+        <DrawerTrigger asChild>
+          <Button
+            variant="outline"
+            size="sm"
+            className="fixed bottom-4 left-1/2 z-20 flex -translate-x-1/2 items-center gap-2 shadow-lg md:hidden"
+            aria-label={isResultsDrawerOpen ? "Hide results" : "Show results"}
+          >
+            {isResultsDrawerOpen ? (
+              <ChevronDown className="h-4 w-4" />
+            ) : (
+              <ChevronUp className="h-4 w-4" />
+            )}
+            {isResultsDrawerOpen ? "Hide" : "Results"}
+          </Button>
+        </DrawerTrigger>
+        <DrawerContent
+          aria-describedby="places-content-description"
+          className="flex max-h-[60vh] flex-col focus:outline-none md:fixed md:top-[calc(var(--header-height,60px)+1.5rem)] md:right-4 md:bottom-4 md:z-10 md:h-auto md:max-h-[unset] md:w-80 lg:w-96"
+        >
+          <div className="mx-auto flex h-full w-full flex-col">
+            <div className="flex flex-shrink-0 cursor-grab justify-center p-4 active:cursor-grabbing md:hidden">
+              <div className="bg-muted h-1.5 w-8 rounded-full" />
+            </div>
+            <DrawerHeader className="px-4 pt-0 text-center md:pt-2 md:text-left">
+              <DrawerTitle id="places-drawer-title">
+                {searchQuery ? `Results for "${searchQuery}"` : "Nearby Places"}
+              </DrawerTitle>
+              {/* <DrawerDescription id="places-content-description">
+                Scroll to see places.
+              </DrawerDescription> */}
+            </DrawerHeader>
+            <PlacesContent
+              isLoadingOverall={isLoadingOverall}
+              placesListContent={placesListRenderContent}
+              geoError={geoError ?? undefined}
+              searchStateError={
+                searchState?.query === searchQuery &&
+                derivedDisplayedPlaces.length === 0
+                  ? searchState?.error
+                  : undefined
+              }
+              isSearchPending={
+                isSearchPending && searchQuery === searchState?.query
+              }
+              nearbyError={
+                !searchQuery ? (nearbyError ?? undefined) : undefined
+              }
+              isNearbyLoading={!searchQuery ? isNearbyLoading : false}
+              searchQuery={searchQuery}
+            />
+          </div>
+        </DrawerContent>
+      </Drawer>
     </div>
   );
 }
