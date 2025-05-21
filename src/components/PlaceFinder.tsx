@@ -41,7 +41,7 @@ export default function PlaceFinder() {
     location: userLocationFromContext,
     isLoadingGeo,
     geoError,
-    requestBrowserLocationPermission,
+
     permissionStatus,
   } = useAppLocation();
 
@@ -49,7 +49,7 @@ export default function PlaceFinder() {
     places: nearbyPlaces,
     isLoading: isNearbyLoading,
     error: nearbyError,
-    refetch: refetchNearby,
+    // refetch: refetchNearby,
   } = useNearbyPlaces(userLocationFromContext);
 
   const [searchQuery, setSearchQuery] = useState("");
