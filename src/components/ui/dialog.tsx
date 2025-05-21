@@ -41,7 +41,7 @@ function DialogOverlay({
     <DialogPrimitive.Overlay
       data-slot="dialog-overlay"
       className={cn(
-        "fixed inset-0 z-5000 bg-black/50", // ← Removed all data-[state=...] animation classes
+        "fixed inset-0 z-50 bg-black/50", // ← Removed all data-[state=...] animation classes
         className,
       )}
       {...props}
