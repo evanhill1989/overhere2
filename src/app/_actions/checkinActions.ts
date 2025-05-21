@@ -134,6 +134,7 @@ async function fetchAndCacheGooglePlaceDetails(
       latitude: placeToCache.latitude,
       longitude: placeToCache.longitude,
       lastFetchedAt: placeToCache.lastFetchedAt,
+      primaryType: placeToCache.primaryType,
       // generativeSummary: placeToCache.generative_summary || "",
       isVerified: false,
     };
