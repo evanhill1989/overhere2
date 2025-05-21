@@ -1,8 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { useState } from "react"; // Keep for potential minimal interaction if needed later
 import { Button } from "@/components/ui/button";
-import { LocateFixed, Loader2 } from "lucide-react"; // Kept for placeholder controls
+import {
+  LocateFixed,
+  Loader2,
+  Search as SearchIcon,
+  CheckCircle2,
+  ChevronUp,
+  ChevronDown,
+} from "lucide-react"; // Keep icons for potential trigger
 import dynamic from "next/dynamic";
 
 import {
@@ -13,8 +20,14 @@ import {
   DrawerFooter,
   DrawerHeader,
   DrawerTitle,
-  // DrawerTrigger, // We will control 'open' via state for this pattern
+  DrawerTrigger,
 } from "@/components/ui/drawer";
+// import PlacesList from "./PlacesList"; // Not using for sanity check
+// import PlacesContent from "./PlacesContent"; // Not using for sanity check
+// import { useAppLocation } from "@/context/LocationPermissionProvider"; // Not using for sanity check
+// import { useNearbyPlaces } from "@/hooks/useNearbyPlaces"; // Not using for sanity check
+// import { searchPlacesByQuery, type SearchActionResult } from "@/app/_actions/placeActions"; // Not using for sanity check
+// import type { Place } from "@/types/places"; // Not using for sanity check
 
 const UserMap = dynamic(() => import("@/components/UserMap"), {
   ssr: false,
@@ -26,17 +39,20 @@ const UserMap = dynamic(() => import("@/components/UserMap"), {
   ),
 });
 
+// const initialSearchState: SearchActionResult = { /* ... */ }; // Not using
+
 export default function PlaceFinder() {
-  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  // All complex state and effects removed for this sanity check
 
   return (
     <div className="relative flex h-full w-full flex-col gap-4 overflow-hidden">
+      {/* Simplified controls area */}
       <div className="bg-background/80 flex flex-shrink-0 flex-col items-center gap-2 rounded-lg p-4 shadow-md backdrop-blur-sm">
-        <p className="text-lg font-semibold">Map Controls & Drawer Toggle</p>
+        <p className="text-lg font-semibold">Map Controls Area (Placeholder)</p>
         <div className="flex gap-2">
           <input
             type="search"
-            placeholder="Search (disabled)"
+            placeholder="Search (disabled for now)"
             className="w-60 rounded-md border p-2"
             disabled
           />
@@ -45,48 +61,47 @@ export default function PlaceFinder() {
             Nearby (disabled)
           </Button>
         </div>
-        <Button
-          variant="secondary"
-          onClick={() => setIsDrawerOpen((prev) => !prev)}
-        >
-          {isDrawerOpen
-            ? "Force Close Drawer (Test)"
-            : "Force Open Drawer (Test)"}
-        </Button>
       </div>
 
+      {/* Map Area - kept for context */}
       <div className="bg-muted relative z-0 flex-grow rounded-md">
-        <UserMap places={[]} selectedPlace={null} userLocation={null} />
+        <UserMap
+          places={[]} // Empty places
+          selectedPlace={null}
+          userLocation={null} // No location for sanity check
+        />
       </div>
 
-      <Drawer
-        open={isDrawerOpen}
-        onOpenChange={setIsDrawerOpen} // Allows Esc, overlay click, swipe to close
-        modal={false} // Allows map interaction while drawer is open
-      >
-        {/* No DrawerTrigger needed if 'open' is controlled by external state for initial appearance */}
-        <DrawerContent className="focus:outline-none">
-          <div className="mx-auto flex h-full w-full max-w-sm flex-col">
-            {/* This div acts as the visual grab handle and part of the "top bar" */}
-            <div className="bg-muted mx-auto mt-2 h-1.5 w-12 flex-shrink-0 cursor-grab rounded-full active:cursor-grabbing" />
-            <DrawerHeader className="pt-2 text-center">
-              <DrawerTitle>Drawer Title</DrawerTitle>
-              <DrawerDescription>Drag or swipe this drawer.</DrawerDescription>
-            </DrawerHeader>
-            <div className="flex-grow overflow-y-auto p-4 pb-0">
-              <p>Some content inside the drawer.</p>
-              {Array.from({ length: 20 }).map((_, i) => (
-                <p key={i}>Scrollable item {i + 1}</p>
-              ))}
+      {/* Basic Drawer Sanity Check */}
+      <div className="flex flex-shrink-0 justify-center p-4">
+        <Drawer>
+          <DrawerTrigger asChild>
+            <Button variant="outline">Open Drawer (Sanity Check)</Button>
+          </DrawerTrigger>
+          <DrawerContent className="focus:outline-none">
+            <div className="mx-auto flex h-full w-full max-w-sm flex-col">
+              <DrawerHeader>
+                <DrawerTitle>Drawer Title</DrawerTitle>
+                <DrawerDescription>
+                  This is a basic drawer content.
+                </DrawerDescription>
+              </DrawerHeader>
+              <div className="flex-grow overflow-y-auto p-4 pb-0">
+                <p>Some content inside the drawer.</p>
+                <p>More content to make it scrollable perhaps.</p>
+                {Array.from({ length: 20 }).map((_, i) => (
+                  <p key={i}>Scrollable item {i + 1}</p>
+                ))}
+              </div>
+              <DrawerFooter>
+                <DrawerClose asChild>
+                  <Button variant="outline">Close Drawer</Button>
+                </DrawerClose>
+              </DrawerFooter>
             </div>
-            <DrawerFooter>
-              <DrawerClose asChild>
-                <Button variant="outline">Close Drawer</Button>
-              </DrawerClose>
-            </DrawerFooter>
-          </div>
-        </DrawerContent>
-      </Drawer>
+          </DrawerContent>
+        </Drawer>
+      </div>
     </div>
   );
 }
