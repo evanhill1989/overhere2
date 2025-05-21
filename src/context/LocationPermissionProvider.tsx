@@ -12,11 +12,7 @@ import React, {
 import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-export type LocationData = {
-  latitude: number;
-  longitude: number;
-};
-
+export type LocationData = { latitude: number; longitude: number };
 export type PermissionState =
   | "initial"
   | "loading_status"
@@ -135,12 +131,17 @@ export function LocationPermissionProvider({
   const [geoError, setGeoError] = useState<string | null>(null);
 
   const isFetchingLocationRef = useRef(false);
-  const permissionStatusObjectRef = useRef<PermissionStatus | null>(null);
-  const locationRef = useRef(location);
+  const permissionStatusObjRef = useRef<PermissionStatus | null>(null);
 
+  const locationRef = useRef(location);
   useEffect(() => {
     locationRef.current = location;
   }, [location]);
+
+  const isLoadingGeoRef = useRef(isLoadingGeo);
+  useEffect(() => {
+    isLoadingGeoRef.current = isLoadingGeo;
+  }, [isLoadingGeo]);
 
   const requestDeviceLocation = useCallback(() => {
     if (!navigator.geolocation) {
@@ -193,15 +194,14 @@ export function LocationPermissionProvider({
       },
       { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 },
     );
-  }, []);
+  }, []); // State setters from useState are stable and don't need to be in deps.
 
   useEffect(() => {
     let mounted = true;
-    let currentPermStatusObj: PermissionStatus | null = null;
 
     const handleBrowserPermissionChange = () => {
-      if (!mounted || !currentPermStatusObj) return;
-      const newStatus = currentPermStatusObj.state as PermissionState;
+      if (!mounted || !permissionStatusObjRef.current) return;
+      const newStatus = permissionStatusObjRef.current.state as PermissionState;
       setPermissionStatus(newStatus);
       if (
         newStatus === "granted" &&
@@ -223,18 +223,16 @@ export function LocationPermissionProvider({
         if (mounted) setPermissionStatus("unsupported");
         return;
       }
-
       if (mounted) setPermissionStatus("loading_status");
 
       if (navigator.permissions?.query) {
         try {
-          currentPermStatusObj = await navigator.permissions.query({
+          const permObj = await navigator.permissions.query({
             name: "geolocation",
           });
-          permissionStatusObjectRef.current = currentPermStatusObj; // Store for cleanup
           if (!mounted) return;
-
-          const queriedStatus = currentPermStatusObj.state as PermissionState;
+          permissionStatusObjRef.current = permObj;
+          const queriedStatus = permObj.state as PermissionState;
           setPermissionStatus(queriedStatus);
 
           if (queriedStatus === "granted" || queriedStatus === "prompt") {
@@ -245,22 +243,16 @@ export function LocationPermissionProvider({
                 "Location permission is denied. Please enable it in browser settings.",
               );
           }
-          currentPermStatusObj.onchange = handleBrowserPermissionChange;
+          permObj.onchange = handleBrowserPermissionChange;
         } catch (err) {
+          console.error("Error querying geolocation permission:", err);
           if (!mounted) return;
-          console.warn(
-            "LPP: Permissions API query failed. Attempting direct location request.",
-            err,
-          );
-          setPermissionStatus("prompt"); // Fallback to prompt to trigger request
+          setPermissionStatus("prompt");
           requestDeviceLocation();
         }
       } else {
         if (mounted) {
-          console.warn(
-            "LPP: Permissions API not available. Attempting direct location request.",
-          );
-          setPermissionStatus("prompt"); // Fallback to prompt
+          setPermissionStatus("prompt");
           requestDeviceLocation();
         }
       }
@@ -271,13 +263,14 @@ export function LocationPermissionProvider({
     return () => {
       mounted = false;
       if (
-        permissionStatusObjectRef.current &&
-        permissionStatusObjectRef.current.onchange
+        permissionStatusObjRef.current &&
+        permissionStatusObjRef.current.onchange ===
+          handleBrowserPermissionChange
       ) {
-        permissionStatusObjectRef.current.onchange = null;
+        permissionStatusObjRef.current.onchange = null;
       }
     };
-  });
+  }); // Main effect depends only on stable requestDeviceLocation.
 
   const contextValue: LocationContextType = {
     location,
