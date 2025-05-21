@@ -51,7 +51,7 @@ export default function PlaceFinder() {
     location: userLocationFromContext,
     isLoadingGeo,
     geoError,
-    // requestBrowserLocationPermission,
+    requestBrowserLocationPermission,
     permissionStatus,
   } = useAppLocation();
 
@@ -59,7 +59,7 @@ export default function PlaceFinder() {
     places: nearbyPlaces,
     isLoading: isNearbyLoading,
     error: nearbyError,
-    // refetch: refetchNearby,
+    refetch: refetchNearby,
   } = useNearbyPlaces(userLocationFromContext);
 
   const [searchQuery, setSearchQuery] = useState("");
@@ -128,16 +128,19 @@ export default function PlaceFinder() {
     setIsResultsDrawerOpen(true);
   };
 
-  // const handleNearbySearchClick = () => {
-  //   setSearchAttempted(true);
-  //   setIsResultsDrawerOpen(true);
-  //   setSearchQuery("");
-  //   if (userLocationFromContext) {
-  //     refetchNearby();
-  //   } else if (permissionStatus === "prompt" || permissionStatus === "denied") {
-  //     requestBrowserLocationPermission();
-  //   }
-  // };
+  const handleNearbySearchClick = () => {
+    setSearchAttempted(true);
+    setIsResultsDrawerOpen(true);
+    setSearchQuery("");
+    if (userLocationFromContext) {
+      refetchNearby();
+    } else if (permissionStatus === "prompt" || permissionStatus === "denied") {
+      requestBrowserLocationPermission();
+    }
+  };
+  if (!userLocationFromContext && permissionStatus === "prompt") {
+    handleNearbySearchClick();
+  }
 
   let placesListRenderContent: React.ReactNode = null;
   if (derivedDisplayedPlaces.length > 0) {

@@ -1,4 +1,3 @@
-// src/context/LocationPermissionProvider.tsx
 "use client";
 
 import React, {
@@ -34,7 +33,6 @@ interface LocationContextType {
   isLoadingGeo: boolean;
   geoError: string | null;
   requestBrowserLocationPermission: () => void;
-  checkInitialPermission: () => Promise<void>;
 }
 
 const LocationContext = createContext<LocationContextType | undefined>(
@@ -45,27 +43,29 @@ function LocationOnboardingUI({
   onAllow,
   status,
   errorMessage,
+  isLoading,
 }: {
   onAllow: () => void;
   status: PermissionState;
   errorMessage: string | null;
+  isLoading: boolean;
 }) {
-  // ... (Keep the refined UI logic from the previous version with tailored messages)
   let title = "Enable Location Access";
   let primaryMessage =
-    "overHere uses your location to show you nearby places and people, and to verify you're at a location when checking in.";
+    "overHere uses your location to discover nearby places and people, and to verify your check-ins.";
   let buttonText = "Enable Location & Find People";
   let guidanceMessage: ReactNode = null;
 
   if (status === "denied") {
     title = "Location Access Denied";
     primaryMessage =
-      "You've previously denied location access for overHere. To use the app's core features, please enable location permission in your browser's site settings.";
-    buttonText = "I've Updated Settings, Check Again";
+      "You've previously denied location access. To use overHere, please enable location permission for this site in your browser settings.";
+    buttonText = "I've Enabled Settings, Check Again";
     guidanceMessage = (
       <p className="text-muted-foreground mt-4 text-xs">
-        Look for a location icon in your browser's address bar or check site
-        settings to change permissions.
+        Look for a location icon (often a padlock) in your browser's address bar
+        or check site settings to change permissions. You may need to reload the
+        page after.
       </p>
     );
   } else if (
@@ -74,12 +74,12 @@ function LocationOnboardingUI({
     !errorMessage.toLowerCase().includes("denied")
   ) {
     title = "Location Error";
-    primaryMessage = `There was an issue getting your location: ${errorMessage}`;
+    primaryMessage = `We couldn't get your location: ${errorMessage}`;
     buttonText = "Try Getting Location Again";
   } else if (status === "prompt") {
     primaryMessage =
-      "To discover who's around and open to chatting at your current spot, overHere needs your location.";
-    buttonText = "Enable Location and Find People";
+      "To discover who's around and open to chatting at your current spot, overHere needs your location for the best experience.";
+    buttonText = "Grant Location Access";
   }
 
   if (
@@ -89,7 +89,7 @@ function LocationOnboardingUI({
   ) {
     title = "Location Access Required";
     primaryMessage =
-      "Location permission is required. If you previously denied it, please enable it in your browser settings, then try again.";
+      "Location permission is required. It seems it was denied. Please enable it in your browser settings, then try again.";
     buttonText = "Try Enabling Location";
     guidanceMessage = (
       <p className="text-muted-foreground mt-3 text-xs">
@@ -98,6 +98,7 @@ function LocationOnboardingUI({
       </p>
     );
   }
+
   return (
     <div className="flex min-h-[calc(100vh-150px)] flex-col items-center justify-center p-4 text-center sm:p-6">
       <div className="max-w-md">
@@ -107,8 +108,14 @@ function LocationOnboardingUI({
         <p className="text-muted-foreground mb-6 text-sm sm:text-base">
           {primaryMessage}
         </p>
-        <Button onClick={onAllow} size="lg" className="w-full sm:w-auto">
-          {buttonText}
+        <Button
+          onClick={onAllow}
+          size="lg"
+          className="w-full sm:w-auto"
+          disabled={isLoading}
+        >
+          {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+          {isLoading ? "Checking..." : buttonText}
         </Button>
         {guidanceMessage}
       </div>
@@ -126,20 +133,27 @@ export function LocationPermissionProvider({
     useState<PermissionState>("initial");
   const [isLoadingGeo, setIsLoadingGeo] = useState<boolean>(false);
   const [geoError, setGeoError] = useState<string | null>(null);
-  const isFetchingRef = useRef(false); // Ref to track if a fetch is in progress
 
-  const requestDeviceLocation = useCallback((isInitialGrant = false) => {
+  const isFetchingLocationRef = useRef(false);
+  const permissionStatusObjectRef = useRef<PermissionStatus | null>(null);
+  const locationRef = useRef(location);
+
+  useEffect(() => {
+    locationRef.current = location;
+  }, [location]);
+
+  const requestDeviceLocation = useCallback(() => {
     if (!navigator.geolocation) {
-      setGeoError("Geolocation is not supported.");
+      setGeoError("Geolocation API not supported by this browser.");
       setPermissionStatus("unsupported");
       return;
     }
-    if (isFetchingRef.current && !isInitialGrant) return; // Prevent re-entry if already fetching unless it's an initial grant
+    if (isFetchingLocationRef.current) return;
 
     setGeoError(null);
     setIsLoadingGeo(true);
     setPermissionStatus("fetching_location");
-    isFetchingRef.current = true;
+    isFetchingLocationRef.current = true;
 
     navigator.geolocation.getCurrentPosition(
       (position) => {
@@ -149,31 +163,29 @@ export function LocationPermissionProvider({
         });
         setPermissionStatus("granted");
         setIsLoadingGeo(false);
-        isFetchingRef.current = false;
+        isFetchingLocationRef.current = false;
       },
       (error) => {
         setIsLoadingGeo(false);
-        isFetchingRef.current = false;
+        isFetchingLocationRef.current = false;
         let message = "";
         switch (error.code) {
           case error.PERMISSION_DENIED:
             message =
-              "Location permission was denied. To use overHere, please enable location access in your browser settings and then click 'Try Again'.";
+              "Location permission denied. Please enable it in browser settings and try again.";
             setPermissionStatus("denied");
             break;
           case error.POSITION_UNAVAILABLE:
             message =
-              "Location information is currently unavailable. Please ensure your device's location service is on.";
+              "Location information unavailable. Ensure device location is on.";
             setPermissionStatus("error");
             break;
           case error.TIMEOUT:
-            message =
-              "The request to get your location timed out. Please try again.";
+            message = "Getting location timed out. Please try again.";
             setPermissionStatus("error");
             break;
           default:
-            message =
-              "An unknown error occurred while trying to get your location.";
+            message = "Unknown error getting location.";
             setPermissionStatus("error");
             break;
         }
@@ -181,67 +193,98 @@ export function LocationPermissionProvider({
       },
       { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 },
     );
-  }, []); // Added location to dep array of requestDeviceLocation due to its use in onchange logic
-
-  const checkInitialPermission = useCallback(async () => {
-    if (!navigator.geolocation) {
-      setPermissionStatus("unsupported");
-      return;
-    }
-    if (!navigator.permissions?.query) {
-      setPermissionStatus("prompt");
-      return;
-    }
-
-    // Avoid re-checking if already processing or granted with location
-    if (
-      permissionStatus !== "initial" &&
-      permissionStatus !== "loading_status"
-    ) {
-      if (permissionStatus === "granted" && location) return;
-      if (isLoadingGeo || isFetchingRef.current) return;
-    }
-
-    setPermissionStatus("loading_status");
-    try {
-      const permStatusObj = await navigator.permissions.query({
-        name: "geolocation",
-      });
-      setPermissionStatus(permStatusObj.state as PermissionState);
-
-      if (permStatusObj.state === "granted") {
-        requestDeviceLocation(true); // Pass flag indicating it's part of initial grant flow
-      }
-
-      permStatusObj.onchange = () => {
-        const newStatus = permStatusObj.state as PermissionState;
-        setPermissionStatus(newStatus); // Always update internal state to reflect browser
-        if (newStatus === "granted" && !location && !isFetchingRef.current) {
-          requestDeviceLocation(true);
-        } else if (newStatus === "denied") {
-          setLocation(null);
-          setGeoError(
-            "Location permission was changed to denied in browser settings.",
-          );
-        }
-      };
-    } catch (e) {
-      console.warn("Permissions API query failed, defaulting to prompt.", e);
-      setPermissionStatus("prompt");
-    }
-  }, [requestDeviceLocation, location, permissionStatus, isLoadingGeo]); // Include all relevant deps
+  }, []);
 
   useEffect(() => {
-    checkInitialPermission();
-  }, [checkInitialPermission]); // Run checkInitialPermission once on mount or if it changes (it won't)
+    let mounted = true;
+    let currentPermStatusObj: PermissionStatus | null = null;
 
-  const contextValue = {
+    const handleBrowserPermissionChange = () => {
+      if (!mounted || !currentPermStatusObj) return;
+      const newStatus = currentPermStatusObj.state as PermissionState;
+      setPermissionStatus(newStatus);
+      if (
+        newStatus === "granted" &&
+        !locationRef.current &&
+        !isFetchingLocationRef.current
+      ) {
+        requestDeviceLocation();
+      } else if (newStatus === "denied") {
+        setLocation(null);
+        setGeoError(
+          "Location permission was changed to denied in browser settings.",
+        );
+      }
+    };
+
+    const initializePermissionState = async () => {
+      if (!mounted) return;
+      if (!navigator.geolocation) {
+        if (mounted) setPermissionStatus("unsupported");
+        return;
+      }
+
+      if (mounted) setPermissionStatus("loading_status");
+
+      if (navigator.permissions?.query) {
+        try {
+          currentPermStatusObj = await navigator.permissions.query({
+            name: "geolocation",
+          });
+          permissionStatusObjectRef.current = currentPermStatusObj; // Store for cleanup
+          if (!mounted) return;
+
+          const queriedStatus = currentPermStatusObj.state as PermissionState;
+          setPermissionStatus(queriedStatus);
+
+          if (queriedStatus === "granted" || queriedStatus === "prompt") {
+            requestDeviceLocation();
+          } else if (queriedStatus === "denied") {
+            if (!geoError)
+              setGeoError(
+                "Location permission is denied. Please enable it in browser settings.",
+              );
+          }
+          currentPermStatusObj.onchange = handleBrowserPermissionChange;
+        } catch (err) {
+          if (!mounted) return;
+          console.warn(
+            "LPP: Permissions API query failed. Attempting direct location request.",
+            err,
+          );
+          setPermissionStatus("prompt"); // Fallback to prompt to trigger request
+          requestDeviceLocation();
+        }
+      } else {
+        if (mounted) {
+          console.warn(
+            "LPP: Permissions API not available. Attempting direct location request.",
+          );
+          setPermissionStatus("prompt"); // Fallback to prompt
+          requestDeviceLocation();
+        }
+      }
+    };
+
+    initializePermissionState();
+
+    return () => {
+      mounted = false;
+      if (
+        permissionStatusObjectRef.current &&
+        permissionStatusObjectRef.current.onchange
+      ) {
+        permissionStatusObjectRef.current.onchange = null;
+      }
+    };
+  });
+
+  const contextValue: LocationContextType = {
     location,
     permissionStatus,
     isLoadingGeo,
     geoError,
     requestBrowserLocationPermission: requestDeviceLocation,
-    checkInitialPermission,
   };
 
   if (permissionStatus === "initial" || permissionStatus === "loading_status") {
@@ -263,8 +306,7 @@ export function LocationPermissionProvider({
     return (
       <div className="flex min-h-[calc(100vh-150px)] items-center justify-center p-4 text-center">
         <p className="text-destructive max-w-md">
-          Geolocation is not supported by your browser. overHere requires
-          location access to function.
+          Geolocation API not supported.
         </p>
       </div>
     );
@@ -275,6 +317,7 @@ export function LocationPermissionProvider({
         onAllow={requestDeviceLocation}
         status={permissionStatus}
         errorMessage={geoError}
+        isLoading={isLoadingGeo}
       />
     );
   }
@@ -288,10 +331,9 @@ export function LocationPermissionProvider({
 
 export const useAppLocation = (): LocationContextType => {
   const context = useContext(LocationContext);
-  if (context === undefined) {
+  if (context === undefined)
     throw new Error(
       "useAppLocation must be used within a LocationPermissionProvider",
     );
-  }
   return context;
 };
