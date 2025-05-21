@@ -13,7 +13,7 @@ export function Header({ isLoggedIn }: HeaderProps) {
   return (
     // Added padding, adjusted border color for light/dark mode
 
-    <header className="border-b border-gray-200 dark:border-gray-700">
+    <header className="z-5001 border-b border-gray-200 dark:border-gray-700">
       <div className="wrapper flex items-center justify-between py-3 md:py-4">
         <Link href="/" passHref legacyBehavior={false}>
           <div className="group flex items-center gap-2">
