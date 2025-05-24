@@ -264,18 +264,28 @@ export default function PlaceFinder() {
               </DialogContent>
             </Dialog>
           ) : (
-            <Drawer>
-              <DrawerTrigger
-                asChild
-                className="absolute bottom-4 left-1/2 z-2 flex -translate-x-1/2 items-center gap-2 shadow-lg"
-              >
-                <Button className="z-2">open</Button>
-              </DrawerTrigger>
+            <Drawer open={open} onOpenChange={setOpen}>
+              {open ? (
+                <DrawerTrigger
+                  asChild
+                  className="fixed bottom-4 left-1/2 z-2 flex -translate-x-1/2 items-center gap-2 shadow-lg"
+                >
+                  <Button className="z-2 hidden w-full">Places Near You</Button>
+                </DrawerTrigger>
+              ) : (
+                <DrawerTrigger
+                  asChild
+                  className="fixed bottom-4 left-1/2 z-2 flex -translate-x-1/2 items-center gap-2 shadow-lg"
+                >
+                  <Button className="z-2 w-full">Places Near You</Button>
+                </DrawerTrigger>
+              )}
+
               <DrawerContent className="">
                 <DrawerHeader>
-                  <DrawerTitle>Are you absolutely sure?</DrawerTitle>
+                  <DrawerTitle>Places Near You</DrawerTitle>
                   <DrawerDescription>
-                    This action cannot be undone.
+                    Popular places near your location.
                   </DrawerDescription>
                 </DrawerHeader>
                 <PlacesContent
@@ -302,7 +312,6 @@ export default function PlaceFinder() {
           )}
         </div>
       </div>
-      <div className="z-7000"></div>
     </div>
   );
 }
