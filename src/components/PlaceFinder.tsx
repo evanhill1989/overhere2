@@ -16,14 +16,26 @@ import PlacesList from "./PlacesList";
 import PlacesContent from "./PlacesContent";
 
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+
+import {
   Drawer,
   DrawerContent,
   DrawerTrigger,
   DrawerHeader,
   DrawerTitle,
+  DrawerDescription,
+
   // DrawerDescription, // Optional, add if you have more descriptive text
 } from "@/components/ui/drawer";
-import { DialogTitle } from "./ui/dialog";
+
+import useMediaQuery from "@/hooks/useMediaQuery";
 
 const UserMap = dynamic(() => import("@/components/UserMap"), {
   ssr: false,
@@ -169,6 +181,9 @@ export default function PlaceFinder() {
     );
   }
 
+  const isDesktop = useMediaQuery("(min-width: 768px)");
+  const [open, setOpen] = useState(false);
+
   return (
     <div className="relative h-full w-full overflow-hidden">
       <div className="absolute inset-0 z-0">
@@ -211,65 +226,138 @@ export default function PlaceFinder() {
               )}
             </Button>
           </form>
+          {isDesktop ? (
+            <Dialog open={open} onOpenChange={setOpen}>
+              <DialogTrigger
+                className="absolute bottom-4 left-1/2 z-2 flex -translate-x-1/2 items-center gap-2 shadow-lg"
+                asChild
+              >
+                <Button variant="outline">Edit Profile</Button>
+              </DialogTrigger>
+              <DialogContent className="overflow-hidden sm:max-w-[425px]">
+                <DialogHeader>
+                  <DialogTitle>Edit profile</DialogTitle>
+                  <DialogDescription>
+                    Make changes to your profile here. Click save when you're
+                    done.
+                  </DialogDescription>
+                </DialogHeader>
+                <PlacesContent
+                  isLoadingOverall={isLoadingOverall}
+                  placesListContent={placesListRenderContent}
+                  geoError={geoError ?? undefined}
+                  searchStateError={
+                    searchState?.query === searchQuery &&
+                    derivedDisplayedPlaces.length === 0
+                      ? searchState?.error
+                      : undefined
+                  }
+                  isSearchPending={
+                    isSearchPending && searchQuery === searchState?.query
+                  }
+                  nearbyError={
+                    !searchQuery ? (nearbyError ?? undefined) : undefined
+                  }
+                  isNearbyLoading={!searchQuery ? isNearbyLoading : false}
+                  searchQuery={searchQuery}
+                />
+              </DialogContent>
+            </Dialog>
+          ) : (
+            <Drawer>
+              <DrawerTrigger
+                asChild
+                className="absolute bottom-4 left-1/2 z-2 flex -translate-x-1/2 items-center gap-2 shadow-lg"
+              >
+                <Button className="z-2">open</Button>
+              </DrawerTrigger>
+              <DrawerContent className="">
+                <DrawerHeader>
+                  <DrawerTitle>Are you absolutely sure?</DrawerTitle>
+                  <DrawerDescription>
+                    This action cannot be undone.
+                  </DrawerDescription>
+                </DrawerHeader>
+                <PlacesContent
+                  isLoadingOverall={isLoadingOverall}
+                  placesListContent={placesListRenderContent}
+                  geoError={geoError ?? undefined}
+                  searchStateError={
+                    searchState?.query === searchQuery &&
+                    derivedDisplayedPlaces.length === 0
+                      ? searchState?.error
+                      : undefined
+                  }
+                  isSearchPending={
+                    isSearchPending && searchQuery === searchState?.query
+                  }
+                  nearbyError={
+                    !searchQuery ? (nearbyError ?? undefined) : undefined
+                  }
+                  isNearbyLoading={!searchQuery ? isNearbyLoading : false}
+                  searchQuery={searchQuery}
+                />
+              </DrawerContent>
+            </Drawer>
+          )}
         </div>
       </div>
-
-      <Drawer
-        open={isResultsDrawerOpen}
-        onOpenChange={setIsResultsDrawerOpen}
-        modal={false}
-      >
-        <DrawerTrigger asChild>
-          <Button
-            variant="outline"
-            size="sm"
-            className="fixed bottom-4 left-1/2 z-20 flex -translate-x-1/2 items-center gap-2 shadow-lg md:hidden"
-            aria-label={isResultsDrawerOpen ? "Hide results" : "Show results"}
-          >
-            Open
-          </Button>
-        </DrawerTrigger>
-        <DrawerContent
-          aria-describedby="places-content-description"
-          className="flex max-h-[60vh] flex-col focus:outline-none md:fixed md:top-[calc(var(--header-height,60px)+1.5rem)] md:right-4 md:bottom-4 md:z-10 md:h-auto md:max-h-[unset] md:w-80 lg:w-96"
-        >
-          <div className="mx-auto flex h-full w-full flex-col">
-            <div className="flex flex-shrink-0 cursor-grab justify-center p-4 active:cursor-grabbing md:hidden">
-              {/* <div className="bg-muted h-1.5 w-8 rounded-full" /> */}
-            </div>
-            <DrawerHeader className="px-4 pt-0 text-center md:pt-2 md:text-left">
-              <DrawerTitle id="places-drawer-title">
-                {searchQuery ? `Results for "${searchQuery}"` : "Nearby Places"}
-              </DrawerTitle>
-              <DialogTitle className="sr-only">
-                {searchQuery ? `Results for "${searchQuery}"` : "Nearby Places"}
-              </DialogTitle>
-              {/* <DrawerDescription id="places-content-description">
-                Scroll to see places.
-              </DrawerDescription> */}
-            </DrawerHeader>
-            <PlacesContent
-              isLoadingOverall={isLoadingOverall}
-              placesListContent={placesListRenderContent}
-              geoError={geoError ?? undefined}
-              searchStateError={
-                searchState?.query === searchQuery &&
-                derivedDisplayedPlaces.length === 0
-                  ? searchState?.error
-                  : undefined
-              }
-              isSearchPending={
-                isSearchPending && searchQuery === searchState?.query
-              }
-              nearbyError={
-                !searchQuery ? (nearbyError ?? undefined) : undefined
-              }
-              isNearbyLoading={!searchQuery ? isNearbyLoading : false}
-              searchQuery={searchQuery}
-            />
-          </div>
-        </DrawerContent>
-      </Drawer>
+      <div className="z-7000"></div>
     </div>
   );
 }
+
+// <Drawer
+//   open={isResultsDrawerOpen}
+//   onOpenChange={setIsResultsDrawerOpen}
+//   modal={false}
+// >
+//   <DrawerTrigger asChild>
+//     <Button
+//       variant="outline"
+//       size="sm"
+//       className="fixed bottom-4 left-1/2 z-20 flex -translate-x-1/2 items-center gap-2 shadow-lg md:hidden"
+//       aria-label={isResultsDrawerOpen ? "Hide results" : "Show results"}
+//     >
+//       Open
+//     </Button>
+//   </DrawerTrigger>
+//   <DrawerContent
+//     aria-describedby="places-content-description"
+//     className="flex max-h-[60vh] flex-col focus:outline-none md:fixed md:top-[calc(var(--header-height,60px)+1.5rem)] md:right-4 md:bottom-4 md:z-10 md:h-auto md:max-h-[unset] md:w-80 lg:w-96"
+//   >
+//     <div className="mx-auto flex h-full w-full flex-col">
+//       <div className="flex flex-shrink-0 cursor-grab justify-center p-4 active:cursor-grabbing md:hidden">
+
+//       </div>
+//       <DrawerHeader className="px-4 pt-0 text-center md:pt-2 md:text-left">
+//         <DrawerTitle id="places-drawer-title">
+//           {searchQuery ? `Results for "${searchQuery}"` : "Nearby Places"}
+//         </DrawerTitle>
+//         <DialogTitle className="sr-only">
+//           {searchQuery ? `Results for "${searchQuery}"` : "Nearby Places"}
+//         </DialogTitle>
+
+//       </DrawerHeader>
+//       <PlacesContent
+//         isLoadingOverall={isLoadingOverall}
+//         placesListContent={placesListRenderContent}
+//         geoError={geoError ?? undefined}
+//         searchStateError={
+//           searchState?.query === searchQuery &&
+//           derivedDisplayedPlaces.length === 0
+//             ? searchState?.error
+//             : undefined
+//         }
+//         isSearchPending={
+//           isSearchPending && searchQuery === searchState?.query
+//         }
+//         nearbyError={
+//           !searchQuery ? (nearbyError ?? undefined) : undefined
+//         }
+//         isNearbyLoading={!searchQuery ? isNearbyLoading : false}
+//         searchQuery={searchQuery}
+//       />
+//     </div>
+//   </DrawerContent>
+// </Drawer>
