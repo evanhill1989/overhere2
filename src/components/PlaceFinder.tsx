@@ -228,12 +228,21 @@ export default function PlaceFinder() {
           </form>
           {isDesktop ? (
             <Dialog open={open} onOpenChange={setOpen}>
-              <DialogTrigger
-                className="absolute bottom-4 left-1/2 z-2 flex -translate-x-1/2 items-center gap-2 shadow-lg"
-                asChild
-              >
-                <Button variant="outline">Edit Profile</Button>
-              </DialogTrigger>
+              {open ? (
+                <DialogTrigger
+                  asChild
+                  className="fixed bottom-4 left-1/2 z-2 flex -translate-x-1/2 items-center gap-2 shadow-lg"
+                >
+                  <Button className="z-2 hidden w-full">Places Near You</Button>
+                </DialogTrigger>
+              ) : (
+                <DialogTrigger
+                  asChild
+                  className="fixed bottom-4 left-1/2 z-2 flex -translate-x-1/2 items-center gap-2 shadow-lg"
+                >
+                  <Button className="z-2 w-full">Places Near You</Button>
+                </DialogTrigger>
+              )}
               <DialogContent className="overflow-hidden sm:max-w-[425px]">
                 <DialogHeader>
                   <DialogTitle>Edit profile</DialogTitle>
