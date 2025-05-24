@@ -48,7 +48,7 @@ function LocationOnboardingUI({
 }) {
   let title = "Enable Location Access";
   let primaryMessage =
-    "overHere uses your location to discover nearby places and people, and to verify your check-ins.";
+    "overHere uses your location to show you nearby places and people, and to verify your check-ins.";
   let buttonText = "Enable Location & Find People";
   let guidanceMessage: ReactNode = null;
 
@@ -77,7 +77,6 @@ function LocationOnboardingUI({
       "To discover who's around and open to chatting at your current spot, overHere needs your location for the best experience.";
     buttonText = "Grant Location Access";
   }
-
   if (
     errorMessage &&
     errorMessage.toLowerCase().includes("denied") &&
@@ -133,20 +132,11 @@ export function LocationPermissionProvider({
   const isFetchingLocationRef = useRef(false);
   const permissionStatusObjRef = useRef<PermissionStatus | null>(null);
 
-  const locationRef = useRef(location);
-  useEffect(() => {
-    locationRef.current = location;
-  }, [location]);
-
-  const isLoadingGeoRef = useRef(isLoadingGeo);
-  useEffect(() => {
-    isLoadingGeoRef.current = isLoadingGeo;
-  }, [isLoadingGeo]);
-
   const requestDeviceLocation = useCallback(() => {
     if (!navigator.geolocation) {
       setGeoError("Geolocation API not supported by this browser.");
       setPermissionStatus("unsupported");
+      isFetchingLocationRef.current = false;
       return;
     }
     if (isFetchingLocationRef.current) return;
@@ -194,22 +184,17 @@ export function LocationPermissionProvider({
       },
       { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 },
     );
-  }, []); // State setters from useState are stable and don't need to be in deps.
+  }, []);
 
   useEffect(() => {
     let mounted = true;
+    let localPermStatusObjForCleanup: PermissionStatus | null = null;
 
     const handleBrowserPermissionChange = () => {
-      if (!mounted || !permissionStatusObjRef.current) return;
-      const newStatus = permissionStatusObjRef.current.state as PermissionState;
+      if (!mounted || !localPermStatusObjForCleanup) return;
+      const newStatus = localPermStatusObjForCleanup.state as PermissionState;
       setPermissionStatus(newStatus);
-      if (
-        newStatus === "granted" &&
-        !locationRef.current &&
-        !isFetchingLocationRef.current
-      ) {
-        requestDeviceLocation();
-      } else if (newStatus === "denied") {
+      if (newStatus === "denied") {
         setLocation(null);
         setGeoError(
           "Location permission was changed to denied in browser settings.",
@@ -230,12 +215,13 @@ export function LocationPermissionProvider({
           const permObj = await navigator.permissions.query({
             name: "geolocation",
           });
+          localPermStatusObjForCleanup = permObj;
           if (!mounted) return;
-          permissionStatusObjRef.current = permObj;
           const queriedStatus = permObj.state as PermissionState;
           setPermissionStatus(queriedStatus);
-
-          if (queriedStatus === "granted" || queriedStatus === "prompt") {
+          if (queriedStatus === "granted") {
+            requestDeviceLocation();
+          } else if (queriedStatus === "prompt") {
             requestDeviceLocation();
           } else if (queriedStatus === "denied") {
             if (!geoError)
@@ -245,10 +231,10 @@ export function LocationPermissionProvider({
           }
           permObj.onchange = handleBrowserPermissionChange;
         } catch (err) {
-          console.error("Error querying geolocation permission:", err);
           if (!mounted) return;
           setPermissionStatus("prompt");
           requestDeviceLocation();
+          console.error(err);
         }
       } else {
         if (mounted) {
@@ -257,20 +243,29 @@ export function LocationPermissionProvider({
         }
       }
     };
-
     initializePermissionState();
-
     return () => {
       mounted = false;
       if (
-        permissionStatusObjRef.current &&
-        permissionStatusObjRef.current.onchange ===
-          handleBrowserPermissionChange
+        localPermStatusObjForCleanup &&
+        localPermStatusObjForCleanup.onchange === handleBrowserPermissionChange
       ) {
-        permissionStatusObjRef.current.onchange = null;
+        localPermStatusObjForCleanup.onchange = null;
       }
     };
-  }); // Main effect depends only on stable requestDeviceLocation.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [requestDeviceLocation]); // Make this effect run only once or when requestDeviceLocation changes (it's stable)
+
+  // Separate effect to act on permissionStatus changes, specifically for 'granted'
+  useEffect(() => {
+    if (
+      permissionStatus === "granted" &&
+      !location &&
+      !isFetchingLocationRef.current
+    ) {
+      requestDeviceLocation();
+    }
+  }, [permissionStatus, location, requestDeviceLocation]);
 
   const contextValue: LocationContextType = {
     location,
