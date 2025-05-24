@@ -179,7 +179,7 @@ export default function PlaceFinder() {
         />
       </div>
 
-      <div className="pointer-events-none absolute top-0 right-0 left-0 z-20 flex justify-center p-3 sm:p-4">
+      <div className="pointer-events-none absolute top-0 right-0 left-0 z-9000 flex justify-center p-3 sm:p-4">
         <div className="bg-background pointer-events-auto flex w-full max-w-md flex-col items-center gap-2 rounded-lg p-3 shadow-xl sm:p-4">
           <form
             action={searchFormAction}
