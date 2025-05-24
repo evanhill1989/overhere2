@@ -130,8 +130,8 @@ export function LocationPermissionProvider({
   const [geoError, setGeoError] = useState<string | null>(null);
 
   const isFetchingLocationRef = useRef(false);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const permissionStatusObjRef = useRef<PermissionStatus | null>(null);
-
   const requestDeviceLocation = useCallback(() => {
     if (!navigator.geolocation) {
       setGeoError("Geolocation API not supported by this browser.");
