@@ -15,14 +15,14 @@ import dynamic from "next/dynamic";
 import PlacesList from "./PlacesList";
 import PlacesContent from "./PlacesContent";
 
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
+// import {
+//   Dialog,
+//   DialogContent,
+//   DialogDescription,
+//   DialogHeader,
+//   DialogTitle,
+//   DialogTrigger,
+// } from "@/components/ui/dialog";
 
 import {
   Drawer,
@@ -182,7 +182,7 @@ export default function PlaceFinder() {
   }
 
   const isDesktop = useMediaQuery("(min-width: 768px)");
-  const [open, setOpen] = useState(false);
+  // const [open, setOpen] = useState(false);
 
   console.log(isDesktop, "isDesktop?");
   console.log(open, "<--- open state");
@@ -229,7 +229,7 @@ export default function PlaceFinder() {
               )}
             </Button>
           </form>
-          {isDesktop ? (
+          {/* {isDesktop ? (
             <Dialog open={open} onOpenChange={setOpen}>
               {open ? (
                 <DialogTrigger
@@ -275,53 +275,44 @@ export default function PlaceFinder() {
                 />
               </DialogContent>
             </Dialog>
-          ) : (
-            <Drawer open={open} onOpenChange={setOpen}>
-              {open ? (
-                <DrawerTrigger
-                  asChild
-                  className="fixed bottom-4 left-1/2 z-2 flex -translate-x-1/2 items-center gap-2 shadow-lg"
-                >
-                  <Button className="z-2 w-full">Places Near You</Button>
-                </DrawerTrigger>
-              ) : (
-                <DrawerTrigger
-                  asChild
-                  className="fixed bottom-4 left-1/2 z-2 flex -translate-x-1/2 items-center gap-2 shadow-lg"
-                >
-                  <Button className="z-2 w-full">Places Near You</Button>
-                </DrawerTrigger>
-              )}
+          ) : ( */}
+          <Drawer>
+            <DrawerTrigger
+              asChild
+              className="fixed bottom-4 left-1/2 z-2 flex -translate-x-1/2 items-center gap-2 shadow-lg"
+            >
+              <Button className="z-2 w-full">Places Near You</Button>
+            </DrawerTrigger>
 
-              <DrawerContent className="">
-                <DrawerHeader>
-                  <DrawerTitle>Places Near You</DrawerTitle>
-                  <DrawerDescription>
-                    Popular places near your location.
-                  </DrawerDescription>
-                </DrawerHeader>
-                <PlacesContent
-                  isLoadingOverall={isLoadingOverall}
-                  placesListContent={placesListRenderContent}
-                  geoError={geoError ?? undefined}
-                  searchStateError={
-                    searchState?.query === searchQuery &&
-                    derivedDisplayedPlaces.length === 0
-                      ? searchState?.error
-                      : undefined
-                  }
-                  isSearchPending={
-                    isSearchPending && searchQuery === searchState?.query
-                  }
-                  nearbyError={
-                    !searchQuery ? (nearbyError ?? undefined) : undefined
-                  }
-                  isNearbyLoading={!searchQuery ? isNearbyLoading : false}
-                  searchQuery={searchQuery}
-                />
-              </DrawerContent>
-            </Drawer>
-          )}
+            <DrawerContent className="">
+              <DrawerHeader>
+                <DrawerTitle>Places Near You</DrawerTitle>
+                <DrawerDescription>
+                  Popular places near your location.
+                </DrawerDescription>
+              </DrawerHeader>
+              <PlacesContent
+                isLoadingOverall={isLoadingOverall}
+                placesListContent={placesListRenderContent}
+                geoError={geoError ?? undefined}
+                searchStateError={
+                  searchState?.query === searchQuery &&
+                  derivedDisplayedPlaces.length === 0
+                    ? searchState?.error
+                    : undefined
+                }
+                isSearchPending={
+                  isSearchPending && searchQuery === searchState?.query
+                }
+                nearbyError={
+                  !searchQuery ? (nearbyError ?? undefined) : undefined
+                }
+                isNearbyLoading={!searchQuery ? isNearbyLoading : false}
+                searchQuery={searchQuery}
+              />
+            </DrawerContent>
+          </Drawer>
+          {/* )} */}
         </div>
       </div>
     </div>
