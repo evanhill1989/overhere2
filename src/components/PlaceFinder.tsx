@@ -35,8 +35,6 @@ import {
   // DrawerDescription, // Optional, add if you have more descriptive text
 } from "@/components/ui/drawer";
 
-import useMediaQuery from "@/hooks/useMediaQuery";
-
 const UserMap = dynamic(() => import("@/components/UserMap"), {
   ssr: false,
   loading: () => (
@@ -181,10 +179,8 @@ export default function PlaceFinder() {
     );
   }
 
-  const isDesktop = useMediaQuery("(min-width: 768px)");
-  // const [open, setOpen] = useState(false);
+  const [openDrawer, setOpenDrawer] = useState(false);
 
-  console.log(isDesktop, "isDesktop?");
   console.log(open, "<--- open state");
 
   return (
@@ -197,89 +193,52 @@ export default function PlaceFinder() {
         />
       </div>
 
-      <div className="pointer-events-none absolute top-0 right-0 left-0 z-9000 flex justify-center p-3 sm:p-4">
+      <div className="pointer-events-none absolute top-0 right-0 left-0 z-100 flex justify-center p-3 sm:p-4">
         <div className="bg-background pointer-events-auto flex w-full max-w-md flex-col items-center gap-2 rounded-lg p-3 shadow-xl sm:p-4">
-          <form
-            action={searchFormAction}
-            className="flex w-full items-center"
-            onSubmit={handleSearchFormSubmit}
-          >
-            <Input
-              name="searchQuery"
-              type="search"
-              placeholder="Search places by name"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              aria-label="Search for a specific place"
-              disabled={isLoadingOverall}
-              className="flex-grow pr-10"
-            />
-            <Button
-              type="submit"
-              size="icon"
-              variant="ghost"
-              className="z-10 -ml-9 shrink-0"
-              disabled={isLoadingOverall || !searchQuery.trim()}
-              aria-label="Submit search"
+          {!openDrawer && (
+            <form
+              action={searchFormAction}
+              className="flex w-full items-center"
+              onSubmit={handleSearchFormSubmit}
             >
-              {isSearchPending && searchQuery ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <SearchIcon className="h-4 w-4" />
-              )}
-            </Button>
-          </form>
-          {/* {isDesktop ? (
-            <Dialog open={open} onOpenChange={setOpen}>
-              {open ? (
-                <DialogTrigger
-                  asChild
-                  className="fixed bottom-4 left-1/2 z-2 flex -translate-x-1/2 items-center gap-2 shadow-lg"
-                >
-                  <Button className="z-2 hidden w-full">Places Near You</Button>
-                </DialogTrigger>
-              ) : (
-                <DialogTrigger
-                  asChild
-                  className="fixed bottom-4 left-1/2 z-2 flex -translate-x-1/2 items-center gap-2 shadow-lg"
-                >
-                  <Button className="z-2 w-full">Places Near You</Button>
-                </DialogTrigger>
-              )}
-              <DialogContent className="overflow-hidden sm:max-w-[425px]">
-                <DialogHeader>
-                  <DialogTitle>Edit profile</DialogTitle>
-                  <DialogDescription>
-                    Make changes to your profile here. Click save when you're
-                    done.
-                  </DialogDescription>
-                </DialogHeader>
-                <PlacesContent
-                  isLoadingOverall={isLoadingOverall}
-                  placesListContent={placesListRenderContent}
-                  geoError={geoError ?? undefined}
-                  searchStateError={
-                    searchState?.query === searchQuery &&
-                    derivedDisplayedPlaces.length === 0
-                      ? searchState?.error
-                      : undefined
-                  }
-                  isSearchPending={
-                    isSearchPending && searchQuery === searchState?.query
-                  }
-                  nearbyError={
-                    !searchQuery ? (nearbyError ?? undefined) : undefined
-                  }
-                  isNearbyLoading={!searchQuery ? isNearbyLoading : false}
-                  searchQuery={searchQuery}
-                />
-              </DialogContent>
-            </Dialog>
-          ) : ( */}
-          <Drawer>
-            <DrawerTrigger asChild>
-              <Button className="z-2 w-full">Places Near You</Button>
-            </DrawerTrigger>
+              <Input
+                name="searchQuery"
+                type="search"
+                placeholder="Search places by name"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                aria-label="Search for a specific place"
+                disabled={isLoadingOverall}
+                className="flex-grow pr-10"
+              />
+              <Button
+                type="submit"
+                size="icon"
+                variant="ghost"
+                className="z-10 -ml-9 shrink-0"
+                disabled={isLoadingOverall || !searchQuery.trim()}
+                aria-label="Submit search"
+              >
+                {isSearchPending && searchQuery ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <SearchIcon className="h-4 w-4" />
+                )}
+              </Button>
+            </form>
+          )}
+
+          <Drawer open={openDrawer} onOpenChange={setOpenDrawer}>
+            {!openDrawer ? (
+              <DrawerTrigger asChild>
+                <Button className="z-2 w-full">Places Near You</Button>
+              </DrawerTrigger>
+            ) : (
+              <DrawerTrigger asChild>
+                <Button className="z-2 hidden w-full">Places Near You</Button>
+              </DrawerTrigger>
+            )}
+
             <DrawerContent>
               <DrawerHeader>
                 <DrawerTitle>Places Near You</DrawerTitle>
@@ -308,43 +267,6 @@ export default function PlaceFinder() {
               />
             </DrawerContent>
           </Drawer>
-          {/* <Drawer>
-            <DrawerTrigger
-              asChild
-              className="fixed bottom-4 left-1/2 z-2 flex -translate-x-1/2 items-center gap-2 shadow-lg"
-            >
-              <Button className="z-2 w-full">Places Near You</Button>
-            </DrawerTrigger>
-
-            <DrawerContent className="">
-              <DrawerHeader>
-                <DrawerTitle>Places Near You</DrawerTitle>
-                <DrawerDescription>
-                  Popular places near your location.
-                </DrawerDescription>
-              </DrawerHeader>
-              <PlacesContent
-                isLoadingOverall={isLoadingOverall}
-                placesListContent={placesListRenderContent}
-                geoError={geoError ?? undefined}
-                searchStateError={
-                  searchState?.query === searchQuery &&
-                  derivedDisplayedPlaces.length === 0
-                    ? searchState?.error
-                    : undefined
-                }
-                isSearchPending={
-                  isSearchPending && searchQuery === searchState?.query
-                }
-                nearbyError={
-                  !searchQuery ? (nearbyError ?? undefined) : undefined
-                }
-                isNearbyLoading={!searchQuery ? isNearbyLoading : false}
-                searchQuery={searchQuery}
-              />
-            </DrawerContent>
-          </Drawer> */}
-          {/* )} */}
         </div>
       </div>
     </div>
