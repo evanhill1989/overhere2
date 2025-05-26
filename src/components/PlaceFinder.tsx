@@ -287,26 +287,26 @@ export default function PlaceFinder() {
                   Popular places near your location.
                 </DrawerDescription>
               </DrawerHeader>
+              <PlacesContent
+                isLoadingOverall={isLoadingOverall}
+                placesListContent={placesListRenderContent}
+                geoError={geoError ?? undefined}
+                searchStateError={
+                  searchState?.query === searchQuery &&
+                  derivedDisplayedPlaces.length === 0
+                    ? searchState?.error
+                    : undefined
+                }
+                isSearchPending={
+                  isSearchPending && searchQuery === searchState?.query
+                }
+                nearbyError={
+                  !searchQuery ? (nearbyError ?? undefined) : undefined
+                }
+                isNearbyLoading={!searchQuery ? isNearbyLoading : false}
+                searchQuery={searchQuery}
+              />
             </DrawerContent>
-            <PlacesContent
-              isLoadingOverall={isLoadingOverall}
-              placesListContent={placesListRenderContent}
-              geoError={geoError ?? undefined}
-              searchStateError={
-                searchState?.query === searchQuery &&
-                derivedDisplayedPlaces.length === 0
-                  ? searchState?.error
-                  : undefined
-              }
-              isSearchPending={
-                isSearchPending && searchQuery === searchState?.query
-              }
-              nearbyError={
-                !searchQuery ? (nearbyError ?? undefined) : undefined
-              }
-              isNearbyLoading={!searchQuery ? isNearbyLoading : false}
-              searchQuery={searchQuery}
-            />
           </Drawer>
           {/* <Drawer>
             <DrawerTrigger
