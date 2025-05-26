@@ -37,7 +37,8 @@ export async function POST(request: Request) {
     }
 
     const requestBody = {
-      includedTypes: ["park"],
+      includedTypes: ["cafe"],
+      excludedPrimaryTypes: ["restaurant"],
       maxResultCount: 15,
       locationRestriction: {
         circle: {
@@ -45,7 +46,7 @@ export async function POST(request: Request) {
           radius: 1000.0, // Example: 2km radius
         },
       },
-      // rankPreference: "DISTANCE" // Only if includedTypes has ONE entry or is empty
+      rankPreference: "POPULARITY", // Only if includedTypes has ONE entry or is empty
     };
 
     const response = await fetch(
