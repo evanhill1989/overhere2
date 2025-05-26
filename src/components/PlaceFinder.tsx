@@ -194,7 +194,7 @@ export default function PlaceFinder() {
       </div>
 
       <div className="pointer-events-none absolute top-0 right-0 left-0 z-100 flex justify-center p-3 sm:p-4">
-        <div className="bg-background pointer-events-auto flex w-full max-w-md flex-col items-center gap-2 rounded-lg p-3 shadow-xl sm:p-4">
+        <div className="bg-background pointer-events-auto flex w-full max-w-md flex-col items-center gap-6 rounded-lg p-3 shadow-xl sm:p-4">
           {!openDrawer && (
             <form
               action={searchFormAction}
@@ -240,7 +240,7 @@ export default function PlaceFinder() {
             )}
 
             <DrawerContent>
-              <DrawerHeader>
+              <DrawerHeader className="mb-3 border-b-2">
                 <DrawerTitle>Places Near You</DrawerTitle>
                 <DrawerDescription>
                   Popular places near your location.

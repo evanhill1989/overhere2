@@ -37,19 +37,12 @@ export async function POST(request: Request) {
     }
 
     const requestBody = {
-      includedTypes: [
-        "cafe",
-        "bar",
-        "restaurant",
-        "library",
-        "park",
-        "book_store",
-      ],
+      includedTypes: ["park"],
       maxResultCount: 15,
       locationRestriction: {
         circle: {
           center: { latitude: latitude, longitude: longitude },
-          radius: 2000.0, // Example: 2km radius
+          radius: 1000.0, // Example: 2km radius
         },
       },
       // rankPreference: "DISTANCE" // Only if includedTypes has ONE entry or is empty

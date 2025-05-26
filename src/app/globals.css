@@ -213,3 +213,16 @@ input[type="search"]::-ms-clear {
   margin-inline: auto;
   padding-inline: 1rem;
 }
+
+.custom-leaflet-div-icon {
+  background: transparent;
+  border: none;
+  margin: 0 !important; /* Override Leaflet's default margins */
+  padding: 0 !important; /* Override Leaflet's default padding */
+}
+
+.custom-leaflet-div-icon svg {
+  display: block; /* Removes any extra space below inline SVGs */
+  width: 100%; /* Make SVG fill the iconSize defined in L.divIcon */
+  height: 100%;
+}
