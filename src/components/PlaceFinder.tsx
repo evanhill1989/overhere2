@@ -184,6 +184,9 @@ export default function PlaceFinder() {
   const isDesktop = useMediaQuery("(min-width: 768px)");
   const [open, setOpen] = useState(false);
 
+  console.log(isDesktop, "isDesktop?");
+  console.log(open, "<--- open state");
+
   return (
     <div className="relative h-full w-full overflow-hidden">
       <div className="absolute inset-0 z-0">
@@ -279,7 +282,7 @@ export default function PlaceFinder() {
                   asChild
                   className="fixed bottom-4 left-1/2 z-2 flex -translate-x-1/2 items-center gap-2 shadow-lg"
                 >
-                  <Button className="z-2 hidden w-full">Places Near You</Button>
+                  <Button className="z-2 w-full">Places Near You</Button>
                 </DrawerTrigger>
               ) : (
                 <DrawerTrigger

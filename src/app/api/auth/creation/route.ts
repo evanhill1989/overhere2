@@ -9,6 +9,7 @@ import { db } from "@/index";
 export async function GET(request: Request) {
   const { getUser } = getKindeServerSession();
   const user = await getUser();
+  console.log(user, "user getUser from kinde");
 
   const dbUser = await getUserByKindeId(user.id!); // Assert user.id exists if checking before this
 
@@ -16,7 +17,7 @@ export async function GET(request: Request) {
     if (!user.id || !user.given_name || !user.email) {
       console.error(
         "Kinde user object is missing required fields (id, given_name, or email):",
-        user
+        user,
       );
 
       return;
