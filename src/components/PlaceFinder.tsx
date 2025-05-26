@@ -12,8 +12,8 @@ import { useNearbyPlaces } from "@/hooks/useNearbyPlaces";
 import { useAppLocation } from "@/context/LocationPermissionProvider";
 // import type { Place } from "@/types/places";
 import dynamic from "next/dynamic";
-import PlacesList from "./PlacesList";
-import PlacesContent from "./PlacesContent";
+// import PlacesList from "./PlacesList";
+// import PlacesContent from "./PlacesContent";
 
 // import {
 //   Dialog,
@@ -24,16 +24,15 @@ import PlacesContent from "./PlacesContent";
 //   DialogTrigger,
 // } from "@/components/ui/dialog";
 
-import {
-  Drawer,
-  DrawerContent,
-  DrawerTrigger,
-  DrawerHeader,
-  DrawerTitle,
-  DrawerDescription,
+import {} from // Drawer,
+// DrawerContent,
+// DrawerTrigger,
+// DrawerHeader,
+// DrawerTitle,
+// DrawerDescription,
 
-  // DrawerDescription, // Optional, add if you have more descriptive text
-} from "@/components/ui/drawer";
+// DrawerDescription, // Optional, add if you have more descriptive text
+"@/components/ui/drawer";
 
 import useMediaQuery from "@/hooks/useMediaQuery";
 
@@ -62,7 +61,7 @@ export default function PlaceFinder() {
   const {
     location: userLocationFromContext,
     isLoadingGeo,
-    geoError,
+    // geoError,
     requestBrowserLocationPermission,
     permissionStatus,
   } = useAppLocation();
@@ -70,7 +69,7 @@ export default function PlaceFinder() {
   const {
     places: nearbyPlaces,
     isLoading: isNearbyLoading,
-    error: nearbyError,
+    // error: nearbyError,
     refetch: refetchNearby,
   } = useNearbyPlaces(userLocationFromContext);
 
@@ -152,20 +151,20 @@ export default function PlaceFinder() {
     }
   };
 
-  let placesListRenderContent: React.ReactNode = null;
+  // let placesListRenderContent: React.ReactNode = null;
   if (derivedDisplayedPlaces.length > 0) {
-    placesListRenderContent = (
-      <PlacesList
-        displayedPlaces={derivedDisplayedPlaces}
-        currentUserLocation={userLocationFromContext}
-      />
-    );
+    // placesListRenderContent = (
+    //   <PlacesList
+    //     displayedPlaces={derivedDisplayedPlaces}
+    //     currentUserLocation={userLocationFromContext}
+    //   />
+    // );
   } else if (searchAttempted && !isLoadingOverall) {
-    placesListRenderContent = (
-      <p className="text-muted-foreground p-4 text-center">
-        No places found. Try a different search or explore nearby.
-      </p>
-    );
+    // placesListRenderContent = (
+    //   <p className="text-muted-foreground p-4 text-center">
+    //     No places found. Try a different search or explore nearby.
+    //   </p>
+    // );
   } else if (
     !searchAttempted &&
     !isLoadingOverall &&
@@ -174,11 +173,11 @@ export default function PlaceFinder() {
       permissionStatus === "denied" ||
       permissionStatus === "error")
   ) {
-    placesListRenderContent = (
-      <p className="text-muted-foreground p-4 text-center">
-        Search for places or find what's nearby.
-      </p>
-    );
+    // placesListRenderContent = (
+    //   <p className="text-muted-foreground p-4 text-center">
+    //     Search for places or find what's nearby.
+    //   </p>
+    // );
   }
 
   const isDesktop = useMediaQuery("(min-width: 768px)");
