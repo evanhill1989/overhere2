@@ -229,6 +229,7 @@ export default function PlaceFinder() {
               )}
             </Button>
           </form>
+          <h2>HIII</h2>
           {/* {isDesktop ? (
             <Dialog open={open} onOpenChange={setOpen}>
               {open ? (
@@ -276,7 +277,7 @@ export default function PlaceFinder() {
               </DialogContent>
             </Dialog>
           ) : ( */}
-          <Drawer>
+          {/* <Drawer>
             <DrawerTrigger
               asChild
               className="fixed bottom-4 left-1/2 z-2 flex -translate-x-1/2 items-center gap-2 shadow-lg"
@@ -311,7 +312,7 @@ export default function PlaceFinder() {
                 searchQuery={searchQuery}
               />
             </DrawerContent>
-          </Drawer>
+          </Drawer> */}
           {/* )} */}
         </div>
       </div>
