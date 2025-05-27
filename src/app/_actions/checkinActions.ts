@@ -7,12 +7,11 @@ import {
   placesTable,
   type SelectPlace,
   type InsertCheckin,
-  // usersTable, // Assuming usersTable import is still needed if used by other functions
 } from "@/db/schema";
 import { getKindeServerSession } from "@kinde-oss/kinde-auth-nextjs/server";
 import { redirect } from "next/navigation";
-import { and, eq, sql, desc } from "drizzle-orm"; // Added desc, inArray
-import { calculateDistance } from "@/lib/utils"; // Assuming this exists
+import { and, eq, sql, desc } from "drizzle-orm";
+import { calculateDistance } from "@/lib/utils";
 
 export type ActionResult = {
   success: boolean;
@@ -24,6 +23,14 @@ const CACHE_STALE_MS = 30 * 24 * 60 * 60 * 1000;
 const CHECKIN_UPDATE_WINDOW_MS = 2 * 60 * 60 * 1000;
 const MAX_CHECKIN_DISTANCE_METERS = 2000;
 
+interface GooglePlaceDetailsNewResult {
+  id: string;
+  displayName?: { text: string; languageCode?: string };
+  formattedAddress?: string;
+  location?: { latitude: number; longitude: number };
+  primaryTypeDisplayName?: { text: string; languageCode?: string };
+}
+
 async function fetchAndCacheGooglePlaceDetails(
   placeId: string,
 ): Promise<SelectPlace | null> {
@@ -31,68 +38,65 @@ async function fetchAndCacheGooglePlaceDetails(
     const cachedPlace = await db.query.placesTable?.findFirst({
       where: eq(placesTable.id, placeId),
     });
-
     if (cachedPlace) {
       const isStale =
         new Date().getTime() - cachedPlace.lastFetchedAt.getTime() >
         CACHE_STALE_MS;
-      if (!isStale) {
-        return cachedPlace;
-      }
+      if (!isStale) return cachedPlace;
     }
   } catch (dbError) {
     console.error(`DB cache lookup failed for place ID ${placeId}:`, dbError);
   }
-
   const apiKey = process.env.PLACES_API_KEY;
   if (!apiKey) {
     console.error("PLACES_API_KEY environment variable not set.");
     return null;
   }
-
-  const fields = "name,formatted_address,geometry/location,place_id";
-  const url = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${placeId}&key=${apiKey}&fields=${fields}`;
-  let googlePlaceData;
-
+  const fieldsToRequest =
+    "id,displayName,formattedAddress,location,primaryTypeDisplayName";
+  const url = `https://places.googleapis.com/v1/places/${placeId}`;
+  let googlePlaceData: GooglePlaceDetailsNewResult;
   try {
-    const response = await fetch(url);
-    if (!response.ok)
-      throw new Error(`Google API responded with status: ${response.status}`);
-    const data = await response.json();
-    if (data.status !== "OK")
+    const response = await fetch(`${url}?key=${apiKey}`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Goog-Api-Key": apiKey,
+        "X-Goog-FieldMask": fieldsToRequest,
+      },
+    });
+    if (!response.ok) {
+      const errorBody = await response
+        .json()
+        .catch(() => ({ message: response.statusText }));
       throw new Error(
-        `Google API status: ${data.status}. ${data.error_message || ""}`,
+        `Google Place Details (New) API request failed: ${errorBody.error?.message || response.statusText}`,
       );
-    googlePlaceData = data.result;
-    if (
-      !googlePlaceData?.name ||
-      !googlePlaceData?.formatted_address ||
-      !googlePlaceData?.place_id
-    ) {
-      throw new Error("Google API response missing essential details.");
+    }
+    googlePlaceData = await response.json();
+    if (!googlePlaceData?.id || !googlePlaceData?.displayName?.text) {
+      throw new Error(
+        "Google Place Details (New) API response missing essential details (id, displayName).",
+      );
     }
   } catch (fetchError) {
     console.error(
-      `Failed to fetch details from Google API for place ID ${placeId}:`,
+      `Failed to fetch details from Google API (New) for place ID ${placeId}:`,
       fetchError,
     );
     return null;
   }
-
   const placeToCache = {
-    id: googlePlaceData.place_id,
-    name: googlePlaceData.name,
-    address: googlePlaceData.formatted_address,
-    latitude: googlePlaceData.geometry?.location?.lat ?? null,
-    longitude: googlePlaceData.geometry?.location?.lng ?? null,
+    id: googlePlaceData.id,
+    name: googlePlaceData.displayName.text,
+    address: googlePlaceData.formattedAddress || "Address not available",
+    latitude: googlePlaceData.location?.latitude ?? null,
+    longitude: googlePlaceData.location?.longitude ?? null,
     lastFetchedAt: new Date(),
     primaryType: googlePlaceData.primaryTypeDisplayName?.text ?? null,
-    // generative_summary: googlePlaceData.generative_summary || "",
-    // isVerified will default to false in DB on new insert
   };
-
   try {
-    const result = await db
+    await db
       .insert(placesTable)
       .values(placeToCache)
       .onConflictDoUpdate({
@@ -103,39 +107,23 @@ async function fetchAndCacheGooglePlaceDetails(
           latitude: sql.raw(`excluded.${placesTable.latitude.name}`),
           longitude: sql.raw(`excluded.${placesTable.longitude.name}`),
           lastFetchedAt: sql.raw(`excluded.${placesTable.lastFetchedAt.name}`),
-          // isVerified is NOT updated here to preserve its manually set value
+          primaryType: sql.raw(`excluded.${placesTable.primaryType.name}`),
         },
-      })
-      .returning(); // Returns all columns of the inserted/updated row
-
-    if (result?.[0]) {
-      return result[0] as SelectPlace; // Cast to ensure isVerified is typed
-    } else {
-      // Fallback to re-fetch from DB if returning() is problematic or to ensure latest state
-      const updatedPlace = await db.query.placesTable?.findFirst({
-        where: eq(placesTable.id, placeId),
       });
-      if (updatedPlace) return updatedPlace;
-      throw new Error(
-        "Failed to insert or update cache, or retrieve after operation.",
-      );
-    }
+    const finalPlace = await db.query.placesTable?.findFirst({
+      where: eq(placesTable.id, placeId),
+    });
+    if (finalPlace) return finalPlace;
+    throw new Error(
+      "Failed to retrieve after insert/update cache for Place Details.",
+    );
   } catch (dbError) {
     console.error(
       `DB cache update/insert failed for place ID ${placeId}:`,
       dbError,
     );
-    // Fallback: return fetched Google data, assuming isVerified is false
-    // and ensuring all fields of SelectPlace are present.
     const fallbackData: SelectPlace = {
-      id: placeToCache.id,
-      name: placeToCache.name,
-      address: placeToCache.address,
-      latitude: placeToCache.latitude,
-      longitude: placeToCache.longitude,
-      lastFetchedAt: placeToCache.lastFetchedAt,
-      primaryType: placeToCache.primaryType,
-      // generativeSummary: placeToCache.generative_summary || "",
+      ...placeToCache,
       isVerified: false,
     };
     return fallbackData;
@@ -160,36 +148,34 @@ export async function submitCheckIn(
   const statusPreference = formData.get("status") as
     | "available"
     | "busy"
-    | null; // More specific type
+    | null;
   const userLatitudeStr = formData.get("userLatitude") as string | null;
   const userLongitudeStr = formData.get("userLongitude") as string | null;
 
-  if (!selectedPlaceId) {
+  if (!selectedPlaceId)
     return { success: false, message: "No place selected." };
-  }
   if (!statusPreference || !["available", "busy"].includes(statusPreference)) {
     return { success: false, message: "Invalid status selected." };
   }
   if (!userLatitudeStr || !userLongitudeStr) {
     return {
       success: false,
-      message: "Your location could not be determined for check-in.",
+      message: "Your location could not be determined.",
     };
   }
   const userLatitude = parseFloat(userLatitudeStr);
   const userLongitude = parseFloat(userLongitudeStr);
   if (isNaN(userLatitude) || isNaN(userLongitude)) {
-    return { success: false, message: "Invalid location data received." };
+    return { success: false, message: "Invalid location data." };
   }
 
   const placeDetails = await fetchAndCacheGooglePlaceDetails(selectedPlaceId);
-  if (!placeDetails) {
+  if (!placeDetails)
     return { success: false, message: "Could not retrieve place details." };
-  }
   if (placeDetails.latitude == null || placeDetails.longitude == null) {
     return {
       success: false,
-      message: "Cannot verify proximity: Place location is unknown.",
+      message: "Cannot verify proximity: Place location unknown.",
     };
   }
 
@@ -202,12 +188,13 @@ export async function submitCheckIn(
   if (distance > MAX_CHECKIN_DISTANCE_METERS) {
     return {
       success: false,
-      message: `You seem too far away to check in here. Please get closer.`,
+      message: `You seem too far away (${Math.round(distance)}m) to check in here.`,
     };
   }
 
-  let checkinId: number | undefined;
-  let operationType: "insert" | "update" | null = null;
+  let operationType: "insert" | "update" | "find_existing_failed" =
+    "find_existing_failed";
+  let resultantCheckinId: number | undefined;
 
   try {
     const thresholdTime = new Date(Date.now() - CHECKIN_UPDATE_WINDOW_MS);
@@ -216,12 +203,12 @@ export async function submitCheckIn(
         eq(checkinsTable.userId, userKindeId),
         eq(checkinsTable.placeId, placeDetails.id),
       ),
-      orderBy: desc(checkinsTable.createdAt), // Get most recent for this user/place
+      orderBy: desc(checkinsTable.createdAt),
       columns: { id: true, createdAt: true },
     });
 
     const isRecentExisting =
-      existingCheckin && existingCheckin.createdAt > thresholdTime;
+      existingCheckin && new Date(existingCheckin.createdAt) > thresholdTime;
 
     if (isRecentExisting) {
       operationType = "update";
@@ -238,10 +225,9 @@ export async function submitCheckIn(
         })
         .where(eq(checkinsTable.id, existingCheckin.id))
         .returning({ id: checkinsTable.id });
-      if (!updateResult?.[0]?.id) {
-        throw new Error("Database update failed for existing check-in.");
-      }
-      checkinId = updateResult[0].id;
+      if (!updateResult?.[0]?.id)
+        throw new Error("DB update failed for check-in.");
+      resultantCheckinId = updateResult[0].id;
     } else {
       operationType = "insert";
       const newCheckinData: InsertCheckin = {
@@ -258,19 +244,23 @@ export async function submitCheckIn(
         .insert(checkinsTable)
         .values(newCheckinData)
         .returning({ id: checkinsTable.id });
-      if (!insertResult?.[0]?.id) {
-        throw new Error("Database insertion failed for new check-in.");
-      }
-      checkinId = insertResult[0].id;
+      if (!insertResult?.[0]?.id)
+        throw new Error("DB insertion failed for check-in.");
+      resultantCheckinId = insertResult[0].id;
     }
   } catch (error: unknown) {
     let message = "Database error during check-in.";
     if (error instanceof Error) message = error.message;
-    return { success: false, message };
+    console.error(
+      `Check-in DB operation (${operationType}) failed for user ${userKindeId} at place ${selectedPlaceId}:`,
+      error,
+    );
+    return { success: false, message: message };
   }
 
   console.log(
-    `User ${userKindeId} ${operationType} check-in for ${placeDetails.name} (ID: ${checkinId})`,
+    `User ${userKindeId} successfully ${operationType === "update" ? "updated check-in to" : "checked into"} ${placeDetails.name} (Check-in ID: ${resultantCheckinId})`,
   );
+
   redirect(`/places/${placeDetails.id}`);
 }

@@ -43,7 +43,7 @@ export async function POST(request: Request) {
       locationRestriction: {
         circle: {
           center: { latitude: latitude, longitude: longitude },
-          radius: 1000.0, // Example: 2km radius
+          radius: 10000.0, // Example: 2km radius
         },
       },
       rankPreference: "POPULARITY", // Only if includedTypes has ONE entry or is empty

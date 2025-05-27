@@ -19,7 +19,6 @@ import { useAppLocation } from "@/context/LocationPermissionProvider";
 import type { Place } from "@/types/places";
 import dynamic from "next/dynamic";
 import PlacesList from "./PlacesList";
-// import PlacesContent from "./PlacesContent";
 import { CheckInForm } from "@/components/CheckInForm";
 
 import {
@@ -29,7 +28,7 @@ import {
   DrawerHeader,
   DrawerTitle,
 } from "@/components/ui/drawer";
-import { DialogTitle } from "@radix-ui/react-dialog";
+import { DialogTitle } from "./ui/dialog";
 
 const UserMap = dynamic(() => import("@/components/UserMap"), {
   ssr: false,
@@ -78,6 +77,29 @@ export default function PlaceFinder() {
 
   const isLoadingOverall = isSearchPending || isLoadingGeo || isNearbyLoading;
 
+  const initiateSearchUIUpdates = () => {
+    setSearchAttempted(true);
+    setPlaceForCheckinForm(null);
+    if (!isResultsDrawerOpen || hasManuallyClosedDrawer) {
+      setIsResultsDrawerOpen(true);
+      setHasManuallyClosedDrawer(false);
+    }
+  };
+
+  const handleTextSearchSubmit = () => {
+    initiateSearchUIUpdates();
+  };
+
+  const triggerNearbySearch = () => {
+    initiateSearchUIUpdates();
+    setSearchQuery("");
+    if (userLocationFromContext) {
+      refetchNearby();
+    } else if (permissionStatus === "prompt" || permissionStatus === "denied") {
+      requestBrowserLocationPermission();
+    }
+  };
+
   useEffect(() => {
     if (
       permissionStatus === "granted" &&
@@ -85,19 +107,14 @@ export default function PlaceFinder() {
       !searchAttempted &&
       !searchQuery
     ) {
-      setSearchAttempted(true);
-      if (!hasManuallyClosedDrawer) setIsResultsDrawerOpen(true);
+      triggerNearbySearch();
     }
-  }, [
-    permissionStatus,
-    userLocationFromContext,
-    searchAttempted,
-    searchQuery,
-    hasManuallyClosedDrawer,
-  ]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [permissionStatus, userLocationFromContext, searchAttempted, searchQuery]);
 
   const derivedDisplayedPlaces = useMemo(() => {
-    if (isSearchPending && searchQuery) return [];
+    if (isSearchPending && searchQuery && searchState?.query === searchQuery)
+      return [];
     if (searchQuery && searchState?.places && searchState.query === searchQuery)
       return searchState.places;
     if (
@@ -137,32 +154,13 @@ export default function PlaceFinder() {
   }, [
     isLoadingOverall,
     searchAttempted,
-    derivedDisplayedPlaces,
-    searchState,
+    derivedDisplayedPlaces.length,
+    searchState?.error,
     nearbyError,
     geoError,
     hasManuallyClosedDrawer,
     placeForCheckinForm,
   ]);
-
-  const handleActionInitiatingSearchOrNearby = () => {
-    setSearchAttempted(true);
-    setPlaceForCheckinForm(null);
-    setIsResultsDrawerOpen(true);
-    setHasManuallyClosedDrawer(false);
-  };
-
-  const handleSearchFormSubmit = () => handleActionInitiatingSearchOrNearby();
-
-  const handleNearbySearchClick = () => {
-    handleActionInitiatingSearchOrNearby();
-    setSearchQuery("");
-    if (userLocationFromContext) {
-      refetchNearby();
-    } else if (permissionStatus === "prompt" || permissionStatus === "denied") {
-      requestBrowserLocationPermission();
-    }
-  };
 
   const handleSelectPlaceForCheckin = (place: Place) => {
     setPlaceForCheckinForm(place);
@@ -212,6 +210,11 @@ export default function PlaceFinder() {
       ? `Results for "${searchQuery}"`
       : "Nearby Places";
 
+  const isTextSearchLoading =
+    isSearchPending && searchQuery === searchState?.query && searchQuery !== "";
+  const isNearbyActuallyLoading =
+    (isLoadingGeo && !searchQuery) || (isNearbyLoading && !searchQuery);
+
   return (
     <div className="relative h-full w-full overflow-hidden">
       <div className="absolute inset-0 z-0">
@@ -228,15 +231,22 @@ export default function PlaceFinder() {
           <form
             action={searchFormAction}
             className="flex w-full items-center"
-            onSubmit={handleSearchFormSubmit}
+            onSubmit={(e) => {
+              if (!searchQuery.trim()) {
+                e.preventDefault();
+                triggerNearbySearch();
+              } else {
+                handleTextSearchSubmit();
+              }
+            }}
           >
             <Input
               name="searchQuery"
               type="search"
-              placeholder="Search places by name"
+              placeholder="Search places or find nearby"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              aria-label="Search for a specific place"
+              aria-label="Search for a specific place or find nearby"
               disabled={isLoadingOverall}
               className="flex-grow pr-10"
             />
@@ -245,34 +255,25 @@ export default function PlaceFinder() {
               size="icon"
               variant="ghost"
               className="z-10 -ml-9 shrink-0"
-              disabled={isLoadingOverall || !searchQuery.trim()}
-              aria-label="Submit search"
+              disabled={
+                isLoadingOverall ||
+                (!searchQuery.trim() && permissionStatus !== "granted")
+              }
+              aria-label={
+                searchQuery.trim()
+                  ? "Search places by name"
+                  : "Find nearby places"
+              }
             >
-              {isSearchPending &&
-              searchQuery === searchState?.query &&
-              searchQuery !== "" ? (
+              {isTextSearchLoading || isNearbyActuallyLoading ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
+              ) : searchQuery.trim() ? (
                 <SearchIcon className="h-4 w-4" />
+              ) : (
+                <LocateFixed className="h-4 w-4" />
               )}
             </Button>
           </form>
-
-          <Button
-            onClick={handleNearbySearchClick}
-            disabled={isLoadingOverall || permissionStatus !== "granted"}
-            aria-label="Find nearby places"
-            variant="outline"
-            size="sm"
-            className="w-full max-w-xs"
-          >
-            {isLoadingGeo || (isNearbyLoading && !searchQuery) ? (
-              <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-            ) : (
-              <LocateFixed className="mr-2 h-5 w-5" />
-            )}
-            Find nearby places
-          </Button>
         </div>
       </div>
 
@@ -283,7 +284,7 @@ export default function PlaceFinder() {
             handleCloseCheckinFormOrDrawer();
           } else {
             setIsResultsDrawerOpen(true);
-            setHasManuallyClosedDrawer(false); // Explicitly opening overrides manual close
+            setHasManuallyClosedDrawer(false);
           }
         }}
         modal={false}
@@ -320,7 +321,6 @@ export default function PlaceFinder() {
               <DrawerTitle id="places-drawer-title">{drawerTitle}</DrawerTitle>
               <DialogTitle className="sr-only">{drawerTitle}</DialogTitle>
             </DrawerHeader>
-
             <div className="flex-grow overflow-y-auto p-1 md:p-2">
               {isLoadingOverall && !placeForCheckinForm && (
                 <div className="flex h-full items-center justify-center p-4 text-center">
@@ -338,7 +338,6 @@ export default function PlaceFinder() {
               {!isLoadingOverall &&
                 !placeForCheckinForm &&
                 placesListRenderContent}
-
               {!isLoadingOverall && !placeForCheckinForm && geoError && (
                 <p className="p-2 text-center text-sm text-red-600">
                   {geoError}
