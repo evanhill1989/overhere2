@@ -8,9 +8,10 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 type CheckinRow = Tables<"checkins">;
+type ChatSessionRow = Tables<"chat_sessions">;
 
 export function transformCheckinRowToSelect(
-  checkinRow: CheckinRow | Partial<CheckinRow>
+  checkinRow: CheckinRow | Partial<CheckinRow>,
 ): SelectCheckin | null {
   // Guard against incomplete data, especially from payload.old which might be partial
   if (
@@ -25,7 +26,7 @@ export function transformCheckinRowToSelect(
   ) {
     console.warn(
       "Incomplete CheckinRow data received for transformation:",
-      checkinRow
+      checkinRow,
     );
     return null; // Or handle appropriately, maybe return Partial<SelectCheckin>?
   }
@@ -46,6 +47,40 @@ export function transformCheckinRowToSelect(
   return transformed;
 }
 
+export function isValidChatSessionData(data: unknown): data is ChatSessionRow {
+  if (typeof data !== "object" || data === null) {
+    return false;
+  }
+
+  const obj = data as Record<string, unknown>;
+
+  return (
+    typeof obj.id === "string" &&
+    typeof obj.status === "string" && // This is an enum, but will be a string at runtime
+    typeof obj.initiator_checkin_id === "number" &&
+    typeof obj.receiver_checkin_id === "number" &&
+    typeof obj.place_id === "string" && // Added based on your schema
+    typeof obj.created_at === "string"
+  );
+}
+
+export function isValidCheckinData(data: unknown): data is CheckinRow {
+  if (typeof data !== "object" || data === null) {
+    return false;
+  }
+  const obj = data as Record<string, unknown>;
+
+  return (
+    typeof obj.id === "number" &&
+    typeof obj.user_id === "string" &&
+    typeof obj.place_id === "string" &&
+    typeof obj.place_name === "string" &&
+    typeof obj.place_address === "string" &&
+    typeof obj.status === "string" &&
+    typeof obj.created_at === "string"
+  );
+}
+
 // --- NEW: Haversine Distance Calculation ---
 /**
  * Calculates the great-circle distance between two points
@@ -60,7 +95,7 @@ export function calculateDistance(
   lat1: number,
   lon1: number,
   lat2: number,
-  lon2: number
+  lon2: number,
 ): number {
   const R = 6371e3; // Earth's radius in meters
   const φ1 = (lat1 * Math.PI) / 180; // φ, λ in radians
