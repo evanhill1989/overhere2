@@ -21,7 +21,7 @@ export type ActionResult = {
 
 const CACHE_STALE_MS = 30 * 24 * 60 * 60 * 1000;
 const CHECKIN_UPDATE_WINDOW_MS = 2 * 60 * 60 * 1000;
-const MAX_CHECKIN_DISTANCE_METERS = 2000;
+const MAX_CHECKIN_DISTANCE_METERS = 20000;
 
 interface GooglePlaceDetailsNewResult {
   id: string;
