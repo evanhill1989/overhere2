@@ -64,7 +64,7 @@ export const ChatSessionDebug = ({
     };
 
     fetchChatSessions();
-  }, [currentUserCheckinId]);
+  });
 
   return (
     <div className="mx-auto mt-4 max-w-xl rounded border bg-white p-4 shadow">
