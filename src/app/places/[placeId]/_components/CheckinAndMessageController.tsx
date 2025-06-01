@@ -671,7 +671,10 @@ export default function CheckinAndMessageController({
         )}
       </div>
       {currentUserCheckinId && (
-        <ChatSessionDebug currentUserCheckinId={currentUserCheckinId} />
+        <ChatSessionDebug
+          placeId={placeId}
+          currentUserKindeId={currentUserKindeId}
+        />
       )}
       <div className="mt-8 border-t pt-6 dark:border-gray-700">
         <h3 className="mb-2 text-lg font-semibold dark:text-white">

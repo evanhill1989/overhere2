@@ -1,84 +1,177 @@
+// src/app/debug-chat-session/_components/ChatSessionDebug.tsx
 "use client";
 
-import { useEffect, useState } from "react";
-import { createClient, SupabaseClient } from "@supabase/supabase-js";
-import type { Tables } from "@/types/supabase";
-import { toast } from "sonner";
-
-type ChatSessionRow = Tables<"chat_sessions">;
+import React, { useEffect, useState } from "react";
+import type { SelectCheckin } from "@/db/schema";
+import {
+  createClient,
+  SupabaseClient,
+  User as SupabaseUser,
+} from "@supabase/supabase-js";
 
 interface ChatSessionDebugProps {
-  currentUserCheckinId: number | null;
+  placeId: string;
+  currentUserKindeId: string | null;
 }
 
-export const ChatSessionDebug = ({
-  currentUserCheckinId,
-}: ChatSessionDebugProps) => {
-  const [chatSessions, setChatSessions] = useState<ChatSessionRow[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+let supabase: SupabaseClient | null = null;
 
-  // Supabase client setup inline (your pattern)
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  let supabase: SupabaseClient | null = null;
-
-  if (supabaseUrl && supabaseAnonKey) {
-    try {
-      supabase = createClient(supabaseUrl, supabaseAnonKey);
-    } catch (e) {
-      console.error("Failed to create Supabase client:", e);
-    }
-  } else {
-    console.error(
-      "Supabase environment variables missing for client initialization.",
-    );
+if (supabaseUrl && supabaseAnonKey) {
+  try {
+    supabase = createClient(supabaseUrl, supabaseAnonKey);
+  } catch (e) {
+    console.error("ChatSessionDebug: Failed to create Supabase client:", e);
   }
+}
+
+export function ChatSessionDebug({
+  placeId,
+  currentUserKindeId,
+}: ChatSessionDebugProps) {
+  const [checkinsAtPlace, setCheckinsAtPlace] = useState<SelectCheckin[]>([]);
+  const [myCheckin, setMyCheckin] = useState<SelectCheckin | null>(null);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
+  const [clientAuthUserDisplay, setClientAuthUserDisplay] = useState<string>(
+    "Checking Supabase auth status...",
+  );
 
   useEffect(() => {
-    const fetchChatSessions = async () => {
-      if (!supabase) {
-        setError("Supabase client not initialized.");
-        return;
-      }
+    if (!supabase) {
+      setError("Supabase client not initialized for debug component.");
+      setClientAuthUserDisplay("Supabase client init error.");
+      return;
+    }
 
-      if (!currentUserCheckinId) {
-        setError("Missing currentUserCheckinId.");
-        return;
-      }
+    const fetchAuthAndData = async () => {
+      setIsLoading(true);
+      setError(null);
+      setCheckinsAtPlace([]);
+      setMyCheckin(null);
 
-      const { data, error } = await supabase
-        .from("chat_sessions")
-        .select("*")
-        .eq("receiver_checkin_id", currentUserCheckinId);
+      const {
+        data: { session },
+        error: sessionError,
+      } = await supabase.auth.getSession();
+      const {
+        data: { user },
+        error: userError,
+      } = await supabase.auth.getUser();
 
-      if (error) {
-        console.error("Error fetching chat_sessions:", error);
-        toast.error("Failed to fetch chat_sessions");
-        setError(error.message);
+      console.log("DEBUG: Supabase Client Auth Session:", session);
+      console.log("DEBUG: Supabase Client Auth User:", user);
+
+      if (user) {
+        setClientAuthUserDisplay(
+          `ID: ${user.id}, Role: ${user.role}, Email: ${user.email}`,
+        );
+        if (user.id !== currentUserKindeId) {
+          console.warn(
+            `DEBUG: Mismatch! Supabase user.id (<span class="math-inline">\{user\.id\}\) vs Kinde ID prop \(</span>{currentUserKindeId})`,
+          );
+        }
       } else {
-        setChatSessions(data);
+        setClientAuthUserDisplay("No active Supabase client session.");
+        if (sessionError || userError) {
+          console.error(
+            "DEBUG: Error getting Supabase session/user:",
+            sessionError || userError,
+          );
+        }
       }
 
-      setLoading(false);
-    };
+      if (placeId) {
+        const { data: placeCheckinsData, error: placeCheckinsError } =
+          await supabase
+            .from("checkins")
+            .select("*")
+            .eq("place_id", placeId)
+            .order("created_at", { ascending: false });
+        if (placeCheckinsError) {
+          setError(
+            (prev) =>
+              `${prev || ""} Places fetch error: ${placeCheckinsError.message}`,
+          );
+        } else {
+          setCheckinsAtPlace((placeCheckinsData as SelectCheckin[]) || []);
+        }
+      }
 
-    fetchChatSessions();
-  });
+      if (currentUserKindeId && placeId) {
+        const { data: myCheckinData, error: myCheckinError } = await supabase
+          .from("checkins")
+          .select("*")
+          .eq("user_id", currentUserKindeId)
+          .eq("place_id", placeId)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        if (myCheckinError && myCheckinError.code !== "PGRST116") {
+          /* Not necessarily a displayable error if no checkin found */
+        } else {
+          setMyCheckin(myCheckinData as SelectCheckin | null);
+        }
+      }
+      setIsLoading(false);
+    };
+    fetchAuthAndData();
+  }, [placeId, currentUserKindeId]);
 
   return (
-    <div className="mx-auto mt-4 max-w-xl rounded border bg-white p-4 shadow">
-      <h2 className="mb-2 text-lg font-bold">Chat Session Debug</h2>
-      {loading && <p>Loading...</p>}
-      {error && <p className="text-red-600">Error: {error}</p>}
-      {!loading && !error && chatSessions.length === 0 && (
-        <p>No visible chat_sessions for this check-in.</p>
-      )}
-      {chatSessions.length > 0 && (
-        <pre className="overflow-x-auto rounded bg-gray-100 p-2 text-sm">
-          {JSON.stringify(chatSessions, null, 2)}
+    <div className="mt-6 overflow-x-auto rounded-lg border-2 border-dashed border-red-500 bg-red-50 p-4">
+      <h3 className="mb-2 text-lg font-semibold text-red-700">
+        RLS Debug Output (Checkins Table)
+      </h3>
+
+      <div className="my-2 rounded bg-white p-2 shadow">
+        <h4 className="text-sm font-medium text-red-700">
+          Supabase Client Auth Status:
+        </h4>
+        <pre className="text-xs break-all whitespace-pre-wrap">
+          {clientAuthUserDisplay}
         </pre>
-      )}
+        <p className="mt-1 text-xs text-red-700">
+          Expected Kinde ID for RLS:{" "}
+          {currentUserKindeId || "N/A (Not logged in via Kinde?)"}
+        </p>
+      </div>
+
+      {isLoading && <p className="text-red-600">Loading debug info...</p>}
+      {error && <p className="font-bold text-red-700">Error: {error}</p>}
+
+      <div className="mt-2">
+        <h4 className="font-medium text-red-700">
+          My Check-in Results (user_id: {currentUserKindeId || "N/A"}):
+        </h4>
+        {myCheckin ? (
+          <pre className="overflow-x-auto rounded bg-white p-2 text-xs">
+            {JSON.stringify(myCheckin, null, 2)}
+          </pre>
+        ) : (
+          <p className="text-xs text-red-600 italic">
+            No current check-in found for you via client query.
+          </p>
+        )}
+      </div>
+      <div className="mt-4">
+        <h4 className="font-medium text-red-700">
+          All Visible Check-ins at Place (place_id: {placeId}):
+        </h4>
+        {checkinsAtPlace.length > 0 ? (
+          <pre className="max-h-60 overflow-y-auto rounded bg-white p-2 text-xs">
+            {JSON.stringify(checkinsAtPlace, null, 2)}
+          </pre>
+        ) : (
+          <p className="text-xs text-red-600 italic">
+            No check-ins visible for this place via client query.
+          </p>
+        )}
+        <p className="mt-1 text-xs text-red-700">
+          Number of check-ins visible: {checkinsAtPlace.length}.
+        </p>
+      </div>
     </div>
   );
-};
+}
