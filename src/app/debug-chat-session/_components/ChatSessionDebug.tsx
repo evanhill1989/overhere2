@@ -1,10 +1,11 @@
 // src/app/debug-chat-session/_components/ChatSessionDebug.tsx
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react"; // Added useMemo
 import type { SelectCheckin } from "@/db/schema";
-import {
-  createClient,
+// Import your specific createClient utility that uses @supabase/ssr
+import { createClient as createSupabaseBrowserClient } from "@/lib/utils/supabase/client";
+import type {
   SupabaseClient,
   User as SupabaseUser,
 } from "@supabase/supabase-js";
@@ -14,22 +15,18 @@ interface ChatSessionDebugProps {
   currentUserKindeId: string | null;
 }
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-let supabase: SupabaseClient | null = null;
-
-if (supabaseUrl && supabaseAnonKey) {
-  try {
-    supabase = createClient(supabaseUrl, supabaseAnonKey);
-  } catch (e) {
-    console.error("ChatSessionDebug: Failed to create Supabase client:", e);
-  }
-}
-
 export function ChatSessionDebug({
   placeId,
   currentUserKindeId,
 }: ChatSessionDebugProps) {
+  // Use useMemo to get the client instance once per component lifecycle
+  const supabase = useMemo(() => {
+    if (typeof window !== "undefined") {
+      return createSupabaseBrowserClient();
+    }
+    return null;
+  }, []);
+
   const [checkinsAtPlace, setCheckinsAtPlace] = useState<SelectCheckin[]>([]);
   const [myCheckin, setMyCheckin] = useState<SelectCheckin | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -60,8 +57,8 @@ export function ChatSessionDebug({
         error: userError,
       } = await supabase.auth.getUser();
 
-      console.log("DEBUG: Supabase Client Auth Session:", session);
-      console.log("DEBUG: Supabase Client Auth User:", user);
+      console.log("ChatSessionDebug: Supabase Client Auth Session:", session);
+      console.log("ChatSessionDebug: Supabase Client Auth User:", user);
 
       if (user) {
         setClientAuthUserDisplay(
@@ -69,14 +66,16 @@ export function ChatSessionDebug({
         );
         if (user.id !== currentUserKindeId) {
           console.warn(
-            `DEBUG: Mismatch! Supabase user.id (<span class="math-inline">\{user\.id\}\) vs Kinde ID prop \(</span>{currentUserKindeId})`,
+            `ChatSessionDebug: Mismatch! Supabase user.id (${user.id}) vs Kinde ID prop (${currentUserKindeId})`,
           );
         }
       } else {
-        setClientAuthUserDisplay("No active Supabase client session.");
+        setClientAuthUserDisplay(
+          "No active Supabase client session found by ChatSessionDebug.",
+        );
         if (sessionError || userError) {
           console.error(
-            "DEBUG: Error getting Supabase session/user:",
+            "ChatSessionDebug: Error getting Supabase session/user:",
             sessionError || userError,
           );
         }
@@ -109,7 +108,7 @@ export function ChatSessionDebug({
           .limit(1)
           .maybeSingle();
         if (myCheckinError && myCheckinError.code !== "PGRST116") {
-          /* Not necessarily a displayable error if no checkin found */
+          // Not necessarily a displayable error if no checkin found
         } else {
           setMyCheckin(myCheckinData as SelectCheckin | null);
         }
@@ -117,14 +116,15 @@ export function ChatSessionDebug({
       setIsLoading(false);
     };
     fetchAuthAndData();
-  }, [placeId, currentUserKindeId]);
+  }, [placeId, currentUserKindeId, supabase]);
+
+  // SessionDebug: Error getting Supabase session/user: AuthSessionMissingError: Auth session missing!
 
   return (
     <div className="mt-6 overflow-x-auto rounded-lg border-2 border-dashed border-red-500 bg-red-50 p-4">
       <h3 className="mb-2 text-lg font-semibold text-red-700">
         RLS Debug Output (Checkins Table)
       </h3>
-
       <div className="my-2 rounded bg-white p-2 shadow">
         <h4 className="text-sm font-medium text-red-700">
           Supabase Client Auth Status:
@@ -137,10 +137,8 @@ export function ChatSessionDebug({
           {currentUserKindeId || "N/A (Not logged in via Kinde?)"}
         </p>
       </div>
-
       {isLoading && <p className="text-red-600">Loading debug info...</p>}
       {error && <p className="font-bold text-red-700">Error: {error}</p>}
-
       <div className="mt-2">
         <h4 className="font-medium text-red-700">
           My Check-in Results (user_id: {currentUserKindeId || "N/A"}):
