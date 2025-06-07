@@ -1,7 +1,7 @@
 // src/app/api/auth/creation/route.ts
 import { getKindeServerSession } from "@kinde-oss/kinde-auth-nextjs/server";
 import { NextResponse } from "next/server";
-import { createClient as createSupabaseServerClient } from "@/lib/utils/supabase/server"; // Import your working server.ts client
+import { createClient as createSupabaseServerClient } from "@/utils/supabase/server"; // Import your working server.ts client
 
 import { getUserByKindeId } from "@/db/queries/select";
 import { usersTable } from "@/db/schema";

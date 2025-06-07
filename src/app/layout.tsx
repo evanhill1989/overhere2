@@ -1,11 +1,20 @@
 import type { Metadata } from "next";
 import { Nunito_Sans, Lexend } from "next/font/google";
 import "./globals.css";
-import { Header } from "@/components/Header";
-import { getKindeServerSession } from "@kinde-oss/kinde-auth-nextjs/server";
 import { Footer } from "@/components/Footer";
 import { Toaster } from "@/components/ui/sonner";
-import { LocationPermissionProvider } from "@/context/LocationPermissionProvider"; // Import
+import { LocationPermissionProvider } from "@/context/LocationPermissionProvider";
+
+// Supabase Server Helpers
+import { cookies } from "next/headers";
+import { createServerClient } from "@supabase/auth-helpers-nextjs";
+
+// Supabase Client Context for Client Components
+import { createBrowserClient } from "@supabase/auth-helpers-nextjs";
+import { SessionContextProvider } from "@supabase/auth-helpers-react";
+
+// Client-only Header (will use useUser())
+import { Header } from "@/components/Header";
 
 const fontSans = Nunito_Sans({
   subsets: ["latin"],
@@ -21,7 +30,7 @@ const fontHeading = Lexend({
 
 export const metadata: Metadata = {
   title: "Over Here",
-  description: "Connect spontaneously", // Example description
+  description: "Connect spontaneously",
 };
 
 export default async function RootLayout({
@@ -29,26 +38,44 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const { isAuthenticated } = getKindeServerSession();
-  const isLoggedIn = await isAuthenticated();
+  // Get user session server-side (for conditional logic or db access)
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    { cookies },
+  );
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  const isLoggedIn = !!user;
+
+  // Create browser supabase client for use in SessionContextProvider
+  const supabaseBrowserClient = createBrowserClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+  );
 
   return (
     <html lang="en">
       <body
         className={`${fontHeading.variable} ${fontSans.variable} grid min-h-[100dvh] grid-rows-[auto_1fr_auto] antialiased`}
       >
-        <Header isLoggedIn={isLoggedIn} />
-        <main className="w-full">
-          {" "}
-          {/* Ensure main can take width */}
-          {isLoggedIn ? (
-            <LocationPermissionProvider>{children}</LocationPermissionProvider>
-          ) : (
-            children // Render children directly if not logged in (e.g. landing page parts)
-          )}
-        </main>
-        <Footer />
-        <Toaster />
+        <SessionContextProvider supabaseClient={supabaseBrowserClient}>
+          <Header />
+          <main className="w-full">
+            {isLoggedIn ? (
+              <LocationPermissionProvider>
+                {children}
+              </LocationPermissionProvider>
+            ) : (
+              children
+            )}
+          </main>
+          <Footer />
+          <Toaster />
+        </SessionContextProvider>
       </body>
     </html>
   );

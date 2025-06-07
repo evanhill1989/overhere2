@@ -13,7 +13,7 @@ import React, {
 import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useKindeBrowserClient } from "@kinde-oss/kinde-auth-nextjs";
-import { createClient as createSupabaseBrowserClient } from "@/lib/utils/supabase/client";
+import { createClient as createSupabaseBrowserClient } from "@/utils/supabase/client";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 export type LocationData = {
