@@ -5,7 +5,7 @@ import { chatSessionsTable, checkinsTable, messagesTable } from "@/db/schema";
 import type { InsertChatSession, InsertMessage } from "@/db/schema";
 import { getKindeServerSession } from "@kinde-oss/kinde-auth-nextjs/server";
 import { and, eq, or, desc } from "drizzle-orm";
-// import { revalidatePath } from "next/cache";
+import { revalidatePath } from "next/cache";
 
 // Consider making this configurable or sharing from elsewhere
 // const CHAT_SESSION_WINDOW_MS = 2 * 60 * 60 * 1000;
@@ -13,7 +13,7 @@ import { and, eq, or, desc } from "drizzle-orm";
 export async function createOrGetChatSession(
   initiatorCheckinId: number,
   receiverCheckinId: number,
-  placeId: string
+  placeId: string,
 ): Promise<{
   sessionId: string | null;
   error?: string;
@@ -39,13 +39,13 @@ export async function createOrGetChatSession(
         or(
           and(
             eq(chatSessionsTable.initiatorCheckinId, initiatorCheckinId),
-            eq(chatSessionsTable.receiverCheckinId, receiverCheckinId)
+            eq(chatSessionsTable.receiverCheckinId, receiverCheckinId),
           ),
           and(
             eq(chatSessionsTable.initiatorCheckinId, receiverCheckinId),
-            eq(chatSessionsTable.receiverCheckinId, initiatorCheckinId)
-          )
-        )
+            eq(chatSessionsTable.receiverCheckinId, initiatorCheckinId),
+          ),
+        ),
       ),
       orderBy: desc(chatSessionsTable.createdAt), // Get newest pending if somehow duplicates exist
       columns: {
@@ -60,7 +60,7 @@ export async function createOrGetChatSession(
       // A request is already pending. Return its info.
       // The client can decide if it wants to show "Pending" again or handle differently.
       console.log(
-        `Found existing PENDING session ${existingPendingSession.id}`
+        `Found existing PENDING session ${existingPendingSession.id}`,
       );
       return {
         sessionId: existingPendingSession.id,
@@ -74,7 +74,7 @@ export async function createOrGetChatSession(
       const initiatorCheckin = await db.query.checkinsTable.findFirst({
         where: and(
           eq(checkinsTable.id, initiatorCheckinId),
-          eq(checkinsTable.userId, user.id)
+          eq(checkinsTable.userId, user.id),
         ),
         columns: { id: true },
       });
@@ -107,7 +107,7 @@ export async function createOrGetChatSession(
 }
 
 export async function acceptChatSession(
-  sessionId: string
+  sessionId: string,
 ): Promise<{ success: boolean; error?: string }> {
   // 1. Check Authentication
   const { getUser, isAuthenticated } = getKindeServerSession();
@@ -147,7 +147,7 @@ export async function acceptChatSession(
     // Check if check-in exists and if its userId matches the logged-in user's ID
     if (!receiverCheckinDetails || receiverCheckinDetails.userId !== user.id) {
       console.warn(
-        `User ${user.id} attempted to accept session ${sessionId} intended for receiver checkin ID ${sessionToAccept.receiverCheckinId} (User ID: ${receiverCheckinDetails?.userId})`
+        `User ${user.id} attempted to accept session ${sessionId} intended for receiver checkin ID ${sessionToAccept.receiverCheckinId} (User ID: ${receiverCheckinDetails?.userId})`,
       );
       return { success: false, error: "Not authorized to accept this chat." };
     }
@@ -188,7 +188,7 @@ export async function acceptChatSession(
 }
 
 export async function rejectChatSession(
-  sessionId: string
+  sessionId: string,
 ): Promise<{ success: boolean; error?: string }> {
   // 1. Check Authentication
   const { getUser, isAuthenticated } = getKindeServerSession();
@@ -225,7 +225,7 @@ export async function rejectChatSession(
     // 3. Security Check: Verify current user IS the intended receiver
     if (!receiverCheckinDetails || receiverCheckinDetails.userId !== user.id) {
       console.warn(
-        `User ${user.id} attempted to reject session ${sessionId} intended for checkin ${sessionToReject.receiverCheckinId} (User ID: ${receiverCheckinDetails?.userId})`
+        `User ${user.id} attempted to reject session ${sessionId} intended for checkin ${sessionToReject.receiverCheckinId} (User ID: ${receiverCheckinDetails?.userId})`,
       );
       return { success: false, error: "Not authorized to reject this chat." };
     }
@@ -234,7 +234,7 @@ export async function rejectChatSession(
     if (sessionToReject.status !== "pending") {
       // If already active, rejected, closed etc., maybe just return success
       console.log(
-        `Session ${sessionId} is not pending (status: ${sessionToReject.status}). Cannot reject.`
+        `Session ${sessionId} is not pending (status: ${sessionToReject.status}). Cannot reject.`,
       );
       // Consider if receiver should be able to reject an 'active' chat (close it?) - current logic prevents this.
       return {
@@ -264,7 +264,7 @@ export async function rejectChatSession(
 export async function sendMessage(
   sessionId: string,
   senderCheckinId: number,
-  content: string
+  content: string,
 ): Promise<{ success: boolean; error?: string }> {
   const { getUser, isAuthenticated } = getKindeServerSession();
   if (!(await isAuthenticated()))
@@ -280,7 +280,7 @@ export async function sendMessage(
     const senderCheckin = await db.query.checkinsTable.findFirst({
       where: and(
         eq(checkinsTable.id, senderCheckinId),
-        eq(checkinsTable.userId, user.id)
+        eq(checkinsTable.userId, user.id),
       ),
       columns: { id: true },
     });
@@ -308,7 +308,7 @@ export async function sendMessage(
     await db.insert(messagesTable).values(newMessageData);
 
     console.log(
-      `Message sent by checkin ${senderCheckinId} in session ${sessionId}`
+      `Message sent by checkin ${senderCheckinId} in session ${sessionId}`,
     );
     return { success: true };
   } catch (error: unknown) {

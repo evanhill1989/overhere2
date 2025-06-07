@@ -8,13 +8,25 @@ import React, {
   useCallback,
   ReactNode,
   useRef,
+  useMemo,
 } from "react";
 import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useKindeBrowserClient } from "@kinde-oss/kinde-auth-nextjs";
+import { createClient as createSupabaseBrowserClient } from "@/lib/utils/supabase/client";
+import type { SupabaseClient } from "@supabase/supabase-js";
 
-export type LocationData = { latitude: number; longitude: number };
+export type LocationData = {
+  latitude: number;
+  longitude: number;
+};
+
 export type PermissionState =
   | "initial"
+  | "kinde_loading"
+  | "kinde_unauthenticated"
+  | "auth_sync_error"
+  | "auth_check_failed"
   | "loading_status"
   | "prompt"
   | "denied"
@@ -48,7 +60,7 @@ function LocationOnboardingUI({
 }) {
   let title = "Enable Location Access";
   let primaryMessage =
-    "overHere uses your location to show you nearby places and people, and to verify your check-ins.";
+    "overHere uses your location to discover nearby places and people, and to verify your check-ins.";
   let buttonText = "Enable Location & Find People";
   let guidanceMessage: ReactNode = null;
 
@@ -72,10 +84,25 @@ function LocationOnboardingUI({
     title = "Location Error";
     primaryMessage = `We couldn't get your location: ${errorMessage}`;
     buttonText = "Try Getting Location Again";
-  } else if (status === "prompt") {
+  } else if (
+    status === "prompt" ||
+    status === "kinde_unauthenticated" ||
+    status === "auth_check_failed"
+  ) {
     primaryMessage =
       "To discover who's around and open to chatting at your current spot, overHere needs your location for the best experience.";
     buttonText = "Grant Location Access";
+    if (status === "kinde_unauthenticated") {
+      primaryMessage =
+        "Please log in to enable location features for the best experience.";
+      buttonText = "Log In to Continue";
+    } else if (status === "auth_check_failed" && errorMessage) {
+      primaryMessage = `There was an issue verifying your session for location services: ${errorMessage}. Please try again or re-login.`;
+      buttonText = "Retry Location Access";
+    } else if (status === "auth_sync_error" && errorMessage) {
+      primaryMessage = `Authentication sync failed: ${errorMessage}. Location features may be affected.`;
+      buttonText = "Retry Location Access";
+    }
   }
   if (
     errorMessage &&
@@ -88,8 +115,9 @@ function LocationOnboardingUI({
     buttonText = "Try Enabling Location";
     guidanceMessage = (
       <p className="text-muted-foreground mt-3 text-xs">
+        {" "}
         You may need to adjust permissions in your browser's site settings
-        first.
+        first.{" "}
       </p>
     );
   }
@@ -107,7 +135,7 @@ function LocationOnboardingUI({
           onClick={onAllow}
           size="lg"
           className="w-full sm:w-auto"
-          disabled={isLoading}
+          disabled={isLoading || status === "kinde_unauthenticated"}
         >
           {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
           {isLoading ? "Checking..." : buttonText}
@@ -130,9 +158,32 @@ export function LocationPermissionProvider({
   const [geoError, setGeoError] = useState<string | null>(null);
 
   const isFetchingLocationRef = useRef(false);
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const permissionStatusObjRef = useRef<PermissionStatus | null>(null);
+  const permissionStatusObjectRef = useRef<PermissionStatus | null>(null);
+  const locationRef = useRef(location);
+
+  const supabase = useMemo(() => {
+    if (typeof window !== "undefined") {
+      return createSupabaseBrowserClient();
+    }
+    return null;
+  }, []);
+
+  const {
+    getAccessTokenRaw,
+    isAuthenticated: isKindeAuthenticated,
+    isLoading: isKindeAuthLoading,
+  } = useKindeBrowserClient();
+
+  useEffect(() => {
+    locationRef.current = location;
+  }, [location]);
+
   const requestDeviceLocation = useCallback(() => {
+    if (!supabase) {
+      setGeoError("Supabase client not ready for location request.");
+      setPermissionStatus("auth_check_failed");
+      return;
+    }
     if (!navigator.geolocation) {
       setGeoError("Geolocation API not supported by this browser.");
       setPermissionStatus("unsupported");
@@ -184,7 +235,7 @@ export function LocationPermissionProvider({
       },
       { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 },
     );
-  }, []);
+  }, [supabase]);
 
   useEffect(() => {
     let mounted = true;
@@ -194,7 +245,13 @@ export function LocationPermissionProvider({
       if (!mounted || !localPermStatusObjForCleanup) return;
       const newStatus = localPermStatusObjForCleanup.state as PermissionState;
       setPermissionStatus(newStatus);
-      if (newStatus === "denied") {
+      if (
+        newStatus === "granted" &&
+        !locationRef.current &&
+        !isFetchingLocationRef.current
+      ) {
+        requestDeviceLocation();
+      } else if (newStatus === "denied") {
         setLocation(null);
         setGeoError(
           "Location permission was changed to denied in browser settings.",
@@ -202,7 +259,59 @@ export function LocationPermissionProvider({
       }
     };
 
-    const initializePermissionState = async () => {
+    const initializeSessionAndPermissions = async () => {
+      if (!mounted || !supabase) {
+        if (mounted && !supabase) {
+          setPermissionStatus("error");
+          setGeoError("Supabase client not available for initialization.");
+        }
+        return;
+      }
+      if (isKindeAuthLoading) {
+        if (mounted) setPermissionStatus("kinde_loading");
+        return;
+      }
+      if (!isKindeAuthenticated) {
+        if (mounted) setPermissionStatus("kinde_unauthenticated");
+        return;
+      }
+
+      try {
+        const token = await getAccessTokenRaw();
+        if (token) {
+          const { error: supabaseSessionError } =
+            await supabase.auth.setSession({
+              access_token: token as string,
+              refresh_token: token as string,
+            });
+          if (supabaseSessionError) {
+            if (!mounted) return;
+            console.error(
+              "LPP: Error setting Supabase session with Kinde token:",
+              supabaseSessionError,
+            );
+            setGeoError(`Auth sync error: ${supabaseSessionError.message}`);
+            setPermissionStatus("auth_check_failed");
+            return;
+          }
+        } else {
+          if (!mounted) return;
+          console.warn("LPP: Kinde authenticated but no raw token retrieved.");
+          setGeoError("Could not retrieve auth token for Supabase session.");
+          setPermissionStatus("auth_check_failed");
+          return;
+        }
+      } catch (e: any) {
+        if (!mounted) return;
+        console.error(
+          "LPP: Exception during Kinde token retrieval or Supabase session set:",
+          e,
+        );
+        setGeoError(`Exception during auth sync: ${e.message}`);
+        setPermissionStatus("auth_check_failed");
+        return;
+      }
+
       if (!mounted) return;
       if (!navigator.geolocation) {
         if (mounted) setPermissionStatus("unsupported");
@@ -217,11 +326,11 @@ export function LocationPermissionProvider({
           });
           localPermStatusObjForCleanup = permObj;
           if (!mounted) return;
+
           const queriedStatus = permObj.state as PermissionState;
           setPermissionStatus(queriedStatus);
-          if (queriedStatus === "granted") {
-            requestDeviceLocation();
-          } else if (queriedStatus === "prompt") {
+
+          if (queriedStatus === "granted" || queriedStatus === "prompt") {
             requestDeviceLocation();
           } else if (queriedStatus === "denied") {
             if (!geoError)
@@ -234,7 +343,6 @@ export function LocationPermissionProvider({
           if (!mounted) return;
           setPermissionStatus("prompt");
           requestDeviceLocation();
-          console.error(err);
         }
       } else {
         if (mounted) {
@@ -243,7 +351,9 @@ export function LocationPermissionProvider({
         }
       }
     };
-    initializePermissionState();
+
+    initializeSessionAndPermissions();
+
     return () => {
       mounted = false;
       if (
@@ -253,19 +363,14 @@ export function LocationPermissionProvider({
         localPermStatusObjForCleanup.onchange = null;
       }
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [requestDeviceLocation]); // Make this effect run only once or when requestDeviceLocation changes (it's stable)
-
-  // Separate effect to act on permissionStatus changes, specifically for 'granted'
-  useEffect(() => {
-    if (
-      permissionStatus === "granted" &&
-      !location &&
-      !isFetchingLocationRef.current
-    ) {
-      requestDeviceLocation();
-    }
-  }, [permissionStatus, location, requestDeviceLocation]);
+  }, [
+    isKindeAuthLoading,
+    isKindeAuthenticated,
+    getAccessTokenRaw,
+    requestDeviceLocation,
+    geoError,
+    supabase,
+  ]);
 
   const contextValue: LocationContextType = {
     location,
@@ -275,10 +380,32 @@ export function LocationPermissionProvider({
     requestBrowserLocationPermission: requestDeviceLocation,
   };
 
-  if (permissionStatus === "initial" || permissionStatus === "loading_status") {
+  if (
+    !supabase &&
+    typeof window !== "undefined" &&
+    permissionStatus !== "unsupported"
+  ) {
+    return (
+      <div className="flex min-h-[calc(100vh-150px)] items-center justify-center p-4 text-center">
+        <p className="text-destructive max-w-md">
+          App services could not initialize. Please check your connection or try
+          again later.
+        </p>
+      </div>
+    );
+  }
+
+  if (
+    permissionStatus === "initial" ||
+    permissionStatus === "kinde_loading" ||
+    permissionStatus === "loading_status"
+  ) {
     return (
       <div className="flex min-h-[calc(100vh-150px)] items-center justify-center">
         <Loader2 className="text-muted-foreground h-8 w-8 animate-spin" />
+        <span className="text-muted-foreground ml-2 text-sm">
+          Initializing...
+        </span>
       </div>
     );
   }
@@ -286,7 +413,9 @@ export function LocationPermissionProvider({
     return (
       <div className="flex min-h-[calc(100vh-150px)] items-center justify-center">
         <Loader2 className="text-muted-foreground h-8 w-8 animate-spin" />
-        <span className="ml-2">Getting location...</span>
+        <span className="text-muted-foreground ml-2 text-sm">
+          Getting location...
+        </span>
       </div>
     );
   }
@@ -294,11 +423,27 @@ export function LocationPermissionProvider({
     return (
       <div className="flex min-h-[calc(100vh-150px)] items-center justify-center p-4 text-center">
         <p className="text-destructive max-w-md">
-          Geolocation API not supported.
+          Geolocation API not supported by your browser. overHere requires
+          location access to function.
         </p>
       </div>
     );
   }
+
+  if (
+    permissionStatus === "auth_check_failed" ||
+    permissionStatus === "kinde_unauthenticated"
+  ) {
+    return (
+      <LocationOnboardingUI
+        onAllow={requestDeviceLocation}
+        status={permissionStatus}
+        errorMessage={geoError}
+        isLoading={isLoadingGeo}
+      />
+    );
+  }
+
   if (permissionStatus !== "granted") {
     return (
       <LocationOnboardingUI
