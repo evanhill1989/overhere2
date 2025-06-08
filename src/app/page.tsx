@@ -1,17 +1,13 @@
-// src/app/page.tsx
-
-import {
-  getKindeServerSession,
-  LoginLink,
-  RegisterLink,
-} from "@kinde-oss/kinde-auth-nextjs/server";
-
+// app/page.tsx
 import { Button } from "@/components/ui/button";
 import PlaceFinder from "@/components/PlaceFinder";
+import { createClient } from "@/utils/supabase/server";
+import Link from "next/link";
 
 export default async function HomePage() {
-  const { isAuthenticated } = getKindeServerSession();
-  const isLoggedIn = await isAuthenticated();
+  const supabase = await createClient();
+  const { data } = await supabase.auth.getUser();
+  const isLoggedIn = !!data.user;
 
   return (
     <div className="grid h-full max-w-3xl text-center md:max-w-full">
@@ -30,10 +26,10 @@ export default async function HomePage() {
             </p>
             <div className="mt-4 flex gap-4">
               <Button asChild>
-                <LoginLink>Log In</LoginLink>
+                <Link href="/login">Join Overhere</Link>
               </Button>
               <Button variant="secondary" asChild>
-                <RegisterLink>Sign Up</RegisterLink>
+                <Link href="/about">Learn More</Link>
               </Button>
             </div>
           </div>

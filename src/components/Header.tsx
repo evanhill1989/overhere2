@@ -2,25 +2,34 @@
 
 import Link from "next/link";
 import { HandWaving } from "@phosphor-icons/react";
-import { useSupabaseClient, useUser } from "@supabase/auth-helpers-react";
+import { useEffect, useState } from "react";
+import { createClient } from "@/utils/supabase/client";
 import { Button } from "./ui/button";
 
 export function Header() {
-  const supabase = useSupabaseClient();
-  const user = useUser();
+  const supabase = createClient();
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+  useEffect(() => {
+    const checkUser = async () => {
+      const { data } = await supabase.auth.getUser();
+      setIsLoggedIn(!!data.user);
+    };
+    checkUser();
+  }, [supabase]);
 
   const handleLogin = async () => {
     await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
-        redirectTo: `${window.location.origin}/dashboard`, // Adjust if needed
+        redirectTo: `${window.location.origin}/auth/callback`,
       },
     });
   };
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
-    window.location.href = "/"; // Optional: redirect after logout
+    window.location.href = "/";
   };
 
   return (
@@ -49,7 +58,7 @@ export function Header() {
               </Link>
             </li>
             <li>
-              {user ? (
+              {isLoggedIn ? (
                 <Button onClick={handleLogout}>Log Out</Button>
               ) : (
                 <Button onClick={handleLogin}>Log In</Button>

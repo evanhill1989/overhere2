@@ -1,7 +1,7 @@
 import { eq } from "drizzle-orm";
-import { db } from "@/index";
+import { db } from "@/lib/db";
 
-import { usersTable, SelectUser } from "../schema";
+import { usersTable, SelectUser } from "../oldSchema";
 
 export async function getUserById(id: SelectUser["id"]): Promise<
   Array<{
@@ -15,7 +15,7 @@ export async function getUserById(id: SelectUser["id"]): Promise<
 }
 
 export async function getUserByKindeId(
-  kinde_id: SelectUser["kinde_id"]
+  kinde_id: SelectUser["kinde_id"],
 ): Promise<
   Array<{
     id: number;

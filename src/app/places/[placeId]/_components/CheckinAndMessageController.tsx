@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import type { SelectCheckin } from "@/db/schema";
+import type { SelectCheckin } from "@/db/oldSchema";
 import {
   acceptChatSession,
   createOrGetChatSession,

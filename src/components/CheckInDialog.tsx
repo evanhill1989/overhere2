@@ -1,74 +1,56 @@
 "use client";
 
-import React, { useState } from "react";
-import type { Place } from "@/types/places";
-import type { LocationData } from "@/hooks/useGeolocation";
-import { CheckCircle2 } from "lucide-react";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogDescription,
-  DialogTrigger,
 } from "@/components/ui/dialog";
-import { CheckInForm } from "./CheckInForm";
+import { Button } from "@/components/ui/button";
+import { Place } from "@/types/places";
+import { useTransition } from "react";
+import { checkIn } from "@/app/_actions/checkIn";
+import { usePlaceFinder } from "@/context/PlaceFinderProvider";
 
-interface CheckInDialogProps {
+type CheckinDialogProps = {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
   place: Place;
-  currentUserLocation: LocationData | null;
-}
+};
 
-export function CheckInDialog({
+export default function CheckinDialog({
+  open,
+  onOpenChange,
   place,
-  currentUserLocation,
-}: CheckInDialogProps) {
-  const [isOpen, setIsOpen] = useState(false);
+}: CheckinDialogProps) {
+  const { userLocation } = usePlaceFinder();
+  const [isPending, startTransition] = useTransition();
 
-  const handleClose = () => {
-    setIsOpen(false);
+  const handleCheckin = () => {
+    if (!userLocation) return;
+    startTransition(() =>
+      checkIn(
+        place.place_id,
+        place.name,
+        place.address,
+        userLocation.latitude,
+        userLocation.longitude,
+      ),
+    );
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <DialogTrigger asChild>
-        <button
-          className="hover:bg-muted hover:border-border focus:ring-primary focus:border-primary flex w-full flex-col rounded border border-transparent p-2 text-left focus:ring-1 focus:outline-none"
-          aria-label={`Check in at ${place.name}`}
-        >
-          <div className="flex items-center gap-1">
-            <span className="font-medium">{place.name}</span>
-            {place.isVerified && (
-              <span title="Verified by overHere">
-                <CheckCircle2 className="text-primary h-4 w-4 shrink-0" />
-              </span>
-            )}
-          </div>
-          <span className="text-muted-foreground text-xs">{place.address}</span>
-        </button>
-      </DialogTrigger>
-      <DialogContent className="sm:max-w-[425px]">
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent>
         <DialogHeader>
-          <DialogTitle>
-            Check in at: {place.name}
-            {place.isVerified && (
-              <span
-                title="Verified by overHere"
-                className="text-primary ml-2 inline-flex items-center gap-1"
-              >
-                <CheckCircle2 className="h-4 w-4 shrink-0" />
-                <p className="text-sm font-light">Verified Place</p>
-              </span>
-            )}
-          </DialogTitle>
-          <DialogDescription>{place.address}</DialogDescription>
+          <DialogTitle>Check in to {place.name}?</DialogTitle>
         </DialogHeader>
-        <CheckInForm
-          place={place}
-          currentUserLocation={currentUserLocation}
-          onCancel={handleClose}
-          onSuccessfulCheckin={handleClose}
-        />
+        <p className="text-muted-foreground text-sm">{place.address}</p>
+        <div className="mt-4 flex justify-end">
+          <Button onClick={handleCheckin} disabled={isPending}>
+            {isPending ? "Checking in..." : "Check In"}
+          </Button>
+        </div>
       </DialogContent>
     </Dialog>
   );

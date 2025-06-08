@@ -1,5 +1,5 @@
-import { db } from "@/index";
-import { placesTable, checkinsTable, type SelectCheckin } from "@/db/schema";
+import { db } from "@/lib/db";
+import { placesTable, checkinsTable, type SelectCheckin } from "@/db/oldSchema";
 import { eq, and, gt, desc } from "drizzle-orm";
 import { notFound } from "next/navigation";
 import { getKindeServerSession } from "@kinde-oss/kinde-auth-nextjs/server";

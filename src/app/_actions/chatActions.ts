@@ -1,8 +1,12 @@
 "use server";
 
-import { db } from "@/index";
-import { chatSessionsTable, checkinsTable, messagesTable } from "@/db/schema";
-import type { InsertChatSession, InsertMessage } from "@/db/schema";
+import { db } from "@/lib/db";
+import {
+  chatSessionsTable,
+  checkinsTable,
+  messagesTable,
+} from "@/db/oldSchema";
+import type { InsertChatSession, InsertMessage } from "@/db/oldSchema";
 import { getKindeServerSession } from "@kinde-oss/kinde-auth-nextjs/server";
 import { and, eq, or, desc } from "drizzle-orm";
 import { revalidatePath } from "next/cache";

@@ -1,7 +1,7 @@
 "use server";
 
-import { db } from "@/index";
-import { usersTable } from "../schema";
+import { db } from "@/lib/db";
+import { usersTable } from "../oldSchema";
 
 export type InsertUser = typeof usersTable.$inferInsert;
 

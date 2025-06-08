@@ -1,8 +1,8 @@
 // src/app/_actions/placeActions.ts
 "use server";
 
-import { db } from "@/index";
-import { placesTable } from "@/db/schema";
+import { db } from "@/lib/db";
+import { placesTable } from "@/db/oldSchema";
 import { inArray } from "drizzle-orm";
 import type { Place } from "@/types/places"; // Ensure Place type includes isVerified and optionally primaryType
 

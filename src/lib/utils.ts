@@ -1,7 +1,7 @@
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 import type { Tables } from "@/types/supabase";
-import type { SelectCheckin } from "@/db/schema";
+import type { SelectCheckin } from "@/db/oldSchema";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));

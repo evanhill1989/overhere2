@@ -2,7 +2,7 @@
 "use client";
 
 import React, { useEffect, useState, useMemo } from "react"; // Added useMemo
-import type { SelectCheckin } from "@/db/schema";
+import type { SelectCheckin } from "@/db/oldSchema";
 // Import your specific createClient utility that uses @supabase/ssr
 import { createClient as createSupabaseBrowserClient } from "@/utils/supabase/client";
 import type {

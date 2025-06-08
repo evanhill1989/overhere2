@@ -1,13 +1,13 @@
 // src/app/_actions/checkinActions.ts
 "use server";
 
-import { db } from "@/index";
+import { db } from "@/lib/db";
 import {
   checkinsTable,
   placesTable,
   type SelectPlace,
   type InsertCheckin,
-} from "@/db/schema";
+} from "@/db/oldSchema";
 import { getKindeServerSession } from "@kinde-oss/kinde-auth-nextjs/server";
 import { redirect } from "next/navigation";
 import { and, eq, sql, desc } from "drizzle-orm";

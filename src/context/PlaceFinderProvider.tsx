@@ -1,123 +1,118 @@
-// src/context/PlaceFinderProvider.tsx
 "use client";
 
-import React, {
-  createContext,
-  useContext,
-  useState,
-  useMemo,
-  useEffect,
-} from "react";
-import { useActionState } from "react";
-import type { Place } from "@/types/places";
-import type { LocationData } from "@/hooks/useGeolocation";
-import { useAppLocation } from "./LocationPermissionProvider"; // Assumes this is a separate context
-import { useNearbyPlaces } from "@/hooks/useNearbyPlaces";
-import {
-  searchPlacesByQuery,
-  type SearchActionResult,
-} from "@/app/_actions/placeActions";
+import { useState, useEffect, useRef, useContext, createContext } from "react";
+import { useRouter } from "next/navigation";
+import { createClient } from "@/utils/supabase/client";
+import { Place } from "@/types/places";
 
-interface PlaceFinderContextType {
+type PlaceFinderContextType = {
+  userLocation: GeolocationCoordinates;
   derivedDisplayedPlaces: Place[];
-  userLocation: LocationData | null;
   isLoadingOverall: boolean;
-  searchFormAction: (payload: FormData) => void;
-  isSearchPending: boolean;
   searchQuery: string;
-  setSearchQuery: React.Dispatch<React.SetStateAction<string>>;
-  // Add other states and handlers as needed by children
-}
-
-const PlaceFinderContext = createContext<PlaceFinderContextType | undefined>(
-  undefined,
-);
-
-const initialSearchState: SearchActionResult = {
-  places: [],
-  error: undefined,
-  query: undefined,
+  setSearchQuery: (value: string) => void;
+  isSearchPending: boolean;
+  searchFormAction: (formData: FormData) => void;
 };
+
+const PlaceFinderContext = createContext<PlaceFinderContextType | null>(null);
 
 export function PlaceFinderProvider({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const [searchState, searchFormAction, isSearchPending] = useActionState(
-    searchPlacesByQuery,
-    initialSearchState,
-  );
-  const {
-    location: userLocationFromContext,
-    isLoadingGeo,
-    permissionStatus,
-  } = useAppLocation();
-  const { places: nearbyPlaces, isLoading: isNearbyLoading } = useNearbyPlaces(
-    userLocationFromContext,
-  );
+  const supabase = useRef(createClient());
+  const router = useRouter();
 
+  const [userLocation, setUserLocation] =
+    useState<GeolocationCoordinates | null>(null);
+  const [derivedDisplayedPlaces, setDerivedDisplayedPlaces] = useState<Place[]>(
+    [],
+  );
+  const [ready, setReady] = useState(false);
+  const [isSearchPending, setIsSearchPending] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const [searchAttempted, setSearchAttempted] = useState(false);
 
   useEffect(() => {
-    if (
-      permissionStatus === "granted" &&
-      userLocationFromContext &&
-      !searchAttempted &&
-      !searchQuery
-    ) {
-      setSearchAttempted(true);
-    }
-  }, [permissionStatus, userLocationFromContext, searchAttempted, searchQuery]);
+    const client = supabase.current;
 
-  const isLoadingOverall = isSearchPending || isLoadingGeo || isNearbyLoading;
+    const {
+      data: { subscription },
+    } = client.auth.onAuthStateChange((event, session) => {
+      if (session?.user) {
+        navigator.geolocation.getCurrentPosition(
+          (pos) => {
+            setUserLocation(pos.coords);
+            setReady(true);
+          },
+          () => {
+            router.replace("/explain-location");
+          },
+        );
+      } else {
+        router.replace("/about");
+      }
+    });
 
-  const derivedDisplayedPlaces = useMemo(() => {
-    if (isSearchPending && searchQuery) return [];
-    if (searchQuery && searchState?.places && searchState.query === searchQuery)
-      return searchState.places;
-    if (
-      !searchQuery &&
-      permissionStatus === "granted" &&
-      userLocationFromContext &&
-      searchAttempted
-    ) {
-      return nearbyPlaces;
-    }
-    return [];
-  }, [
-    isSearchPending,
-    searchQuery,
-    searchState,
-    permissionStatus,
-    userLocationFromContext,
-    searchAttempted,
-    nearbyPlaces,
-  ]);
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, [router]);
 
-  const value = {
-    derivedDisplayedPlaces,
-    userLocation: userLocationFromContext,
-    isLoadingOverall,
-    searchFormAction,
-    isSearchPending,
-    searchQuery,
-    setSearchQuery,
-    // Provide other states/handlers like errors if children need them
+  useEffect(() => {
+    if (!userLocation) return;
+
+    setDerivedDisplayedPlaces([
+      {
+        place_id: "abc123",
+        name: "Nearby Coffee",
+        address: "123 Main St",
+      },
+      {
+        place_id: "xyz789",
+        name: "Local Park",
+        address: "456 Park Ave",
+      },
+    ]);
+  }, [userLocation]);
+
+  const searchFormAction = async (formData: FormData) => {
+    const query = formData.get("searchQuery") as string;
+    setIsSearchPending(true);
+    // TODO: Implement real search call
+    await new Promise((r) => setTimeout(r, 1000));
+    setDerivedDisplayedPlaces([
+      {
+        place_id: "search456",
+        name: `Search Result for "${query}"`,
+        address: "789 Example Rd",
+      },
+    ]);
+    setIsSearchPending(false);
   };
 
+  if (!ready || !userLocation) return null;
+
   return (
-    <PlaceFinderContext.Provider value={value}>
+    <PlaceFinderContext.Provider
+      value={{
+        userLocation,
+        derivedDisplayedPlaces,
+        isLoadingOverall: !ready,
+        searchQuery,
+        setSearchQuery,
+        isSearchPending,
+        searchFormAction,
+      }}
+    >
       {children}
     </PlaceFinderContext.Provider>
   );
 }
 
-export function usePlaceFinder() {
+export const usePlaceFinder = () => {
   const context = useContext(PlaceFinderContext);
-  if (context === undefined) {
-    throw new Error("usePlaceFinder must be used within a PlaceFinderProvider");
-  }
+  if (!context) throw new Error("PlaceFinder context not available");
   return context;
-}
+};

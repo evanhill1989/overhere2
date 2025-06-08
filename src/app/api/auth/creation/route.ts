@@ -4,8 +4,8 @@ import { NextResponse } from "next/server";
 import { createClient as createSupabaseServerClient } from "@/utils/supabase/server"; // Import your working server.ts client
 
 import { getUserByKindeId } from "@/db/queries/select";
-import { usersTable } from "@/db/schema";
-import { db as drizzleDb } from "@/index";
+import { usersTable } from "@/db/oldSchema";
+import { db as drizzleDb } from "@/lib/db";
 import jwt from "jsonwebtoken"; // Import for decoding
 
 export async function GET(request: Request) {
