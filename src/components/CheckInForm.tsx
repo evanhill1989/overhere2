@@ -21,17 +21,20 @@ const initialCheckinState: ActionResult = {
 
 interface CheckInFormProps {
   place: Place;
-  currentUserLocation: LocationData | null;
+  userLocation: LocationData | null;
   onCancel: () => void;
   onSuccessfulCheckin: () => void;
 }
 
+import { usePlaceFinder } from "@/context/PlaceFinderProvider"; // or wherever it's defined
+
 export function CheckInForm({
   place,
-  currentUserLocation,
   onCancel,
   onSuccessfulCheckin,
-}: CheckInFormProps) {
+}: Omit<CheckInFormProps, "userLocation">) {
+  const { userLocation } = usePlaceFinder();
+
   const [state, formAction, isPending] = useActionState(
     submitCheckIn,
     initialCheckinState,
@@ -45,22 +48,22 @@ export function CheckInForm({
     }
   }, [state, isPending, onSuccessfulCheckin]);
 
-  const canSubmit = !!currentUserLocation;
+  const canSubmit = !!userLocation;
 
   return (
     <form action={formAction} className="space-y-6 pt-2">
-      <input type="hidden" name="selectedPlaceId" value={place.id} />
-      {currentUserLocation && (
+      <input type="hidden" name="selectedPlaceId" value={place.place_id} />
+      {userLocation && (
         <>
           <input
             type="hidden"
             name="userLatitude"
-            value={currentUserLocation.latitude}
+            value={userLocation.latitude}
           />
           <input
             type="hidden"
             name="userLongitude"
-            value={currentUserLocation.longitude}
+            value={userLocation.longitude}
           />
         </>
       )}
@@ -73,18 +76,21 @@ export function CheckInForm({
           required
         >
           <div className="flex items-center space-x-2">
-            <RadioGroupItem value="available" id={`s-available-${place.id}`} />
+            <RadioGroupItem
+              value="available"
+              id={`s-available-${place.place_id}`}
+            />
             <Label
-              htmlFor={`s-available-${place.id}`}
+              htmlFor={`s-available-${place.place_id}`}
               className="text-sm font-normal"
             >
               Available
             </Label>
           </div>
           <div className="flex items-center space-x-2">
-            <RadioGroupItem value="busy" id={`s-busy-${place.id}`} />
+            <RadioGroupItem value="busy" id={`s-busy-${place.place_id}`} />
             <Label
-              htmlFor={`s-busy-${place.id}`}
+              htmlFor={`s-busy-${place.place_id}`}
               className="text-sm font-normal"
             >
               Busy
@@ -95,13 +101,13 @@ export function CheckInForm({
 
       <div>
         <Label
-          htmlFor={`topic-${place.id}`}
+          htmlFor={`topic-${place.place_id}`}
           className="mb-1 block text-sm font-medium"
         >
           Topic (Optional):
         </Label>
         <Input
-          id={`topic-${place.id}`}
+          id={`topic-${place.place_id}`}
           name="topicPreference"
           placeholder="e.g., 'Talking tech', 'Reading books'"
           maxLength={120}
@@ -112,7 +118,7 @@ export function CheckInForm({
         </p>
       </div>
 
-      {!currentUserLocation && (
+      {!userLocation && (
         <p className="text-sm text-orange-600 dark:text-orange-400">
           Cannot check-in: Your current location is unavailable.
         </p>

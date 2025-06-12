@@ -16,10 +16,10 @@ import ReactDOMServer from "react-dom/server";
 import { UserCircle, MapPin } from "@phosphor-icons/react/dist/ssr";
 import type { Place } from "@/types/places";
 import type { LocationData } from "@/hooks/useGeolocation";
+import { usePlaceFinder } from "@/context/PlaceFinderProvider";
 
 export interface UserMapProps {
   places: Place[];
-  userLocation: LocationData | null;
   selectedPlace?: Place | null; // For visual feedback on map (e.g., different icon)
   onPlaceMarkerClick?: (place: Place) => void; // Callback for marker click
   center?: LocationData;
@@ -77,12 +77,14 @@ function ChangeView({
 
 export default function UserMap({
   places,
-  userLocation,
+
   selectedPlace,
   onPlaceMarkerClick,
   center: initialCenter,
   zoom: initialZoom = 15,
 }: UserMapProps) {
+  const { userLocation } = usePlaceFinder();
+
   let mapCenter: LatLngExpression;
   let mapZoom = initialZoom;
 
@@ -123,10 +125,10 @@ export default function UserMap({
       )}
       {places.map((place) => {
         if (place.lat == null || place.lng == null) return null;
-        const isCurrentlySelected = selectedPlace?.id === place.id;
+        const isCurrentlySelected = selectedPlace?.place_id === place.place_id;
         return (
           <Marker
-            key={place.id}
+            key={place.place_id}
             position={[place.lat, place.lng]}
             icon={
               isCurrentlySelected ? selectedPlaceMarkerIcon : placeMarkerIcon

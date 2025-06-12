@@ -1,27 +1,30 @@
-"use server";
-
+// app/_actions/checkIn.ts
+import { checkInSchema } from "@/lib/validators/checkin";
 import { db } from "@/lib/db";
 import { checkinsTable } from "@/lib/newSchema";
 import { createClient } from "@/utils/supabase/server";
 import { redirect } from "next/navigation";
 import { eq } from "drizzle-orm";
+import { ensureUserInDb } from "@/utils/supabase/ensureUserInDb";
 
-export async function checkIn(
-  placeId: string,
-  placeName: string,
-  placeAddress: string,
-  latitude: number,
-  longitude: number,
-) {
+export async function checkIn(formData: FormData) {
   const supabase = await createClient();
-  const { data } = await supabase.auth.getUser();
-  const user = data.user;
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error("Not authenticated");
 
-  if (!data.user) throw new Error("Not authenticated");
+  await ensureUserInDb(user);
 
-  if (!user) {
-    redirect("/");
-  }
+  const rawData = {
+    placeId: formData.get("placeId"),
+    placeName: formData.get("placeName"),
+    placeAddress: formData.get("placeAddress"),
+    latitude: parseFloat(formData.get("latitude") as string),
+    longitude: parseFloat(formData.get("longitude") as string),
+  };
+
+  const parsed = checkInSchema.parse(rawData);
 
   await db
     .update(checkinsTable)
@@ -30,13 +33,13 @@ export async function checkIn(
 
   await db.insert(checkinsTable).values({
     userId: user.id,
-    placeId,
-    placeName,
-    placeAddress,
-    latitude,
-    longitude,
+    placeId: parsed.place_id,
+    placeName: parsed.place_name,
+    placeAddress: parsed.place_address,
+    latitude: parsed.latitude,
+    longitude: parsed.longitude,
     status: "available",
   });
 
-  redirect(`/places/${placeId}`);
+  redirect(`/places/${parsed.place_id}`);
 }
