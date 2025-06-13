@@ -15,8 +15,9 @@ import L, { type LatLngExpression } from "leaflet";
 import ReactDOMServer from "react-dom/server";
 import { UserCircle, MapPin } from "@phosphor-icons/react/dist/ssr";
 import type { Place } from "@/types/places";
-import type { LocationData } from "@/hooks/useGeolocation";
+
 import { usePlaceFinder } from "@/context/PlaceFinderProvider";
+import { LocationData } from "@/types/location";
 
 export interface UserMapProps {
   places: Place[];
