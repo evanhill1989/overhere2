@@ -9,7 +9,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Place } from "@/types/places";
 import { useTransition } from "react";
-import { checkIn } from "@/app/_actions/checkIn";
+import { checkIn } from "@/app/_actions/checkinActions";
 import { usePlaceFinder } from "@/context/PlaceFinderProvider";
 
 type CheckinDialogProps = {
@@ -28,15 +28,15 @@ export default function CheckinDialog({
 
   const handleCheckin = () => {
     if (!userLocation) return;
-    startTransition(() =>
-      checkIn(
-        place.place_id,
-        place.name,
-        place.address,
-        userLocation.latitude,
-        userLocation.longitude,
-      ),
-    );
+
+    const formData = new FormData();
+    formData.append("placeId", place.place_id);
+    formData.append("placeName", place.name);
+    formData.append("placeAddress", place.address);
+    formData.append("latitude", userLocation.latitude.toString());
+    formData.append("longitude", userLocation.longitude.toString());
+
+    startTransition(() => checkIn(formData));
   };
 
   return (

@@ -7,11 +7,14 @@ import {
   placesTable,
   type SelectPlace,
   type InsertCheckin,
-} from "@/db/oldSchema";
+} from "@/lib/newSchema";
 import { getKindeServerSession } from "@kinde-oss/kinde-auth-nextjs/server";
 import { redirect } from "next/navigation";
 import { and, eq, sql, desc } from "drizzle-orm";
 import { calculateDistance } from "@/lib/utils";
+import { checkInSchema } from "@/lib/validators/checkin";
+import { ensureUserInDb } from "@/utils/supabase/ensureUserInDb";
+import { createClient } from "@/utils/supabase/server";
 
 export type ActionResult = {
   success: boolean;
@@ -263,4 +266,41 @@ export async function submitCheckIn(
   );
 
   redirect(`/places/${placeDetails.id}`);
+}
+
+export async function checkIn(formData: FormData) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error("Not authenticated");
+
+  await ensureUserInDb(user);
+
+  const rawData = {
+    placeId: formData.get("placeId"),
+    placeName: formData.get("placeName"),
+    placeAddress: formData.get("placeAddress"),
+    latitude: parseFloat(formData.get("latitude") as string),
+    longitude: parseFloat(formData.get("longitude") as string),
+  };
+
+  const parsed = checkInSchema.parse(rawData);
+
+  await db
+    .update(checkinsTable)
+    .set({ status: "available" })
+    .where(eq(checkinsTable.userId, user.id));
+
+  await db.insert(checkinsTable).values({
+    userId: user.id,
+    placeId: parsed.place_id,
+    placeName: parsed.place_name,
+    placeAddress: parsed.place_address,
+    latitude: parsed.latitude,
+    longitude: parsed.longitude,
+    status: "available",
+  });
+
+  redirect(`/places/${parsed.place_id}`);
 }
