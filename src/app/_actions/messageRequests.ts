@@ -8,6 +8,7 @@ import { z } from "zod";
 import { createClient } from "@/utils/supabase/server";
 
 const messageRequestSchema = z.object({
+  senderId: z.string().min(1),
   receiverId: z.string().min(1),
   checkinId: z.string().uuid(),
   message: z.string().min(1).max(280),
@@ -15,6 +16,7 @@ const messageRequestSchema = z.object({
 
 export async function submitMessageRequest(formData: FormData) {
   const parsed = messageRequestSchema.safeParse({
+    senderId: formData.get("senderId"),
     receiverId: formData.get("receiverId"),
     checkinId: formData.get("checkinId"),
     message: formData.get("message"),
@@ -41,9 +43,9 @@ export async function submitMessageRequest(formData: FormData) {
 
   try {
     await db.insert(messageRequestsTable).values({
-      senderId: user.id,
+      senderId: parsed.data.senderId,
       receiverId: parsed.data.receiverId,
-      checkinId: parsed.data.checkinId,
+      checkinId: Number(parsed.data.checkinId),
       message: parsed.data.message,
       status: "pending",
     });
@@ -52,10 +54,14 @@ export async function submitMessageRequest(formData: FormData) {
       success: true,
       message: "Message request sent successfully",
     };
-  } catch (error: any) {
-    // Check for unique constraint violation
+  } catch (error: unknown) {
     console.error(error);
-    if (error.code === "23505") {
+    if (
+      typeof error === "object" &&
+      error !== null &&
+      "code" in error &&
+      error.code === "23505"
+    ) {
       return {
         success: false,
         message:

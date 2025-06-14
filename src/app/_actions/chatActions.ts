@@ -9,7 +9,6 @@ import {
 import type { InsertChatSession, InsertMessage } from "@/db/oldSchema";
 import { getKindeServerSession } from "@kinde-oss/kinde-auth-nextjs/server";
 import { and, eq, or, desc } from "drizzle-orm";
-import { revalidatePath } from "next/cache";
 
 // Consider making this configurable or sharing from elsewhere
 // const CHAT_SESSION_WINDOW_MS = 2 * 60 * 60 * 1000;

@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { checkinsTable } from "@/lib/newSchema";
-import { lt } from "drizzle-orm";
-import { subHours } from "date-fns";
+import { lte } from "drizzle-orm";
+import { subMinutes } from "date-fns";
 
 export async function POST(request: Request) {
   const auth = request.headers.get("authorization");
@@ -10,14 +10,15 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const twoHoursAgo = subHours(new Date(), 2);
+  const checkinTimer = subMinutes(new Date(), 5);
 
   const result = await db
     .delete(checkinsTable)
-    .where(lt(checkinsTable.createdAt, twoHoursAgo));
+    .where(lte(checkinsTable.createdAt, checkinTimer))
+    .returning();
 
   return NextResponse.json({
     success: true,
-    deleted: result.rowCount ?? 0,
+    deleted: result.length ?? 0,
   });
 }

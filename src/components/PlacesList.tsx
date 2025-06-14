@@ -2,7 +2,7 @@
 "use client";
 
 import { usePlaceFinder } from "@/context/PlaceFinderProvider";
-import CheckinDialog from "./CheckinDialog";
+import CheckinDialog from "@/components/CheckinDialog";
 import { useState } from "react";
 import { Place } from "@/types/places";
 

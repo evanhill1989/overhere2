@@ -35,7 +35,9 @@ export async function requestMessage({
     });
 
     return { success: true };
-  } catch (e) {
+  } catch (error) {
+    console.error(error);
+
     await db.insert(failedMessageRequests).values({
       senderId,
       recipientId,
