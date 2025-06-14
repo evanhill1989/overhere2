@@ -9,7 +9,7 @@ import { eq } from "drizzle-orm";
 import { Suspense } from "react";
 
 export default async function PlacePage(props: {
-  params: { placeId: string };
+  params: Promise<{ placeId: string }>;
 }) {
   const { placeId } = await props.params;
   const supabase = await createClient();
