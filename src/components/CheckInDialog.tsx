@@ -18,6 +18,8 @@ type CheckinDialogProps = {
   place: Place;
 };
 
+console.log("Test");
+
 export default function CheckinDialog({
   open,
   onOpenChange,
