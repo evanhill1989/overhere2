@@ -21,7 +21,7 @@ const UserMap = dynamic(() => import("./UserMap"), {
 export default function PlaceFinderUI() {
   const {
     derivedDisplayedPlaces,
-    userLocation,
+
     isLoadingOverall,
     searchFormAction,
     isSearchPending,
@@ -32,11 +32,7 @@ export default function PlaceFinderUI() {
   return (
     <div className="relative h-full w-full overflow-hidden">
       <div className="absolute inset-0 z-0">
-        <UserMap
-          places={derivedDisplayedPlaces}
-          selectedPlace={null}
-          userLocation={userLocation}
-        />
+        <UserMap places={derivedDisplayedPlaces} selectedPlace={null} />
       </div>
 
       <div className="pointer-events-none absolute top-0 right-0 left-0 z-100 flex justify-center p-3 sm:p-4">

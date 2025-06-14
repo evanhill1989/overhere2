@@ -21,7 +21,7 @@ export function PlacesSelectionForm({
 }: PlacesSelectionFormProps) {
   const [checkinState, formAction, isPendingCheckin] = useActionState(
     submitCheckIn,
-    initialCheckinState
+    initialCheckinState,
   );
 
   if (isLoading) return <p>Loading nearby places...</p>;
@@ -34,27 +34,27 @@ export function PlacesSelectionForm({
       <form action={formAction} className="mt-2 space-y-4">
         {" "}
         <fieldset className="space-y-2">
-          <legend className="block text-sm font-medium text-gray-900 dark:text-gray-300 mb-1">
+          <legend className="mb-1 block text-sm font-medium text-gray-900 dark:text-gray-300">
             Select a Place: <span className="text-red-600">*</span>{" "}
           </legend>
           {places.map((place) => (
             <label
-              key={place.id}
-              className="block p-3 border border-gray-300 dark:border-gray-600 rounded-md cursor-pointer transition-colors hover:bg-gray-50 dark:hover:bg-gray-700 has-[:checked]:bg-blue-50 dark:has-[:checked]:bg-blue-900/30 has-[:checked]:border-blue-400 dark:has-[:checked]:border-blue-700"
+              key={place.place_id}
+              className="block cursor-pointer rounded-md border border-gray-300 p-3 transition-colors hover:bg-gray-50 has-[:checked]:border-blue-400 has-[:checked]:bg-blue-50 dark:border-gray-600 dark:hover:bg-gray-700 dark:has-[:checked]:border-blue-700 dark:has-[:checked]:bg-blue-900/30"
             >
               <input
                 type="radio"
                 name="selectedPlaceId"
-                value={place.id}
+                value={place.place_id}
                 required
-                className="mr-3 align-middle focus:ring-blue-500 h-4 w-4 text-blue-600 border-gray-300 dark:border-gray-500"
+                className="mr-3 h-4 w-4 border-gray-300 align-middle text-blue-600 focus:ring-blue-500 dark:border-gray-500"
               />
-              <span className="font-medium align-middle text-gray-900 dark:text-white">
+              <span className="align-middle font-medium text-gray-900 dark:text-white">
                 {" "}
                 {place.name}
               </span>
               <br />
-              <small className="text-gray-500 dark:text-gray-400 ml-7">
+              <small className="ml-7 text-gray-500 dark:text-gray-400">
                 {place.address}
               </small>{" "}
             </label>
@@ -74,7 +74,7 @@ export function PlacesSelectionForm({
               id="topicPreference"
               maxLength={120}
               placeholder="E.g., Astronomy, local events, currently reading..."
-              className="block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white"
+              className="block w-full rounded-md border border-gray-300 p-2 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400"
             />
           </div>
         </div>
@@ -91,7 +91,7 @@ export function PlacesSelectionForm({
               id="status" // Connects label
               required // Make sure user selects a status
               defaultValue="available" // Default to 'available'
-              className="block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white" // Basic styling
+              className="block w-full rounded-md border border-gray-300 p-2 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400" // Basic styling
             >
               <option value="available">Available for Chat</option>
               <option value="busy">Busy / Just Working</option>
@@ -102,10 +102,10 @@ export function PlacesSelectionForm({
           <button
             type="submit"
             disabled={isPendingCheckin}
-            className={`w-full px-4 py-2 rounded text-white font-medium transition-colors ${
+            className={`w-full rounded px-4 py-2 font-medium text-white transition-colors ${
               isPendingCheckin
-                ? "bg-gray-500 cursor-wait"
-                : "bg-green-500 hover:bg-green-700 cursor-pointer"
+                ? "cursor-wait bg-gray-500"
+                : "cursor-pointer bg-green-500 hover:bg-green-700"
             }`}
           >
             {isPendingCheckin ? "Checking In..." : "Confirm Check In"}

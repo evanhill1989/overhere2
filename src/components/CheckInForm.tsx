@@ -11,8 +11,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Loader2 } from "lucide-react";
-import type { LocationData } from "@/hooks/useGeolocation";
+
 import { DialogClose } from "@/components/ui/dialog";
+import { usePlaceFinder } from "@/context/PlaceFinderProvider"; // or wherever it's defined
+import { LocationData } from "@/types/location";
 
 const initialCheckinState: ActionResult = {
   success: false,
@@ -25,8 +27,6 @@ interface CheckInFormProps {
   onCancel: () => void;
   onSuccessfulCheckin: () => void;
 }
-
-import { usePlaceFinder } from "@/context/PlaceFinderProvider"; // or wherever it's defined
 
 export function CheckInForm({
   place,
