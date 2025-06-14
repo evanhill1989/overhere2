@@ -79,7 +79,7 @@ export async function searchPlacesByQuery(
 
     let placesFromGoogle: Place[] = (data.places || []).map(
       (place: GoogleApiNewTextSearchResult): Place => ({
-        id: place.id,
+        place_id: place.id,
         name: place.displayName?.text || "Unknown Name",
         address:
           place.formattedAddress ||
@@ -93,7 +93,7 @@ export async function searchPlacesByQuery(
     );
 
     if (placesFromGoogle.length > 0) {
-      const placeIdsFromGoogle = placesFromGoogle.map((p) => p.id);
+      const placeIdsFromGoogle = placesFromGoogle.map((p) => p.place_id);
       const verificationStatuses = await db
         .select({
           id: placesTable.id,
@@ -107,7 +107,7 @@ export async function searchPlacesByQuery(
       );
       placesFromGoogle = placesFromGoogle.map((p) => ({
         ...p,
-        isVerified: verificationMap.get(p.id) ?? false,
+        isVerified: verificationMap.get(p.place_id) ?? false,
       }));
     }
     return { places: placesFromGoogle, query: trimmedQuery };
