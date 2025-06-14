@@ -12,6 +12,7 @@ import {
   uuid,
   text,
   boolean,
+  unique,
 } from "drizzle-orm/pg-core";
 
 // Enums
@@ -26,6 +27,11 @@ export const chatSessionStatusEnum = pgEnum("chat_session_status", [
   "closed",
 ]);
 
+export const messageRequestStatusEnum = pgEnum("message_request_status", [
+  "pending",
+  "accepted",
+  "rejected",
+]);
 // Tables
 export const usersTable = pgTable("users", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -121,6 +127,78 @@ export const messagesTable = pgTable(
   }),
 );
 
+export const messageRequestsTable = pgTable(
+  "message_requests",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+
+    senderId: uuid("sender_id")
+      .notNull()
+      .references(() => usersTable.id, { onDelete: "cascade" }),
+
+    receiverId: uuid("receiver_id")
+      .notNull()
+      .references(() => usersTable.id, { onDelete: "cascade" }),
+
+    checkinId: integer("checkin_id")
+      .notNull()
+      .references(() => checkinsTable.id, { onDelete: "cascade" }),
+
+    message: text("message").notNull(),
+
+    status: messageRequestStatusEnum("status").default("pending").notNull(),
+
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (table) => ({
+    uniqueSenderReceiverCheckin: unique().on(
+      table.senderId,
+      table.receiverId,
+      table.checkinId,
+    ),
+  }),
+);
+export const messageRequests = pgTable(
+  "message_requests",
+  {
+    id: serial("id").primaryKey(),
+    senderId: uuid("sender_id")
+      .notNull()
+      .references(() => usersTable.id, { onDelete: "cascade" }),
+    recipientId: uuid("recipient_id")
+      .notNull()
+      .references(() => usersTable.id, { onDelete: "cascade" }),
+    placeId: varchar("place_id", { length: 255 }).notNull(),
+
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    fulfilled: boolean("fulfilled").default(false),
+    rejected: boolean("rejected").default(false),
+    seen: boolean("seen").default(false),
+  },
+  (table) => {
+    return {
+      uniqueSenderRecipient: unique().on(
+        table.senderId,
+        table.recipientId,
+        table.placeId,
+      ),
+    };
+  },
+);
+
+export const failedMessageRequests = pgTable("failed_message_requests", {
+  id: serial("id").primaryKey(),
+  senderId: uuid("sender_id")
+    .notNull()
+    .references(() => usersTable.id, { onDelete: "cascade" }),
+
+  recipientId: uuid("recipient_id")
+    .notNull()
+    .references(() => usersTable.id, { onDelete: "cascade" }),
+  placeId: varchar("place_id", { length: 255 }).notNull(),
+  reason: varchar("reason", { length: 255 }).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
 // Type Exports
 export type InsertUser = typeof usersTable.$inferInsert;
 export type SelectUser = typeof usersTable.$inferSelect;
