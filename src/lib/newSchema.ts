@@ -77,27 +77,33 @@ export const checkinsTable = pgTable(
 );
 
 // Message Requests
-export const messageRequestsTable = pgTable(
-  "message_requests",
+// Message Session Requests
+export const messageSessionRequestsTable = pgTable(
+  "message_session_requests",
   {
     id: uuid("id").primaryKey().defaultRandom(),
-    senderId: uuid("sender_id")
+    placeId: varchar("place_id", { length: 255 }).notNull(),
+
+    initiatorId: uuid("initiator_id")
       .notNull()
       .references(() => usersTable.id, { onDelete: "cascade" }),
-    receiverId: uuid("receiver_id")
+
+    initiateeId: uuid("initiatee_id")
       .notNull()
       .references(() => usersTable.id, { onDelete: "cascade" }),
+
     checkinId: integer("checkin_id")
       .notNull()
       .references(() => checkinsTable.id, { onDelete: "cascade" }),
-    message: text("message").notNull(),
+
     status: messageRequestStatusEnum("status").default("pending").notNull(),
+
     createdAt: timestamp("created_at").notNull().defaultNow(),
   },
   (table) => ({
-    uniqueSenderReceiverCheckin: unique().on(
-      table.senderId,
-      table.receiverId,
+    uniqueInitiatorInitiateeCheckin: unique().on(
+      table.initiatorId,
+      table.initiateeId,
       table.checkinId,
     ),
   }),
@@ -158,10 +164,10 @@ export const messagesTable = pgTable(
 // Failed Message Attempts
 export const failedMessageRequests = pgTable("failed_message_requests", {
   id: serial("id").primaryKey(),
-  senderId: uuid("sender_id")
+  initiatorId: uuid("initiator_id")
     .notNull()
     .references(() => usersTable.id, { onDelete: "cascade" }),
-  recipientId: uuid("recipient_id")
+  initiateeId: uuid("initiatee_id")
     .notNull()
     .references(() => usersTable.id, { onDelete: "cascade" }),
   placeId: varchar("place_id", { length: 255 }).notNull(),
@@ -180,3 +186,7 @@ export type InsertMessageSession = typeof messageSessionsTable.$inferInsert;
 export type SelectMessageSession = typeof messageSessionsTable.$inferSelect;
 export type InsertMessage = typeof messagesTable.$inferInsert;
 export type SelectMessage = typeof messagesTable.$inferSelect;
+export type InsertMessageSessionRequest =
+  typeof messageSessionRequestsTable.$inferInsert;
+export type SelectMessageSessionRequest =
+  typeof messageSessionRequestsTable.$inferSelect;

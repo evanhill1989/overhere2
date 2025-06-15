@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
-import { requestMessage } from "@/app/_actions/messageActions";
+import { requestToMessage } from "@/app/_actions/messageActions";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import type { SelectCheckin, MessageRequestStatus } from "@/lib/db/types";
@@ -25,15 +25,28 @@ export function PlaceDetails({
       prevStatus: Record<string, MessageRequestStatus>,
       formData: FormData,
     ): Promise<Record<string, MessageRequestStatus>> => {
-      const recipientId = formData.get("recipientId") as string;
-      const senderId = formData.get("senderId") as string;
+      const checkin = checkins.find((c) => c.userId === currentUserId);
+      const checkinId = checkin?.id;
+      const initiateeId = formData.get("initiateeId") as string;
+      const initiatorId = formData.get("initiatorId") as string;
       const placeId = formData.get("placeId") as string;
 
-      const result = await requestMessage({ senderId, recipientId, placeId });
+      if (!checkinId) {
+        return {
+          ...prevStatus,
+          [initiateeId]: "failed",
+        };
+      }
+      const result = await requestToMessage({
+        initiatorId,
+        initiateeId,
+        placeId,
+        checkinId,
+      });
 
       return {
         ...prevStatus,
-        [recipientId]: result.success ? "sent" : "failed",
+        [initiateeId]: result.success ? "sent" : "failed",
       };
     },
     {} satisfies Record<string, MessageRequestStatus>,
@@ -74,7 +87,7 @@ export function PlaceDetails({
                   <form action={formAction}>
                     <input
                       type="hidden"
-                      name="senderId"
+                      name="initiatorId"
                       value={currentUserId}
                     />
                     <input

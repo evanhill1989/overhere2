@@ -4,6 +4,8 @@ import { sql } from "drizzle-orm";
 
 async function dropTable() {
   await db.execute(sql`DROP TABLE IF EXISTS message_sessions CASCADE`);
+  await db.execute(sql`DROP TABLE IF EXISTS message_requests CASCADE`);
+
   console.log("✅ Dropped message_sessions table");
 }
 

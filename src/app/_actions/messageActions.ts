@@ -2,25 +2,30 @@
 "use server";
 
 import { db } from "@/lib/db";
-import { messageRequests, failedMessageRequests } from "@/lib/newSchema";
+import {
+  messageSessionRequestsTable,
+  failedMessageRequests,
+} from "@/lib/newSchema";
 import { eq, and } from "drizzle-orm";
 
-export async function requestMessage({
-  senderId,
-  recipientId,
+export async function requestToMessage({
+  initiatorId,
+  initiateeId,
   placeId,
+  checkinId,
 }: {
-  senderId: string;
-  recipientId: string;
+  initiatorId: string;
+  initiateeId: string;
   placeId: string;
+  checkinId: number;
 }) {
   try {
     // Check for existing message request
-    const existing = await db.query.messageRequests.findFirst({
+    const existing = await db.query.messageSessionRequestsTable.findFirst({
       where: and(
-        eq(messageRequests.senderId, senderId),
-        eq(messageRequests.recipientId, recipientId),
-        eq(messageRequests.placeId, placeId),
+        eq(messageSessionRequestsTable.initiatorId, initiatorId),
+        eq(messageSessionRequestsTable.initiateeId, initiateeId),
+        eq(messageSessionRequestsTable.placeId, placeId),
       ),
     });
 
@@ -28,10 +33,11 @@ export async function requestMessage({
       return { success: false, error: "Duplicate request" };
     }
 
-    await db.insert(messageRequests).values({
-      senderId,
-      recipientId,
+    await db.insert(messageSessionRequestsTable).values({
+      initiatorId,
+      initiateeId,
       placeId,
+      checkinId,
     });
 
     return { success: true };
@@ -39,8 +45,8 @@ export async function requestMessage({
     console.error(error);
 
     await db.insert(failedMessageRequests).values({
-      senderId,
-      recipientId,
+      initiatorId,
+      initiateeId,
       placeId,
       reason: "Server error",
     });

@@ -3,19 +3,23 @@
 "use client";
 
 import { useTransition } from "react";
-import { requestMessage } from "@/app/_actions/messageActions";
+import { requestToMessage } from "@/app/_actions/messageActions";
 
 export function useMessageRequest() {
   const [isPending, startTransition] = useTransition();
 
   const submitRequest = (
-    senderId: string,
-    recipientId: string,
+    initiatorId: string,
+    initiateeId: string,
     placeId: string,
     onDone?: () => void,
   ) => {
     startTransition(async () => {
-      const result = await requestMessage({ senderId, recipientId, placeId });
+      const result = await requestToMessage({
+        initiatorId,
+        initiateeId,
+        placeId,
+      });
       onDone?.();
       if (!result.success) {
         console.error("Message request failed:", result.error);
