@@ -12,5 +12,5 @@ jobs:
     steps:
       - name: Call Expire Checkins API
         run: |
-          curl -X POST https://overhere2.verecel.app/api/cron/expire-checkins \
+          curl -X POST https://overhere2.vercel.app/api/cron/expire-checkins \
             -H "Authorization: Bearer ${{ secrets.CRON_API_TOKEN }}"
