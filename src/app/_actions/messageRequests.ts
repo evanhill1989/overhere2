@@ -2,17 +2,28 @@
 "use server";
 
 import { db } from "@/lib/db";
-import { messageRequestsTable, failedMessageRequests } from "@/lib/newSchema";
+import {
+  messageRequestsTable,
+  failedMessageRequests,
+  checkinsTable,
+} from "@/lib/newSchema";
 import { z } from "zod";
 
 import { createClient } from "@/utils/supabase/server";
+import { NextResponse } from "next/server";
+import { and, eq, inArray } from "drizzle-orm";
 
-const messageRequestSchema = z.object({
-  senderId: z.string().min(1),
-  receiverId: z.string().min(1),
-  checkinId: z.string().uuid(),
-  message: z.string().min(1).max(280),
-});
+const messageRequestSchema = z
+  .object({
+    senderId: z.string().uuid(),
+    receiverId: z.string().uuid(),
+    checkinId: z.number().int(),
+    message: z.string().min(1).max(500),
+  })
+  .refine((data) => data.senderId !== data.receiverId, {
+    message: "Sender and receiver cannot be the same user.",
+    path: ["receiverId"], // Attach the error to receiverId field
+  });
 
 export async function submitMessageRequest(formData: FormData) {
   const parsed = messageRequestSchema.safeParse({
@@ -42,6 +53,46 @@ export async function submitMessageRequest(formData: FormData) {
   }
 
   try {
+    if (parsed.data.senderId === parsed.data.receiverId) {
+      return NextResponse.json(
+        { error: "You cannot request yourself." },
+        { status: 400 },
+      );
+    }
+
+    const [senderId, receiverId] = [
+      parsed.data.senderId,
+      parsed.data.receiverId,
+    ];
+
+    // Batch query both sender + receiver check-ins
+    const checkins = await db
+      .select()
+      .from(checkinsTable)
+      .where(
+        and(
+          inArray(checkinsTable.userId, [senderId, receiverId]),
+          eq(checkinsTable.isActive, true),
+        ),
+      );
+
+    const senderCheckin = checkins.find((c) => c.userId === senderId);
+    const receiverCheckin = checkins.find((c) => c.userId === receiverId);
+
+    if (!receiverCheckin) {
+      return NextResponse.json(
+        { error: "That person is no longer checked in." },
+        { status: 400 },
+      );
+    }
+
+    if (!senderCheckin) {
+      return NextResponse.json(
+        { error: "You are no longer checked in." },
+        { status: 400 },
+      );
+    }
+
     await db.insert(messageRequestsTable).values({
       senderId: parsed.data.senderId,
       receiverId: parsed.data.receiverId,

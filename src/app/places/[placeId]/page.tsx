@@ -4,7 +4,7 @@ import { createClient } from "@/utils/supabase/server";
 import { db } from "@/lib/db";
 import { checkinsTable } from "@/lib/newSchema";
 import { PlaceDetails } from "@/components/PlaceDetails";
-import { eq } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 
 import { Suspense } from "react";
 
@@ -22,7 +22,9 @@ export default async function PlacePage(props: {
   const checkins = await db
     .select()
     .from(checkinsTable)
-    .where(eq(checkinsTable.placeId, placeId));
+    .where(
+      and(eq(checkinsTable.placeId, placeId), eq(checkinsTable.isActive, true)),
+    );
 
   if (!checkins || checkins.length === 0) {
     // Optionally show skeleton instead of notFound()

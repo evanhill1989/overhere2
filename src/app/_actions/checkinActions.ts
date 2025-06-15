@@ -287,11 +287,15 @@ export async function checkIn(formData: FormData) {
 
   const parsed = checkInSchema.parse(rawData);
 
+  // ✅ Step 1: Deactivate any previous check-ins by this user
   await db
     .update(checkinsTable)
-    .set({ status: "available" })
-    .where(eq(checkinsTable.userId, user.id));
+    .set({ isActive: false, status: "available" }) // or "expired" if preferred
+    .where(
+      and(eq(checkinsTable.userId, user.id), eq(checkinsTable.isActive, true)),
+    );
 
+  // Step 2: Insert the new check-in
   await db.insert(checkinsTable).values({
     userId: user.id,
     placeId: parsed.place_id,
@@ -300,7 +304,7 @@ export async function checkIn(formData: FormData) {
     latitude: parsed.latitude,
     longitude: parsed.longitude,
     status: "available",
+    isActive: true,
   });
-
   redirect(`/places/${parsed.place_id}`);
 }

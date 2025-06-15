@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { checkinsTable } from "@/lib/newSchema";
 import { lte } from "drizzle-orm";
-import { subMinutes } from "date-fns";
+import { subHours } from "date-fns";
 
 export async function POST(request: Request) {
   console.log("🔥 Cron job triggered: Expiring stale check-ins");
@@ -11,7 +11,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const checkinTimer = subMinutes(new Date(), 5);
+  const checkinTimer = subHours(new Date(), 2);
 
   const result = await db
     .delete(checkinsTable)

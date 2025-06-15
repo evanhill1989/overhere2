@@ -20,19 +20,14 @@ export const checkinStatusEnum = pgEnum("checkin_status", [
   "available",
   "busy",
 ]);
-export const chatSessionStatusEnum = pgEnum("chat_session_status", [
-  "pending",
-  "active",
-  "rejected",
-  "closed",
-]);
-
 export const messageRequestStatusEnum = pgEnum("message_request_status", [
   "pending",
   "accepted",
   "rejected",
+  "canceled",
 ]);
-// Tables
+
+// Users
 export const usersTable = pgTable("users", {
   id: uuid("id").primaryKey().defaultRandom(),
   name: varchar("name", { length: 255 }).notNull(),
@@ -40,6 +35,7 @@ export const usersTable = pgTable("users", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
+// Places
 export const placesTable = pgTable("places", {
   id: varchar("id", { length: 255 }).primaryKey(),
   name: varchar("name", { length: 255 }).notNull(),
@@ -53,6 +49,7 @@ export const placesTable = pgTable("places", {
   primaryType: varchar("primary_type", { length: 255 }),
 });
 
+// Check-ins
 export const checkinsTable = pgTable(
   "checkins",
   {
@@ -79,75 +76,22 @@ export const checkinsTable = pgTable(
   }),
 );
 
-export const chatSessionsTable = pgTable(
-  "chat_sessions",
-  {
-    id: uuid("id").primaryKey().defaultRandom(),
-    placeId: varchar("place_id", { length: 255 }).notNull(),
-    initiatorCheckinId: integer("initiator_checkin_id")
-      .notNull()
-      .references(() => checkinsTable.id, { onDelete: "cascade" }),
-    receiverCheckinId: integer("receiver_checkin_id")
-      .notNull()
-      .references(() => checkinsTable.id, { onDelete: "cascade" }),
-    createdAt: timestamp("created_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
-    status: chatSessionStatusEnum("status").notNull().default("pending"),
-  },
-  (table) => ({
-    initiatorIdx: index("chat_session_initiator_idx").on(
-      table.initiatorCheckinId,
-    ),
-    receiverIdx: index("chat_session_receiver_idx").on(table.receiverCheckinId),
-    placeIdx: index("chat_session_place_idx").on(table.placeId),
-    statusIdx: index("chat_session_status_idx").on(table.status),
-  }),
-);
-
-export const messagesTable = pgTable(
-  "messages",
-  {
-    id: serial("id").primaryKey(),
-    chatSessionId: uuid("chat_session_id")
-      .notNull()
-      .references(() => chatSessionsTable.id, { onDelete: "cascade" }),
-    senderCheckinId: integer("sender_checkin_id")
-      .notNull()
-      .references(() => checkinsTable.id, { onDelete: "cascade" }),
-    content: text("content").notNull(),
-    createdAt: timestamp("created_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
-  },
-  (table) => ({
-    chatSessionIdx: index("message_chat_session_idx").on(table.chatSessionId),
-    senderIdx: index("message_sender_idx").on(table.senderCheckinId),
-    createdAtIdx: index("message_created_at_idx").on(table.createdAt),
-  }),
-);
-
+// Message Requests
 export const messageRequestsTable = pgTable(
   "message_requests",
   {
     id: uuid("id").primaryKey().defaultRandom(),
-
     senderId: uuid("sender_id")
       .notNull()
       .references(() => usersTable.id, { onDelete: "cascade" }),
-
     receiverId: uuid("receiver_id")
       .notNull()
       .references(() => usersTable.id, { onDelete: "cascade" }),
-
     checkinId: integer("checkin_id")
       .notNull()
       .references(() => checkinsTable.id, { onDelete: "cascade" }),
-
     message: text("message").notNull(),
-
     status: messageRequestStatusEnum("status").default("pending").notNull(),
-
     createdAt: timestamp("created_at").notNull().defaultNow(),
   },
   (table) => ({
@@ -158,40 +102,65 @@ export const messageRequestsTable = pgTable(
     ),
   }),
 );
-export const messageRequests = pgTable(
-  "message_requests",
-  {
-    id: serial("id").primaryKey(),
-    senderId: uuid("sender_id")
-      .notNull()
-      .references(() => usersTable.id, { onDelete: "cascade" }),
-    recipientId: uuid("recipient_id")
-      .notNull()
-      .references(() => usersTable.id, { onDelete: "cascade" }),
-    placeId: varchar("place_id", { length: 255 }).notNull(),
 
-    createdAt: timestamp("created_at").defaultNow().notNull(),
-    fulfilled: boolean("fulfilled").default(false),
-    rejected: boolean("rejected").default(false),
-    seen: boolean("seen").default(false),
+// Message Sessions
+export const messageSessionsTable = pgTable(
+  "message_sessions",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    placeId: varchar("place_id", { length: 255 }).notNull(),
+    initiatorCheckinId: integer("initiator_checkin_id")
+      .notNull()
+      .references(() => checkinsTable.id, { onDelete: "cascade" }),
+    initiateeCheckinId: integer("initiatee_checkin_id")
+      .notNull()
+      .references(() => checkinsTable.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    status: messageRequestStatusEnum("status").notNull().default("pending"),
   },
-  (table) => {
-    return {
-      uniqueSenderRecipient: unique().on(
-        table.senderId,
-        table.recipientId,
-        table.placeId,
-      ),
-    };
-  },
+  (table) => ({
+    initiatorIdx: index("message_session_initiator_idx").on(
+      table.initiatorCheckinId,
+    ),
+    initiateeIdx: index("message_session_initiatee_idx").on(
+      table.initiateeCheckinId,
+    ),
+    placeIdx: index("message_session_place_idx").on(table.placeId),
+    statusIdx: index("message_session_status_idx").on(table.status),
+  }),
 );
 
+// Messages
+export const messagesTable = pgTable(
+  "messages",
+  {
+    id: serial("id").primaryKey(),
+    sessionId: uuid("session_id")
+      .notNull()
+      .references(() => messageSessionsTable.id, { onDelete: "cascade" }),
+    senderCheckinId: integer("sender_checkin_id")
+      .notNull()
+      .references(() => checkinsTable.id, { onDelete: "cascade" }),
+    content: text("content").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => ({
+    sessionIdx: index("message_session_idx").on(table.sessionId),
+    senderIdx: index("message_sender_idx").on(table.senderCheckinId),
+    createdAtIdx: index("message_created_at_idx").on(table.createdAt),
+  }),
+);
+
+// Failed Message Attempts
 export const failedMessageRequests = pgTable("failed_message_requests", {
   id: serial("id").primaryKey(),
   senderId: uuid("sender_id")
     .notNull()
     .references(() => usersTable.id, { onDelete: "cascade" }),
-
   recipientId: uuid("recipient_id")
     .notNull()
     .references(() => usersTable.id, { onDelete: "cascade" }),
@@ -199,14 +168,15 @@ export const failedMessageRequests = pgTable("failed_message_requests", {
   reason: varchar("reason", { length: 255 }).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
-// Type Exports
+
+// Types
 export type InsertUser = typeof usersTable.$inferInsert;
 export type SelectUser = typeof usersTable.$inferSelect;
 export type InsertCheckin = typeof checkinsTable.$inferInsert;
 export type SelectCheckin = typeof checkinsTable.$inferSelect;
 export type InsertPlace = typeof placesTable.$inferInsert;
 export type SelectPlace = typeof placesTable.$inferSelect;
-export type InsertChatSession = typeof chatSessionsTable.$inferInsert;
-export type SelectChatSession = typeof chatSessionsTable.$inferSelect;
+export type InsertMessageSession = typeof messageSessionsTable.$inferInsert;
+export type SelectMessageSession = typeof messageSessionsTable.$inferSelect;
 export type InsertMessage = typeof messagesTable.$inferInsert;
 export type SelectMessage = typeof messagesTable.$inferSelect;
