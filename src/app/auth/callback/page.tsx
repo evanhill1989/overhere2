@@ -24,6 +24,7 @@ export default function AuthCallback() {
 
       if (error) {
         console.error("Auth exchange error:", error.message);
+        console.log("we errring in here");
         return;
       }
 
