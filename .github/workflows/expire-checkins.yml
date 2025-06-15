@@ -2,7 +2,7 @@ name: Expire Stale Check-ins
 
 on:
   schedule:
-    - cron: "0 */1 * * *" # Every hour
+    - cron: "*/5 * * * *" # Every 5 minutes
   workflow_dispatch: # Allow manual triggering
 
 jobs:
