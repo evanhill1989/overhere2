@@ -1,6 +1,6 @@
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
-import type { Tables } from "@/types/supabase";
+import type { Tables } from "@/lib/types/supabase";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));

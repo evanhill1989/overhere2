@@ -7,7 +7,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Place } from "@/types/places";
+import { Place } from "@/lib/types/places";
 import { useTransition } from "react";
 import { checkIn } from "@/app/_actions/checkinActions";
 import { usePlaceFinder } from "@/context/PlaceFinderProvider";

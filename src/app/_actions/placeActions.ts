@@ -4,7 +4,7 @@
 import { db } from "@/lib/db";
 import { placesTable } from "@/db/oldSchema";
 import { inArray } from "drizzle-orm";
-import type { Place } from "@/types/places"; // Ensure Place type includes isVerified and optionally primaryType
+import type { Place } from "@/lib/types/places"; // Ensure Place type includes isVerified and optionally primaryType
 
 const PLACES_API_KEY = process.env.PLACES_API_KEY;
 

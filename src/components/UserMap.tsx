@@ -14,10 +14,10 @@ import "leaflet/dist/leaflet.css";
 import L, { type LatLngExpression } from "leaflet";
 import ReactDOMServer from "react-dom/server";
 import { UserCircle, MapPin } from "@phosphor-icons/react/dist/ssr";
-import type { Place } from "@/types/places";
+import type { Place } from "@/lib/types/places";
 
 import { usePlaceFinder } from "@/context/PlaceFinderProvider";
-import { LocationData } from "@/types/location";
+import { LocationData } from "@/lib/types/location";
 
 export interface UserMapProps {
   places: Place[];

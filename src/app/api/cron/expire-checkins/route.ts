@@ -5,6 +5,7 @@ import { lte } from "drizzle-orm";
 import { subMinutes } from "date-fns";
 
 export async function POST(request: Request) {
+  console.log("🔥 Cron job triggered: Expiring stale check-ins");
   const auth = request.headers.get("authorization");
   if (!auth || auth !== `Bearer ${process.env.CRON_API_TOKEN}`) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

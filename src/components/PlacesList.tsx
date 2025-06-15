@@ -4,7 +4,7 @@
 import { usePlaceFinder } from "@/context/PlaceFinderProvider";
 import CheckinDialog from "@/components/CheckinDialog";
 import { useState } from "react";
-import { Place } from "@/types/places";
+import { Place } from "@/lib/types/places";
 
 export default function PlacesList() {
   const { derivedDisplayedPlaces } = usePlaceFinder();

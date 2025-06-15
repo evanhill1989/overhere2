@@ -4,7 +4,7 @@ import { useActionState } from "react";
 
 import type { ActionResult } from "@/app/_actions/checkinActions";
 import { submitCheckIn } from "@/app/_actions/checkinActions";
-import { Place } from "@/types/places";
+import { Place } from "@/lib/types/places";
 
 type PlacesSelectionFormProps = {
   places: Place[];

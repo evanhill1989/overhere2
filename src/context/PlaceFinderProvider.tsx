@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useContext, createContext } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/utils/supabase/client";
-import { Place } from "@/types/places";
+import { Place } from "@/lib/types/places";
 
 type PlaceFinderContextType = {
   userLocation: GeolocationCoordinates;

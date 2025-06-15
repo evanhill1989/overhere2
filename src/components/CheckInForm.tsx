@@ -5,7 +5,7 @@ import {
   submitCheckIn,
   type ActionResult,
 } from "@/app/_actions/checkinActions";
-import type { Place } from "@/types/places";
+import type { Place } from "@/lib/types/places";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -14,7 +14,7 @@ import { Loader2 } from "lucide-react";
 
 import { DialogClose } from "@/components/ui/dialog";
 import { usePlaceFinder } from "@/context/PlaceFinderProvider"; // or wherever it's defined
-import { LocationData } from "@/types/location";
+import { LocationData } from "@/lib/types/location";
 
 const initialCheckinState: ActionResult = {
   success: false,
