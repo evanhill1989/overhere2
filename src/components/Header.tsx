@@ -20,9 +20,8 @@ export function Header() {
 
   const handleLogin = async () => {
     await supabase.auth.signInWithOAuth({
-      provider: "github",
+      provider: "google",
       options: {
-        flowType: "pkce", // required
         redirectTo: `${location.origin}/auth/callback`, // optional, but clarifies intent
       },
     });
