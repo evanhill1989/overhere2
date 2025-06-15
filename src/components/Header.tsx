@@ -19,10 +19,10 @@ export function Header() {
   }, [supabase]);
 
   const handleLogin = async () => {
-    await supabase.auth.signInWithOAuth({
-      provider: "google",
+    supabase.auth.signInWithOAuth({
+      provider: "google", // or other
       options: {
-        redirectTo: `${location.origin}/auth/callback`, // optional, but clarifies intent
+        redirectTo: `${window.location.origin}/auth/callback`,
       },
     });
   };
