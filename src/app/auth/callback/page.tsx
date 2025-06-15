@@ -12,6 +12,8 @@ export default function AuthCallback() {
     const handleAuth = async () => {
       const supabase = createClient();
       const code = searchParams.get("code");
+      console.log("Raw URL:", window.location.href);
+      console.log("Code:", code);
 
       if (!code) {
         console.error("No code found in URL");
