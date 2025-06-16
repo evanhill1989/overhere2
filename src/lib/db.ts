@@ -4,7 +4,7 @@ import "dotenv/config";
 import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
 // Import ALL exports from your schema file as a single object named 'schema'
-import * as schema from "@/lib/newSchema"; // Adjust path if needed
+import * as schema from "@/lib/schema"; // Adjust path if needed
 
 // --- Choose the correct connection string for your APPLICATION RUNTIME ---
 // Usually, for serverless functions/edge runtime, the POOLER URL is preferred.

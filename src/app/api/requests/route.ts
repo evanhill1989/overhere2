@@ -1,6 +1,6 @@
 // app/api/requests/route.ts
 import { db } from "@/lib/db";
-import { messageSessionRequestsTable } from "@/lib/newSchema";
+import { messageSessionRequestsTable } from "@/lib/schema";
 import { eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
 

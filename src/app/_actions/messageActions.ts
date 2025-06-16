@@ -6,7 +6,7 @@ import {
   messageSessionRequestsTable,
   messageSessionsTable,
   failedMessageRequests,
-} from "@/lib/newSchema";
+} from "@/lib/schema";
 import { eq, and } from "drizzle-orm";
 import { createClient } from "@/utils/supabase/server";
 
@@ -54,22 +54,15 @@ export async function requestToMessage({
   }
 }
 
-export async function respondToMessageRequest(formData: FormData) {
-  const requestId = formData.get("requestId") as string;
-  const response = formData.get("response") as
-    | "accepted"
-    | "rejected"
-    | "canceled";
-
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    return { success: false, message: "Not authenticated." };
-  }
-
+export async function respondToMessageRequest({
+  requestId,
+  userId,
+  action,
+}: {
+  requestId: string;
+  userId: string;
+  action: "accepted" | "rejected" | "canceled";
+}) {
   const request = await db.query.messageSessionRequestsTable.findFirst({
     where: eq(messageSessionRequestsTable.id, requestId),
   });
@@ -78,25 +71,21 @@ export async function respondToMessageRequest(formData: FormData) {
     return { success: false, message: "Request not found." };
   }
 
-  if (
-    response === "accepted" &&
-    request.initiatorId !== user.id &&
-    request.initiateeId === user.id
-  ) {
-    // Create message session
-    await db.insert(messageSessionsTable).values({
-      placeId: request.placeId,
-      initiatorId: request.initiatorId,
-      initiateeId: request.initiateeId,
-      status: "accepted",
-    });
+  const isInitiator = request.initiatorId === userId;
+  const isInitiatee = request.initiateeId === userId;
+
+  if (action === "canceled" && !isInitiator) {
+    return { success: false, message: "Only sender can cancel." };
   }
 
-  // Update request status
+  if ((action === "accepted" || action === "rejected") && !isInitiatee) {
+    return { success: false, message: "Only receiver can respond." };
+  }
+
   await db
     .update(messageSessionRequestsTable)
-    .set({ status: response })
+    .set({ status: action })
     .where(eq(messageSessionRequestsTable.id, requestId));
 
-  return { success: true, message: `Request ${response}.` };
+  return { success: true, message: `Request ${action}.` };
 }

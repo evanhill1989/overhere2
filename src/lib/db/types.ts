@@ -6,7 +6,7 @@ import {
   messageSessionRequestsTable,
 
   // Add other tables as needed
-} from "@/lib/newSchema";
+} from "@/lib/schema";
 
 export type MessageRequestStatus = "pending" | "sent" | "failed";
 

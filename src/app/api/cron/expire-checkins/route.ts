@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { checkinsTable } from "@/lib/newSchema";
+import { checkinsTable } from "@/lib/schema";
 import { lte } from "drizzle-orm";
 import { subHours } from "date-fns";
 

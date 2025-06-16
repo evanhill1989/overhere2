@@ -2,6 +2,7 @@
 
 import { useActionState } from "react";
 import { requestToMessage } from "@/app/_actions/messageActions";
+import { IncomingRequests } from "@/components/IncomingRequests"; // ← Add this
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import type { SelectCheckin, MessageRequestStatus } from "@/lib/db/types";
@@ -51,12 +52,21 @@ export function PlaceDetails({
     {} satisfies Record<string, MessageRequestStatus>,
   );
 
+  const currentUserCheckin = checkins.find((c) => c.userId === currentUserId);
+
   return (
     <section className="space-y-6 px-4 py-6">
       <header>
         <h1 className="text-2xl font-bold">{place.name}</h1>
         <p className="text-muted-foreground text-sm">{place.address}</p>
       </header>
+
+      {currentUserCheckin && (
+        <section className="space-y-2">
+          <h2 className="text-lg font-semibold">Your Requests</h2>
+          <IncomingRequests currentUserId={currentUserId} />
+        </section>
+      )}
 
       <div className="space-y-4">
         {checkins.length === 0 ? (
@@ -91,7 +101,7 @@ export function PlaceDetails({
                     />
                     <input
                       type="hidden"
-                      name="recipientId"
+                      name="initiateeId"
                       value={checkin.userId}
                     />
                     <input type="hidden" name="placeId" value={place.id} />

@@ -2,7 +2,7 @@
 import { notFound } from "next/navigation";
 import { createClient } from "@/utils/supabase/server";
 import { db } from "@/lib/db";
-import { checkinsTable } from "@/lib/newSchema";
+import { checkinsTable } from "@/lib/schema";
 import { PlaceDetails } from "@/components/PlaceDetails";
 import { eq, and } from "drizzle-orm";
 

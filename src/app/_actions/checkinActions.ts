@@ -7,7 +7,7 @@ import {
   placesTable,
   type SelectPlace,
   type InsertCheckin,
-} from "@/lib/newSchema";
+} from "@/lib/schema";
 import { getKindeServerSession } from "@kinde-oss/kinde-auth-nextjs/server";
 import { redirect } from "next/navigation";
 import { and, eq, sql, desc } from "drizzle-orm";

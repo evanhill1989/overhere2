@@ -1,5 +1,5 @@
 import { db } from "@/lib/db";
-import { usersTable } from "@/lib/newSchema";
+import { usersTable } from "@/lib/schema";
 import { eq } from "drizzle-orm";
 
 type SupabaseUser = {
