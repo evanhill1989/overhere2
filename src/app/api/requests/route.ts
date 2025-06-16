@@ -8,7 +8,8 @@ import { NextRequest, NextResponse } from "next/server";
 export async function GET(req: NextRequest) {
   const userId = req.nextUrl.searchParams.get("userId");
   const placeId = req.nextUrl.searchParams.get("placeId");
-
+  console.log("userId", userId);
+  console.log("placeId", placeId);
   if (!userId || !placeId) {
     return NextResponse.json([], { status: 400 });
   }

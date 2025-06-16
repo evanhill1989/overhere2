@@ -17,7 +17,7 @@ export function usePollMessageRequests(
 ) {
   const [requests, setRequests] = useState<MessageRequest[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-
+  console.log(userId, placeId, "<<<<<<<<<<<<<-------------userId placeId");
   useEffect(() => {
     if (!userId || !placeId) return;
 

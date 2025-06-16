@@ -12,6 +12,7 @@ export default async function PlacePage(props: {
   params: Promise<{ placeId: string }>;
 }) {
   const { placeId } = await props.params;
+  console.log(placeId, "<<------------placeID in PLACE PAGE!!!!!!!!!!!!!! ");
   const supabase = await createClient();
   const {
     data: { user },

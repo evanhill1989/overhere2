@@ -31,7 +31,7 @@ export function PlaceDetails({
       const initiateeId = formData.get("initiateeId") as string;
       const initiatorId = formData.get("initiatorId") as string;
       const placeId = formData.get("placeId") as string;
-
+      console.log(placeId, "placeID $$$$$$$$$$$$$ in PLACE DETAILS");
       if (!checkinId) {
         return {
           ...prevStatus,
@@ -64,7 +64,7 @@ export function PlaceDetails({
       {currentUserCheckin && (
         <section className="space-y-2">
           <h2 className="text-lg font-semibold">Your Requests</h2>
-          <IncomingRequests currentUserId={currentUserId} />
+          <IncomingRequests currentUserId={currentUserId} placeId={place.id} />
         </section>
       )}
 
