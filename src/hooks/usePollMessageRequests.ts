@@ -7,21 +7,27 @@ type MessageRequest = {
   id: string;
   initiatorId: string;
   status: "pending" | "accepted" | "rejected" | "canceled";
+  placeId: string;
   createdAt: string;
 };
 
-export function usePollMessageRequests(userId: string | null) {
+export function usePollMessageRequests(
+  userId: string | null,
+  placeId: string | null,
+) {
   const [requests, setRequests] = useState<MessageRequest[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    if (!userId) return;
+    if (!userId || !placeId) return;
 
     let intervalId: NodeJS.Timeout;
 
     const fetchRequests = async () => {
       try {
-        const res = await fetch(`/api/requests?userId=${userId}`);
+        const res = await fetch(
+          `/api/requests?userId=${userId}&placeId=${placeId}`,
+        );
         const data = await res.json();
         setRequests(data);
         setIsLoading(false);
@@ -31,10 +37,10 @@ export function usePollMessageRequests(userId: string | null) {
     };
 
     fetchRequests();
-    intervalId = setInterval(fetchRequests, 15_000); // Poll every 15 seconds
+    intervalId = setInterval(fetchRequests, 15_000);
 
     return () => clearInterval(intervalId);
-  }, [userId]);
+  }, [userId, placeId]);
 
   return { requests, isLoading };
 }

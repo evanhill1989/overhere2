@@ -1,26 +1,30 @@
 // app/api/requests/route.ts
+
 import { db } from "@/lib/db";
 import { messageSessionRequestsTable } from "@/lib/schema";
-import { eq } from "drizzle-orm";
-import { NextResponse } from "next/server";
+import { eq, or, and } from "drizzle-orm";
+import { NextRequest, NextResponse } from "next/server";
 
-export async function GET(req: Request) {
-  const { searchParams } = new URL(req.url);
-  const userId = searchParams.get("userId");
+export async function GET(req: NextRequest) {
+  const userId = req.nextUrl.searchParams.get("userId");
+  const placeId = req.nextUrl.searchParams.get("placeId");
 
-  if (!userId) {
+  if (!userId || !placeId) {
     return NextResponse.json([], { status: 400 });
   }
 
-  const requests = await db.query.messageSessionRequestsTable.findMany({
-    where: eq(messageSessionRequestsTable.initiateeId, userId),
-    columns: {
-      id: true,
-      initiatorId: true,
-      status: true,
-      createdAt: true,
-    },
-  });
+  const requests = await db
+    .select()
+    .from(messageSessionRequestsTable)
+    .where(
+      and(
+        or(
+          eq(messageSessionRequestsTable.initiatorId, userId),
+          eq(messageSessionRequestsTable.initiateeId, userId),
+        ),
+        eq(messageSessionRequestsTable.placeId, placeId),
+      ),
+    );
 
   return NextResponse.json(requests);
 }

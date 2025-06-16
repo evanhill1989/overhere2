@@ -1,11 +1,12 @@
 "use client";
 
-import { useFormState, useFormStatus } from "react-dom";
+import { useFormStatus } from "react-dom";
 import { respondToMessageRequest } from "@/app/_actions/messageActions";
 
 import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
 import { usePollMessageRequests } from "@/hooks/usePollMessageRequests";
+import { useActionState } from "react";
 
 type RequestStatus = "pending" | "accepted" | "rejected" | "canceled";
 
@@ -16,11 +17,15 @@ export function IncomingRequests({
   currentUserId: string;
   placeId: string;
 }) {
-  const { requests, isLoading } = usePollMessageRequests(currentUserId);
+  const { requests, isLoading } = usePollMessageRequests(
+    currentUserId,
+    placeId,
+  );
+
   const filtered = requests.filter((r) => r.placeId === placeId);
 
   const initialState = { message: "" };
-  const [state, formAction] = useFormState(
+  const [state, formAction] = useActionState(
     respondToMessageRequest,
     initialState,
   );
