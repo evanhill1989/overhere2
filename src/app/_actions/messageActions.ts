@@ -53,7 +53,11 @@ export async function requestToMessage({
     return { success: false, error: "Unexpected server error" };
   }
 }
-export async function respondToMessageRequest(formData: FormData) {
+
+export async function respondToMessageRequest(
+  prevState: { message: string },
+  formData: FormData,
+): Promise<{ message: string }> {
   const requestId = formData.get("requestId") as string;
   const response = formData.get("response") as
     | "accepted"
@@ -66,7 +70,7 @@ export async function respondToMessageRequest(formData: FormData) {
   } = await supabase.auth.getUser();
 
   if (!user) {
-    return { success: false, message: "Not authenticated." };
+    return { message: "Not authenticated." };
   }
 
   const request = await db.query.messageSessionRequestsTable.findFirst({
@@ -74,7 +78,7 @@ export async function respondToMessageRequest(formData: FormData) {
   });
 
   if (!request) {
-    return { success: false, message: "Request not found." };
+    return { message: "Request not found." };
   }
 
   if (
@@ -82,7 +86,6 @@ export async function respondToMessageRequest(formData: FormData) {
     request.initiatorId !== user.id &&
     request.initiateeId === user.id
   ) {
-    // Create message session
     await db.insert(messageSessionsTable).values({
       placeId: request.placeId,
       initiatorId: request.initiatorId,
@@ -91,11 +94,10 @@ export async function respondToMessageRequest(formData: FormData) {
     });
   }
 
-  // Update request status
   await db
     .update(messageSessionRequestsTable)
     .set({ status: response })
     .where(eq(messageSessionRequestsTable.id, requestId));
 
-  return { success: true, message: `Request ${response}.` };
+  return { message: `Request ${response}.` };
 }
