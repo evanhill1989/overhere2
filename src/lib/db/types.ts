@@ -3,7 +3,7 @@ import { type InferSelectModel, type InferInsertModel } from "drizzle-orm";
 import {
   checkinsTable,
   usersTable,
-  messageRequestsTable,
+  messageSessionRequestsTable,
 
   // Add other tables as needed
 } from "@/lib/newSchema";
@@ -16,5 +16,5 @@ export type InsertCheckin = InferInsertModel<typeof checkinsTable>;
 export type SelectUser = InferSelectModel<typeof usersTable>;
 export type InsertUser = InferInsertModel<typeof usersTable>;
 
-export type MessageRequest = typeof messageRequestsTable.$inferSelect;
-export type NewMessageRequest = typeof messageRequestsTable.$inferInsert;
+export type MessageRequest = typeof messageSessionRequestsTable.$inferSelect;
+export type NewMessageRequest = typeof messageSessionRequestsTable.$inferInsert;
