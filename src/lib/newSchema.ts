@@ -82,6 +82,36 @@ export const messageSessionRequestsTable = pgTable(
   "message_session_requests",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+
+    initiatorId: uuid("initiator_id")
+      .notNull()
+      .references(() => usersTable.id, { onDelete: "cascade" }),
+
+    initiateeId: uuid("initiatee_id")
+      .notNull()
+      .references(() => usersTable.id, { onDelete: "cascade" }),
+
+    placeId: varchar("place_id", { length: 255 }).notNull(),
+
+    status: messageRequestStatusEnum("status").default("pending").notNull(),
+
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (table) => ({
+    uniquePairPerPlace: unique().on(
+      table.initiatorId,
+      table.initiateeId,
+      table.placeId,
+    ),
+  }),
+);
+
+// Message Sessions
+export const messageSessionsTable = pgTable(
+  "message_sessions",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+
     placeId: varchar("place_id", { length: 255 }).notNull(),
 
     initiatorId: uuid("initiator_id")
@@ -92,47 +122,15 @@ export const messageSessionRequestsTable = pgTable(
       .notNull()
       .references(() => usersTable.id, { onDelete: "cascade" }),
 
-    checkinId: integer("checkin_id")
-      .notNull()
-      .references(() => checkinsTable.id, { onDelete: "cascade" }),
-
-    status: messageRequestStatusEnum("status").default("pending").notNull(),
-
-    createdAt: timestamp("created_at").notNull().defaultNow(),
-  },
-  (table) => ({
-    uniqueInitiatorInitiateeCheckin: unique().on(
-      table.initiatorId,
-      table.initiateeId,
-      table.checkinId,
-    ),
-  }),
-);
-
-// Message Sessions
-export const messageSessionsTable = pgTable(
-  "message_sessions",
-  {
-    id: uuid("id").primaryKey().defaultRandom(),
-    placeId: varchar("place_id", { length: 255 }).notNull(),
-    initiatorCheckinId: integer("initiator_checkin_id")
-      .notNull()
-      .references(() => checkinsTable.id, { onDelete: "cascade" }),
-    initiateeCheckinId: integer("initiatee_checkin_id")
-      .notNull()
-      .references(() => checkinsTable.id, { onDelete: "cascade" }),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
+
     status: messageRequestStatusEnum("status").notNull().default("pending"),
   },
   (table) => ({
-    initiatorIdx: index("message_session_initiator_idx").on(
-      table.initiatorCheckinId,
-    ),
-    initiateeIdx: index("message_session_initiatee_idx").on(
-      table.initiateeCheckinId,
-    ),
+    initiatorIdx: index("message_session_initiator_idx").on(table.initiatorId),
+    initiateeIdx: index("message_session_initiatee_idx").on(table.initiateeId),
     placeIdx: index("message_session_place_idx").on(table.placeId),
     statusIdx: index("message_session_status_idx").on(table.status),
   }),

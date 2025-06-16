@@ -12,7 +12,7 @@ export function useMessageRequest() {
     initiatorId: string,
     initiateeId: string,
     placeId: string,
-    checkinId: number,
+
     onDone?: () => void,
   ) => {
     startTransition(async () => {
@@ -20,7 +20,6 @@ export function useMessageRequest() {
         initiatorId,
         initiateeId,
         placeId,
-        checkinId,
       });
       onDone?.();
       if (!result.success) {

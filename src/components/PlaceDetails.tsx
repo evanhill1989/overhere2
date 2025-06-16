@@ -41,7 +41,6 @@ export function PlaceDetails({
         initiatorId,
         initiateeId,
         placeId,
-        checkinId,
       });
 
       return {
