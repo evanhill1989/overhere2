@@ -1,18 +1,20 @@
 // app/api/requests/route.ts
 
 import { db } from "@/lib/db";
+import { eq, or, and, gt } from "drizzle-orm";
 import { messageSessionRequestsTable } from "@/lib/schema";
-import { eq, or, and } from "drizzle-orm";
+import { subHours } from "date-fns";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(req: NextRequest) {
-  const userId = req.nextUrl.searchParams.get("userId");
-  const placeId = req.nextUrl.searchParams.get("placeId");
-  console.log("userId", userId);
-  console.log("placeId", placeId);
-  if (!userId || !placeId) {
-    return NextResponse.json([], { status: 400 });
+  const { searchParams } = new URL(req.url);
+  const userId = searchParams.get("userId");
+
+  if (!userId) {
+    return NextResponse.json({ error: "Missing userId" }, { status: 400 });
   }
+
+  const twoHoursAgo = subHours(new Date(), 2);
 
   const requests = await db
     .select()
@@ -23,7 +25,7 @@ export async function GET(req: NextRequest) {
           eq(messageSessionRequestsTable.initiatorId, userId),
           eq(messageSessionRequestsTable.initiateeId, userId),
         ),
-        eq(messageSessionRequestsTable.placeId, placeId),
+        gt(messageSessionRequestsTable.createdAt, twoHoursAgo),
       ),
     );
 

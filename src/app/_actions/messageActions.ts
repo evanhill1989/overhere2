@@ -7,8 +7,9 @@ import {
   messageSessionsTable,
   failedMessageRequests,
 } from "@/lib/schema";
-import { eq, and } from "drizzle-orm";
+import { eq, and, or, gt } from "drizzle-orm";
 import { createClient } from "@/utils/supabase/server";
+import { subHours } from "date-fns";
 
 export async function requestToMessage({
   initiatorId,
@@ -100,4 +101,27 @@ export async function respondToMessageRequest(
     .where(eq(messageSessionRequestsTable.id, requestId));
 
   return { message: `Request ${response}.` };
+}
+
+export async function getMessageSession({
+  userId,
+  placeId,
+}: {
+  userId: string;
+  placeId: string;
+}) {
+  const twoHoursAgo = subHours(new Date(), 2);
+
+  const session = await db.query.messageSessionsTable.findFirst({
+    where: and(
+      eq(messageSessionsTable.placeId, placeId),
+      or(
+        eq(messageSessionsTable.initiatorId, userId),
+        eq(messageSessionsTable.initiateeId, userId),
+      ),
+      gt(messageSessionsTable.createdAt, twoHoursAgo),
+    ),
+  });
+
+  return session;
 }
