@@ -1,30 +1,38 @@
-// components/MessageInput.tsx
 "use client";
 
-import { useFormState, useFormStatus } from "react-dom";
-
-import { Textarea } from "@/components/ui/textarea";
+import { useActionState } from "react";
 import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
 import { Loader2 } from "lucide-react";
 import { submitMessage } from "@/app/_actions/messageActions";
+import { useFormStatus } from "react-dom";
+import { Message } from "./EphemeralSessonWindow";
 
-type Props = {
+export type MessageInputProps = {
   sessionId: string;
   senderCheckinId?: number;
-  onSent?: (msg: { id: number; content: string }) => void;
+  onSent?: (msg: Message) => void;
 };
 
-export function MessageInput({ sessionId, senderCheckinId, onSent }: Props) {
+export function MessageInput({
+  sessionId,
+  senderCheckinId,
+  onSent,
+}: MessageInputProps) {
   const initial = {
     ok: false,
-    newMessage: null as null | { id: number; content: string },
+    newMessage: null,
     error: "",
   };
-  const [state, formAction] = useFormState(submitMessage, initial);
-  const { pending } = useFormStatus();
+
+  const [state, formAction, pending] = useActionState(submitMessage, initial);
+  const { pending: isPending } = useFormStatus();
 
   // side-effect when a new message comes back
-  if (state.ok && state.newMessage && onSent) onSent(state.newMessage);
+  if (state.ok && state.newMessage && onSent) {
+    const { createdAt, ...rest } = state.newMessage;
+    onSent({ ...rest, createdAt: createdAt.toISOString() });
+  }
 
   return (
     <form action={formAction} className="flex gap-2">
@@ -36,12 +44,12 @@ export function MessageInput({ sessionId, senderCheckinId, onSent }: Props) {
         placeholder="Say something friendly…"
         className="flex-1"
         rows={2}
-        disabled={pending}
+        disabled={isPending}
         required
       />
 
-      <Button type="submit" disabled={pending}>
-        {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Send"}
+      <Button type="submit" disabled={isPending}>
+        {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Send"}
       </Button>
     </form>
   );

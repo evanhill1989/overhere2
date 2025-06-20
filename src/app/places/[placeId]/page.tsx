@@ -58,11 +58,9 @@ export default async function PlacePage(props: {
             currentUserId={currentUserId}
             checkinId={currentCheckinId}
           >
-            {" "}
             <MessageInput
               sessionId={session.id}
               senderCheckinId={currentCheckinId}
-              onSent={(msg) => setMessages((m) => [...m, msg])}
             />
           </EphemeralSessionWindow>
         ) : (

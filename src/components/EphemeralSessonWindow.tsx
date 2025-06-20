@@ -1,6 +1,22 @@
 "use client";
 
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import {
+  useRef,
+  useState,
+  useEffect,
+  isValidElement,
+  cloneElement,
+  ReactElement,
+} from "react";
+import { useRealtimeMessages } from "@/hooks/useRealtimeMessages";
+import type { MessageInputProps } from "@/components/MessageInput";
+
+export type Message = {
+  id: number;
+  content: string;
+  senderCheckinId: number;
+  createdAt: string;
+};
 
 type EphemeralSessionWindowProps = {
   session: {
@@ -11,39 +27,29 @@ type EphemeralSessionWindowProps = {
   };
   currentUserId: string;
   checkinId?: number;
-  children?: ReactNode;
-};
-
-type Message = {
-  id: number;
-  content: string;
-  senderCheckinId: number;
-  createdAt: string;
+  children?: ReactElement<MessageInputProps>;
 };
 
 export function EphemeralSessionWindow({
   session,
-
   checkinId,
   children,
 }: EphemeralSessionWindowProps) {
+  // Realtime stream from Supabase
+  const realtimeMessages = useRealtimeMessages(session.id);
+
+  // Local (optimistic) copy so we can render a sent message instantly
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
+  // Sync realtime data into local state whenever it changes
   useEffect(() => {
-    const fetchMessages = async () => {
-      const res = await fetch(`/api/messages?sessionId=${session.id}`);
-      const data = await res.json();
-      setMessages(data);
-      setLoading(false);
-    };
+    setMessages(realtimeMessages);
+    setLoading(false);
+  }, [realtimeMessages]);
 
-    fetchMessages();
-    const interval = setInterval(fetchMessages, 8000);
-    return () => clearInterval(interval);
-  }, [session.id]);
-
+  // Auto‑scroll to bottom on new messages
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
@@ -74,8 +80,12 @@ export function EphemeralSessionWindow({
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Message input passed as child */}
-      {children}
+      {/* Inject onSent so child can optimistically append */}
+      {children &&
+        isValidElement(children) &&
+        cloneElement(children, {
+          onSent: (msg: Message) => setMessages((prev) => [...prev, msg]),
+        })}
     </section>
   );
 }
