@@ -25,7 +25,7 @@ type Message = {
 
 export function EphemeralSessionWindow({
   session,
-  currentUserId,
+
   checkinId,
 }: EphemeralSessionWindowProps) {
   const [messages, setMessages] = useState<Message[]>([]);

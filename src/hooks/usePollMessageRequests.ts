@@ -37,6 +37,7 @@ export function usePollMessageRequests(
     };
 
     fetchRequests();
+    // eslint-disable-next-line prefer-const
     intervalId = setInterval(fetchRequests, 15_000);
 
     return () => clearInterval(intervalId);
