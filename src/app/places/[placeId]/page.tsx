@@ -9,6 +9,7 @@ import { eq, and } from "drizzle-orm";
 import { Suspense } from "react";
 import { getMessageSession } from "@/app/_actions/messageActions";
 import { EphemeralSessionWindow } from "@/components/EphemeralSessonWindow";
+import { MessageInput } from "@/components/MessageInput";
 
 export default async function PlacePage(props: {
   params: Promise<{ placeId: string }>;
@@ -56,7 +57,14 @@ export default async function PlacePage(props: {
             session={session}
             currentUserId={currentUserId}
             checkinId={currentCheckinId}
-          />
+          >
+            {" "}
+            <MessageInput
+              sessionId={session.id}
+              senderCheckinId={currentCheckinId}
+              onSent={(msg) => setMessages((m) => [...m, msg])}
+            />
+          </EphemeralSessionWindow>
         ) : (
           <PlaceDetails
             place={place}

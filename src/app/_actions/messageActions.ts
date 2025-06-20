@@ -6,6 +6,7 @@ import {
   messageSessionRequestsTable,
   messageSessionsTable,
   failedMessageRequests,
+  messagesTable,
 } from "@/lib/schema";
 import { eq, and, or, gt } from "drizzle-orm";
 import { createClient } from "@/utils/supabase/server";
@@ -21,16 +22,29 @@ export async function requestToMessage({
   placeId: string;
 }) {
   try {
-    // Check for existing message request
+    console.log("↪️ requestToMessage called with:", {
+      initiatorId,
+      initiateeId,
+      placeId,
+    });
+
     const existing = await db.query.messageSessionRequestsTable.findFirst({
       where: and(
         eq(messageSessionRequestsTable.initiatorId, initiatorId),
         eq(messageSessionRequestsTable.initiateeId, initiateeId),
         eq(messageSessionRequestsTable.placeId, placeId),
+        eq(messageSessionRequestsTable.status, "pending"),
       ),
     });
 
     if (existing) {
+      console.warn("⚠️ Duplicate request detected (pending)", {
+        initiatorId,
+        initiateeId,
+        placeId,
+        requestId: existing.id,
+        createdAt: existing.createdAt,
+      });
       return { success: false, error: "Duplicate request" };
     }
 
@@ -38,19 +52,26 @@ export async function requestToMessage({
       initiatorId,
       initiateeId,
       placeId,
+      status: "pending",
     });
 
     return { success: true };
-  } catch (error) {
-    console.error(error);
+  } catch (error: any) {
+    console.error("❌ Exception in requestToMessage", {
+      error,
+      initiatorId,
+      initiateeId,
+      placeId,
+    });
 
     await db.insert(failedMessageRequests).values({
       initiatorId,
       initiateeId,
       placeId,
-      reason: "Server error",
+      reason: error?.message || "Unexpected server error",
     });
 
+    console.log("📝 Logged failed message request");
     return { success: false, error: "Unexpected server error" };
   }
 }
@@ -124,4 +145,30 @@ export async function getMessageSession({
   });
 
   return session;
+}
+
+export async function submitMessage(
+  prev: { ok: boolean; newMessage: any; error: string },
+  formData: FormData,
+) {
+  try {
+    const sessionId = formData.get("sessionId") as string;
+    const senderCheckinId = Number(formData.get("senderCheckinId"));
+    const content = (formData.get("content") as string).trim();
+
+    if (!content) return { ok: false, newMessage: null, error: "Empty" };
+
+    const [row] = await db
+      .insert(messagesTable)
+      .values({ sessionId, senderCheckinId, content })
+      .returning();
+
+    // Optionally revalidate a cache tag or path:
+    // revalidatePath(`/places/${row.placeId}`);
+
+    return { ok: true, newMessage: row, error: "" };
+  } catch (e: any) {
+    console.error("submitMessage failed:", e);
+    return { ok: false, newMessage: null, error: e.message };
+  }
 }

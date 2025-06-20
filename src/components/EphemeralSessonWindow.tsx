@@ -1,9 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
-import { Loader2 } from "lucide-react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 
 type EphemeralSessionWindowProps = {
   session: {
@@ -14,6 +11,7 @@ type EphemeralSessionWindowProps = {
   };
   currentUserId: string;
   checkinId?: number;
+  children?: ReactNode;
 };
 
 type Message = {
@@ -27,10 +25,10 @@ export function EphemeralSessionWindow({
   session,
 
   checkinId,
+  children,
 }: EphemeralSessionWindowProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(true);
-  const [messageText, setMessageText] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -42,56 +40,31 @@ export function EphemeralSessionWindow({
     };
 
     fetchMessages();
-    const interval = setInterval(fetchMessages, 8000); // Polling
+    const interval = setInterval(fetchMessages, 8000);
     return () => clearInterval(interval);
   }, [session.id]);
-
-  const handleSend = async () => {
-    if (!messageText.trim()) return;
-
-    const res = await fetch("/api/messages", {
-      method: "POST",
-      body: JSON.stringify({
-        sessionId: session.id,
-        senderCheckinId: checkinId,
-        content: messageText.trim(),
-      }),
-      headers: {
-        "Content-Type": "application/json",
-      },
-    });
-
-    if (res.ok) {
-      setMessageText("");
-      const updated = await res.json();
-      setMessages(updated);
-    }
-  };
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
   return (
-    <section className="bg-background flex h-[70vh] max-h-[500px] flex-col rounded-md border p-4">
-      <h2 className="mb-2 text-lg font-semibold">You're connected</h2>
-
-      <div className="bg-muted mb-3 flex-1 space-y-2 overflow-y-auto rounded-md border p-2">
+    <section className="flex h-[80vh] flex-col gap-4 rounded-lg border p-4 shadow">
+      <div className="flex-1 space-y-3 overflow-y-auto pr-2">
         {loading ? (
-          <div className="text-muted-foreground flex items-center gap-2 text-sm">
-            <Loader2 className="h-4 w-4 animate-spin" />
-            Loading messages...
-          </div>
+          <p className="text-muted-foreground text-sm">Loading messages...</p>
         ) : messages.length === 0 ? (
-          <p className="text-muted-foreground text-sm">No messages yet.</p>
+          <p className="text-muted-foreground text-sm italic">
+            No messages yet.
+          </p>
         ) : (
           messages.map((msg) => (
             <div
               key={msg.id}
-              className={`max-w-xs rounded-lg p-2 text-sm ${
+              className={`max-w-[70%] rounded-lg px-3 py-2 text-sm ${
                 msg.senderCheckinId === checkinId
                   ? "bg-primary text-primary-foreground ml-auto"
-                  : "bg-muted mr-auto"
+                  : "bg-muted"
               }`}
             >
               {msg.content}
@@ -101,17 +74,8 @@ export function EphemeralSessionWindow({
         <div ref={messagesEndRef} />
       </div>
 
-      <div className="flex gap-2">
-        <Textarea
-          value={messageText}
-          onChange={(e) => setMessageText(e.target.value)}
-          placeholder="Type something friendly..."
-          rows={2}
-        />
-        <Button onClick={handleSend} disabled={!messageText.trim()}>
-          Send
-        </Button>
-      </div>
+      {/* Message input passed as child */}
+      {children}
     </section>
   );
 }
