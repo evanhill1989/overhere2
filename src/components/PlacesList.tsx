@@ -5,6 +5,7 @@ import { usePlaceFinder } from "@/context/PlaceFinderProvider";
 import CheckinDialog from "@/components/CheckinDialog";
 import { useState } from "react";
 import { Place } from "@/lib/types/places";
+import { createClient } from "@/utils/supabase/client";
 
 export default function PlacesList() {
   const { derivedDisplayedPlaces } = usePlaceFinder();
@@ -13,22 +14,25 @@ export default function PlacesList() {
 
   const handlePlaceClick = async (place: Place) => {
     try {
-      // Preload route code
+      const supabase = createClient();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (!user) {
+        console.warn("No user found, skipping prefetch");
+        return;
+      }
+
       router.prefetch(`/places/${place.place_id}`);
-      console.log(place, "place inside handlePlaceClick in PlacesList");
-      // Preload dynamic data via API call
-      await fetch("/api/prefetch/place-data", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ placeId: place.place_id }),
-      });
+
+      await fetch(
+        `/api/prefetch/place-data?placeId=${place.place_id}&userId=${user.id}`,
+      );
     } catch (error) {
       console.error("Prefetch error:", error);
     }
 
-    // Open check-in dialog
     setActivePlace(place);
   };
 
