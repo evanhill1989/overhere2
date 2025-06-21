@@ -15,14 +15,13 @@ export default async function PlacePage(props: {
   params: Promise<{ placeId: string }>;
 }) {
   const { placeId } = await props.params;
-  console.log(placeId, "<<------------placeID in PLACE PAGE!!!!!!!!!!!!!! ");
+
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return notFound();
 
-  console.log(user, "user from supabase auth");
   const userId = user.id;
   // Fetch check-ins at this place
   const checkins = await db
