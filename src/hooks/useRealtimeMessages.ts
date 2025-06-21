@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { createClient } from "@/utils/supabase/client";
-import type { Message } from "@/components/EphemeralSessionWindow";
+import { Message } from "@/components/EphemeralSessonWindow";
 
 export function useRealtimeMessages(sessionId: string) {
   const supabase = createClient();

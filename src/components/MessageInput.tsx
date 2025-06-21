@@ -25,7 +25,7 @@ export function MessageInput({
     error: "",
   };
 
-  const [state, formAction, pending] = useActionState(submitMessage, initial);
+  const [state, formAction] = useActionState(submitMessage, initial);
   const { pending: isPending } = useFormStatus();
 
   // side-effect when a new message comes back

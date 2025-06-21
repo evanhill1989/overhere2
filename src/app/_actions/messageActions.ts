@@ -56,7 +56,8 @@ export async function requestToMessage({
     });
 
     return { success: true };
-  } catch (error: any) {
+  } catch (e: unknown) {
+    const error = e instanceof Error ? e : new Error("Unknown error");
     console.error("❌ Exception in requestToMessage", {
       error,
       initiatorId,
@@ -147,8 +148,12 @@ export async function getMessageSession({
   return session;
 }
 
+import type { InferSelectModel } from "drizzle-orm";
+
+type MessageRow = InferSelectModel<typeof messagesTable>;
+
 export async function submitMessage(
-  prev: { ok: boolean; newMessage: any; error: string },
+  prev: { ok: boolean; newMessage: MessageRow | null; error: string },
   formData: FormData,
 ) {
   try {
@@ -163,12 +168,10 @@ export async function submitMessage(
       .values({ sessionId, senderCheckinId, content })
       .returning();
 
-    // Optionally revalidate a cache tag or path:
-    // revalidatePath(`/places/${row.placeId}`);
-
     return { ok: true, newMessage: row, error: "" };
-  } catch (e: any) {
-    console.error("submitMessage failed:", e);
-    return { ok: false, newMessage: null, error: e.message };
+  } catch (e: unknown) {
+    const error = e instanceof Error ? e : new Error("Unknown error");
+    console.error("submitMessage failed:", error);
+    return { ok: false, newMessage: null, error: error.message };
   }
 }
