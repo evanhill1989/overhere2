@@ -2,14 +2,45 @@
 import { notFound } from "next/navigation";
 import { createClient } from "@/utils/supabase/server";
 import { db } from "@/lib/db";
-import { checkinsTable } from "@/lib/schema";
+import { checkinsTable, messageSessionsTable } from "@/lib/schema";
 import { PlaceDetails } from "@/components/PlaceDetails";
-import { eq, and } from "drizzle-orm";
+import { eq, and, or, gt } from "drizzle-orm";
 
 import { Suspense } from "react";
 import { getMessageSession } from "@/app/_actions/messageActions";
 import { EphemeralSessionWindow } from "@/components/EphemeralSessonWindow";
 import { MessageInput } from "@/components/MessageInput";
+import { cache } from "react"; // Use this to memoize fetch if needed
+
+import { subHours } from "date-fns";
+
+async function fetchPlaceData(placeId: string, userId: string) {
+  const twoHoursAgo = subHours(new Date(), 2);
+
+  const [checkins, session] = await Promise.all([
+    db
+      .select()
+      .from(checkinsTable)
+      .where(
+        and(
+          eq(checkinsTable.placeId, placeId),
+          eq(checkinsTable.isActive, true),
+        ),
+      ),
+    db.query.messageSessionsTable.findFirst({
+      where: and(
+        eq(messageSessionsTable.placeId, placeId),
+        or(
+          eq(messageSessionsTable.initiatorId, userId),
+          eq(messageSessionsTable.initiateeId, userId),
+        ),
+        gt(messageSessionsTable.createdAt, twoHoursAgo),
+      ),
+    }),
+  ]);
+
+  return { checkins, session };
+}
 
 export default async function PlacePage(props: {
   params: Promise<{ placeId: string }>;
@@ -24,18 +55,12 @@ export default async function PlacePage(props: {
 
   const userId = user.id;
   // Fetch check-ins at this place
-  const checkins = await db
-    .select()
-    .from(checkinsTable)
-    .where(
-      and(eq(checkinsTable.placeId, placeId), eq(checkinsTable.isActive, true)),
-    );
+  const { checkins, session } = await fetchPlaceData(placeId, userId);
 
   if (!checkins || checkins.length === 0) {
     // Optionally show skeleton instead of notFound()
     return notFound();
   }
-  const session = await getMessageSession({ userId, placeId });
 
   const place = {
     id: placeId,
