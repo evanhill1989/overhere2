@@ -1,3 +1,5 @@
+// components/CheckinDialog.tsx
+
 "use client";
 
 import {

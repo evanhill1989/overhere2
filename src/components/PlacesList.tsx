@@ -1,3 +1,5 @@
+// components/PlacesList.tsx
+
 "use client";
 
 import { useRouter } from "next/navigation";
@@ -5,29 +7,18 @@ import { usePlaceFinder } from "@/context/PlaceFinderProvider";
 import CheckinDialog from "@/components/CheckinDialog";
 import { useState } from "react";
 import { Place } from "@/lib/types/places";
-import { createClient } from "@/utils/supabase/client";
 
-export default function PlacesList() {
+export default function PlacesList({ userId }: { userId: string }) {
   const { derivedDisplayedPlaces } = usePlaceFinder();
   const [activePlace, setActivePlace] = useState<Place | null>(null);
   const router = useRouter();
 
   const handlePlaceClick = async (place: Place) => {
     try {
-      const supabase = createClient();
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-
-      if (!user) {
-        console.warn("No user found, skipping prefetch");
-        return;
-      }
-
       router.prefetch(`/places/${place.place_id}`);
 
       await fetch(
-        `/api/prefetch/place-data?placeId=${place.place_id}&userId=${user.id}`,
+        `/api/prefetch/place-data?placeId=${place.place_id}&userId=${userId}`,
       );
     } catch (error) {
       console.error("Prefetch error:", error);
@@ -58,6 +49,7 @@ export default function PlacesList() {
             if (!open) setActivePlace(null);
           }}
           place={activePlace}
+          userId={userId}
         />
       )}
     </>

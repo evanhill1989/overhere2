@@ -1,18 +1,25 @@
 // app/page.tsx
 import { Button } from "@/components/ui/button";
-import PlaceFinder from "@/components/PlaceFinder";
+
 import { createClient } from "@/utils/supabase/server";
 import Link from "next/link";
+import { PlaceFinderProvider } from "@/context/PlaceFinderProvider";
+import PlaceFinderUI from "@/components/PlaceFinderUI";
 
 export default async function HomePage() {
   const supabase = await createClient();
-  const { data } = await supabase.auth.getUser();
-  const isLoggedIn = !!data.user;
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  const isLoggedIn = !!user;
 
   return (
     <div className="grid h-full max-w-3xl text-center md:max-w-full">
       {isLoggedIn ? (
-        <PlaceFinder />
+        <PlaceFinderProvider>
+          <PlaceFinderUI userId={user.id} />
+        </PlaceFinderProvider>
       ) : (
         <>
           <div></div> {/* Spacer row */}

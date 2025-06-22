@@ -1,3 +1,5 @@
+// context/PlaceFinderProvider.tsx
+
 "use client";
 
 import { useState, useEffect, useRef, useContext, createContext } from "react";

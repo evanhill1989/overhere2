@@ -1,3 +1,5 @@
+// components/EphemeralSessionWindow.tsx
+
 "use client";
 
 import {

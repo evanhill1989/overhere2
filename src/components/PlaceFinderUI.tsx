@@ -18,7 +18,7 @@ const UserMap = dynamic(() => import("./UserMap"), {
   ),
 });
 
-export default function PlaceFinderUI() {
+export default function PlaceFinderUI({ userId }: { userId: string }) {
   const {
     derivedDisplayedPlaces,
 
@@ -59,7 +59,7 @@ export default function PlaceFinderUI() {
       </div>
 
       <div className="absolute right-0 bottom-0 left-0 z-10 h-[40%] md:left-auto md:w-1/3">
-        {isLoadingOverall ? <Loader2 /> : <PlacesList />}
+        {isLoadingOverall ? <Loader2 /> : <PlacesList userId={userId} />}
       </div>
     </div>
   );

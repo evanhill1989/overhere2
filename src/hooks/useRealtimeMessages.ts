@@ -1,3 +1,5 @@
+// hooks/useRealTimeMessages.ts
+
 import { useEffect, useState } from "react";
 import { createClient } from "@/utils/supabase/client";
 import { Message } from "@/components/EphemeralSessonWindow";

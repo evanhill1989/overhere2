@@ -1,12 +1,12 @@
+// app/layout.tsx
+
 import type { Metadata } from "next";
 import { Lexend, Nunito_Sans } from "next/font/google";
 import "./globals.css";
 import { Footer } from "@/components/Footer";
 import { Toaster } from "@/components/ui/sonner";
-
 import { createClient as createServerSupabaseClient } from "@/utils/supabase/server";
 import { Header } from "@/components/Header";
-import { PlaceFinderProvider } from "@/context/PlaceFinderProvider";
 
 const fontSans = Nunito_Sans({
   subsets: ["latin"],
@@ -35,21 +35,13 @@ export default async function RootLayout({
     data: { user },
   } = await supabase.auth.getUser();
 
-  const isLoggedIn = !!user;
-
   return (
     <html lang="en">
       <body
         className={`${fontHeading.variable} ${fontSans.variable} grid min-h-[100dvh] grid-rows-[auto_1fr_auto] antialiased`}
       >
-        <Header />
-        <main className="w-full">
-          {isLoggedIn ? (
-            <PlaceFinderProvider>{children}</PlaceFinderProvider>
-          ) : (
-            children
-          )}
-        </main>
+        <Header userId={user?.id ?? null} />
+        <main className="w-full">{children}</main>
         <Footer />
         <Toaster />
       </body>
