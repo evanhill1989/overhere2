@@ -2,16 +2,11 @@
 "use server";
 
 import { db } from "@/lib/db";
-import {
-  checkinsTable,
-  placesTable,
-  type SelectPlace,
-  type InsertCheckin,
-} from "@/lib/schema";
-import { getKindeServerSession } from "@kinde-oss/kinde-auth-nextjs/server";
+import { checkinsTable, placesTable, type SelectPlace } from "@/lib/schema";
+
 import { redirect } from "next/navigation";
-import { and, eq, sql, desc } from "drizzle-orm";
-import { calculateDistance } from "@/lib/utils";
+import { and, eq, sql } from "drizzle-orm";
+
 import { checkInSchema } from "@/lib/validators/checkin";
 import { ensureUserInDb } from "@/utils/supabase/ensureUserInDb";
 import { createClient } from "@/utils/supabase/server";
@@ -23,8 +18,6 @@ export type ActionResult = {
 };
 
 const CACHE_STALE_MS = 30 * 24 * 60 * 60 * 1000;
-const CHECKIN_UPDATE_WINDOW_MS = 2 * 60 * 60 * 1000;
-const MAX_CHECKIN_DISTANCE_METERS = 100000;
 
 interface GooglePlaceDetailsNewResult {
   id: string;
@@ -34,7 +27,7 @@ interface GooglePlaceDetailsNewResult {
   primaryTypeDisplayName?: { text: string; languageCode?: string };
 }
 
-async function fetchAndCacheGooglePlaceDetails(
+export async function fetchAndCacheGooglePlaceDetails(
   placeId: string,
 ): Promise<SelectPlace | null> {
   try {
