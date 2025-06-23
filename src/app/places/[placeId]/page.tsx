@@ -8,11 +8,10 @@ import { eq, and, or, gt } from "drizzle-orm";
 
 import { Suspense } from "react";
 
-import { EphemeralSessionWindow } from "@/components/EphemeralSessonWindow";
-import { MessageInput } from "@/components/MessageInput";
 //import { cache } from "react";  //Use this to memoize fetch if needed
 
 import { subHours } from "date-fns";
+import { MessageSessionListener } from "@/components/MessageSessionListener";
 
 async function fetchPlaceData(placeId: string, userId: string) {
   const twoHoursAgo = subHours(new Date(), 2);
@@ -76,24 +75,18 @@ export default async function PlacePage(props: {
   return (
     <main className="mx-auto max-w-md space-y-6 p-4">
       <Suspense fallback={<div>Loading place...</div>}>
-        {session ? (
-          <EphemeralSessionWindow
-            session={session}
-            currentUserId={currentUserId}
-            checkinId={currentCheckinId}
-          >
-            <MessageInput
-              sessionId={session.id}
-              senderCheckinId={currentCheckinId}
-            />
-          </EphemeralSessionWindow>
-        ) : (
+        <MessageSessionListener
+          placeId={placeId}
+          currentUserId={currentUserId}
+          currentCheckinId={currentCheckinId}
+          initialSession={session ?? null}
+        >
           <PlaceDetails
             place={place}
             checkins={checkins}
-            currentUserId={user.id}
+            currentUserId={currentUserId}
           />
-        )}
+        </MessageSessionListener>
       </Suspense>
     </main>
   );
