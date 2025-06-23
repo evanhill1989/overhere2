@@ -30,7 +30,7 @@ export default function PlaceFinderUI({ userId }: { userId: string }) {
   } = usePlaceFinder();
 
   return (
-    <div className="relative h-full w-full overflow-hidden">
+    <div className="relative h-full w-full overflow-scroll">
       <div className="absolute inset-0 z-0">
         <UserMap places={derivedDisplayedPlaces} selectedPlace={null} />
       </div>

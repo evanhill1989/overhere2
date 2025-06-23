@@ -40,8 +40,12 @@ export function MessageSessionListener({
           const isParticipant =
             newSession.initiatorId === currentUserId ||
             newSession.initiateeId === currentUserId;
-
+          console.log("🔥 New session inserted via Realtime:", payload.new);
           if (isParticipant) {
+            console.log(
+              isParticipant,
+              "isParticipant insided usseEffect that set's Session which triggers rerender",
+            );
             setSession(newSession);
           }
         },
