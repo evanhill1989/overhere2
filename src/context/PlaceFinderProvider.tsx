@@ -76,6 +76,9 @@ export function PlaceFinderProvider({
         name: "Local Park",
         address: "456 Park Ave",
       },
+      { place_id: "uti456", name: "Pizza", address: "456 Park Ave" },
+      { place_id: "fbi666", name: "Library", address: "456 Park Ave" },
+      { place_id: "cia911", name: "Speakeasy", address: "456 Park Ave" },
     ]);
   }, [userLocation]);
 

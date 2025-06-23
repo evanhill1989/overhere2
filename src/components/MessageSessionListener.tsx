@@ -22,6 +22,7 @@ export function MessageSessionListener({
 }) {
   const [session, setSession] = useState<SelectSession | null>(initialSession);
   const supabase = createClient();
+  console.log(placeId, "placeId in MessageSessionListener");
 
   useEffect(() => {
     const channel = supabase
