@@ -157,6 +157,9 @@ export async function submitMessage(
   formData: FormData,
 ) {
   try {
+    console.log(formData, "formData in submitMesssage try block");
+    console.log("+++++++++++ running in try block in submitMessage");
+
     const sessionId = formData.get("sessionId") as string;
     const senderCheckinId = Number(formData.get("senderCheckinId"));
     const content = (formData.get("content") as string).trim();

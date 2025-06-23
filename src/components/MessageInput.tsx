@@ -2,7 +2,7 @@
 
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Loader2 } from "lucide-react";
@@ -31,11 +31,12 @@ export function MessageInput({
   const { pending: isPending } = useFormStatus();
 
   // side-effect when a new message comes back
-  if (state.ok && state.newMessage && onSent) {
-    const { createdAt, ...rest } = state.newMessage;
-    onSent({ ...rest, createdAt: createdAt.toISOString() });
-  }
-
+  useEffect(() => {
+    if (state.ok && state.newMessage && onSent) {
+      const { createdAt, ...rest } = state.newMessage;
+      onSent({ ...rest, createdAt: createdAt.toISOString() });
+    }
+  }, [state, onSent]);
   return (
     <form action={formAction} className="flex gap-2">
       <input type="hidden" name="sessionId" value={sessionId} />
