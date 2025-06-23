@@ -74,20 +74,18 @@ export default async function PlacePage(props: {
 
   return (
     <main className="mx-auto max-w-md space-y-6 p-4">
-      <Suspense fallback={<div>Loading place...</div>}>
-        <MessageSessionListener
-          placeId={placeId}
+      <MessageSessionListener
+        placeId={placeId}
+        currentUserId={currentUserId}
+        currentCheckinId={currentCheckinId}
+        initialSession={session ?? null}
+      >
+        <PlaceDetails
+          place={place}
+          checkins={checkins}
           currentUserId={currentUserId}
-          currentCheckinId={currentCheckinId}
-          initialSession={session ?? null}
-        >
-          <PlaceDetails
-            place={place}
-            checkins={checkins}
-            currentUserId={currentUserId}
-          />
-        </MessageSessionListener>
-      </Suspense>
+        />
+      </MessageSessionListener>
     </main>
   );
 }

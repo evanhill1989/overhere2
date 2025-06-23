@@ -57,6 +57,10 @@ export function MessageSessionListener({
     };
   }, [placeId, currentUserId, supabase]);
 
+  useEffect(() => {
+    console.log("Session updated!", session);
+  }, [session]);
+
   if (session) {
     return (
       <EphemeralSessionWindow
