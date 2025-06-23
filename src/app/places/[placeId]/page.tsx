@@ -7,7 +7,7 @@ import { PlaceDetails } from "@/components/PlaceDetails";
 import { eq, and, or, gt } from "drizzle-orm";
 
 import { Suspense } from "react";
-import { getMessageSession } from "@/app/_actions/messageActions";
+
 import { EphemeralSessionWindow } from "@/components/EphemeralSessonWindow";
 import { MessageInput } from "@/components/MessageInput";
 import { cache } from "react"; // Use this to memoize fetch if needed
