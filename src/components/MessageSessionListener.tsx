@@ -42,11 +42,9 @@ export function MessageSessionListener({
             newSession.initiateeId === currentUserId;
           console.log("🔥 New session inserted via Realtime:", payload.new);
           if (isParticipant) {
-            console.log(
-              isParticipant,
-              "isParticipant insided usseEffect that set's Session which triggers rerender",
-            );
+            console.log("✅ isParticipant, setting session...");
             setSession(newSession);
+            console.log("📦 session state should now be updated");
           }
         },
       )
