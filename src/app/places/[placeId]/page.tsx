@@ -6,8 +6,6 @@ import { checkinsTable, messageSessionsTable } from "@/lib/schema";
 import { PlaceDetails } from "@/components/PlaceDetails";
 import { eq, and, or, gt } from "drizzle-orm";
 
-import { Suspense } from "react";
-
 //import { cache } from "react";  //Use this to memoize fetch if needed
 
 import { subHours } from "date-fns";
