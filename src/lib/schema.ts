@@ -69,10 +69,14 @@ export const checkinsTable = pgTable(
     checkedOutAt: timestamp("checked_out_at"),
   },
   (table) => ({
+    // Indexes for performance
     userIdx: index("checkins_user_idx").on(table.userId),
     placeIdx: index("checkins_place_idx").on(table.placeId),
     statusIdx: index("checkins_status_idx").on(table.status),
     createdAtIndex: index("checkins_created_at_idx").on(table.createdAt),
+
+    // 🚦 UNIQUE: ensure one active check‑in per user
+    uniqueByUser: unique().on(table.userId),
   }),
 );
 

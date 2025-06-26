@@ -153,16 +153,34 @@ export async function checkIn(formData: FormData) {
       and(eq(checkinsTable.userId, user.id), eq(checkinsTable.isActive, true)),
     );
 
-  // Step 2: Insert the new check-in
-  await db.insert(checkinsTable).values({
-    userId: user.id,
-    placeId: parsed.place_id,
-    placeName: parsed.place_name,
-    placeAddress: parsed.place_address,
-    latitude: parsed.latitude,
-    longitude: parsed.longitude,
-    status: "available",
-    isActive: true,
-  });
+  // Step 2: Upsert the new check-in
+  await db
+    .insert(checkinsTable)
+    .values({
+      userId: user.id,
+      placeId: parsed.place_id,
+      placeName: parsed.place_name,
+      placeAddress: parsed.place_address,
+      latitude: parsed.latitude,
+      longitude: parsed.longitude,
+      status: "available",
+      isActive: true,
+      createdAt: new Date(),
+    })
+    .onConflictDoUpdate({
+      target: [checkinsTable.userId], // 👈 user can only have one
+      set: {
+        placeId: parsed.place_id,
+        placeName: parsed.place_name,
+        placeAddress: parsed.place_address,
+        latitude: parsed.latitude,
+        longitude: parsed.longitude,
+        status: "available",
+        isActive: true,
+        checkedOutAt: null,
+        createdAt: new Date(),
+      },
+    });
+
   redirect(`/places/${parsed.place_id}`);
 }
