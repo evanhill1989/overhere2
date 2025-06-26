@@ -6,6 +6,7 @@ import { IncomingRequests } from "@/components/IncomingRequests"; // ← Add thi
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import type { SelectCheckin, MessageRequestStatus } from "@/lib/db/types";
+import { CheckinList } from "./CheckinList";
 
 type PlaceDetailsProps = {
   place: { id: string; name: string; address: string };
@@ -68,6 +69,8 @@ export function PlaceDetails({
         </section>
       )}
 
+      <CheckinList currentUserId={currentUserId} placeId={place.id} />
+      {/* 
       <div className="space-y-4">
         {checkins.length === 0 ? (
           <p className="text-sm text-gray-500">
@@ -124,7 +127,7 @@ export function PlaceDetails({
             );
           })
         )}
-      </div>
+      </div> */}
     </section>
   );
 }

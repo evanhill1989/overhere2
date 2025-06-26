@@ -25,7 +25,6 @@ export function MessageSessionListener({
   console.log(placeId, "placeId in MessageSessionListener");
 
   useEffect(() => {
-    console.log("Is this useEffect running at all for channel supabase??!!!");
     const channel = supabase
       .channel(`session:${placeId}`)
       .on(
@@ -50,16 +49,8 @@ export function MessageSessionListener({
             newSession.initiatorId === currentUserId ||
             newSession.initiateeId === currentUserId;
 
-          console.log("🔥 New session inserted via Realtime:", payload.new);
-          console.log(isParticipant, "✅🔥🔥 isParticipant is true?!!!!");
           if (isParticipant) {
-            console.log("✅ isParticipant, setting session...");
             setSession(newSession);
-            console.log("📦 session state should now be updated");
-            console.log(
-              newSession,
-              "✅📦 newSession in MessageSessionListener",
-            );
           }
         },
       )
@@ -69,10 +60,6 @@ export function MessageSessionListener({
       supabase.removeChannel(channel);
     };
   }, [placeId, currentUserId, supabase]);
-
-  useEffect(() => {
-    console.log("Session updated!", session);
-  }, [session]);
 
   if (session) {
     return (

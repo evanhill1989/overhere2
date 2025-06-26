@@ -47,12 +47,14 @@ export function EphemeralSessionWindow({
 
   // Sync realtime data into local state whenever it changes
   useEffect(() => {
+    console.log(realtimeMessages, "realtimeMessages in ESW");
     setMessages(realtimeMessages);
     setLoading(false);
   }, [realtimeMessages]);
 
   // Auto‑scroll to bottom on new messages
   useEffect(() => {
+    console.log(messages, "messages in useEffect that scrolls messages in ESW");
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
