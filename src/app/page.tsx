@@ -1,46 +1,31 @@
 // app/page.tsx
-import { Button } from "@/components/ui/button";
+"use client";
 
-import { createClient } from "@/utils/supabase/server";
+import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { PlaceFinderProvider } from "@/context/PlaceFinderProvider";
 import PlaceFinderUI from "@/components/PlaceFinderUI";
+import { useSession } from "@/components/SessionProvider";
 
-export default async function HomePage() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  const isLoggedIn = !!user;
+export default function HomePage() {
+  const userId = useSession(); // null if not logged in
 
   return (
     <div className="grid h-full max-w-3xl text-center md:max-w-full">
-      {isLoggedIn ? (
+      {userId ? (
         <PlaceFinderProvider>
-          <PlaceFinderUI userId={user.id} />
+          <PlaceFinderUI />
         </PlaceFinderProvider>
       ) : (
-        <>
-          <div></div> {/* Spacer row */}
-          <div className="flex flex-col items-center gap-6 p-4 text-center">
-            <h1 className="text-primary font-heading text-4xl font-bold md:text-7xl">
-              Talk to people
-            </h1>
-            <p className="text-foreground max-w-md text-base/snug md:text-lg">
-              Why not make it a little easier to break the ice and spark a
-              genuine conversation?
-            </p>
-            <div className="mt-4 flex gap-4">
-              <Button asChild>
-                <Link href="/login">Join Overhere</Link>
-              </Button>
-              <Button variant="secondary" asChild>
-                <Link href="/about">Learn More</Link>
-              </Button>
-            </div>
-          </div>
-        </>
+        <div className="mx-auto mt-20 max-w-md space-y-6">
+          <h1 className="text-3xl font-bold">Meet people, not profiles.</h1>
+          <p className="text-muted-foreground text-lg">
+            Overhere helps you connect spontaneously with people nearby.
+          </p>
+          <Link href="/auth/login">
+            <Button className="w-full">Get Started</Button>
+          </Link>
+        </div>
       )}
     </div>
   );

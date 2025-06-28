@@ -7,8 +7,10 @@ import { usePlaceFinder } from "@/context/PlaceFinderProvider";
 import CheckinDialog from "@/components/CheckinDialog";
 import { useState } from "react";
 import { Place } from "@/lib/types/places";
+import { useSession } from "./SessionProvider";
 
-export default function PlacesList({ userId }: { userId: string }) {
+export default function PlacesList() {
+  const userId = useSession();
   const { derivedDisplayedPlaces } = usePlaceFinder();
   const [activePlace, setActivePlace] = useState<Place | null>(null);
   const router = useRouter();

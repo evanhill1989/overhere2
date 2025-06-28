@@ -18,20 +18,15 @@ type CheckinDialogProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   place: Place;
-  userId: string;
 };
-
-console.log("Test");
 
 export default function CheckinDialog({
   open,
   onOpenChange,
   place,
-  userId,
 }: CheckinDialogProps) {
   const { userLocation } = usePlaceFinder();
   const [isPending, startTransition] = useTransition();
-  console.log(userId, "userId in CheckinDialog");
 
   const handleCheckin = () => {
     if (!userLocation) return;
