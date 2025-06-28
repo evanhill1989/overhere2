@@ -27,7 +27,7 @@ export function PlaceDetails({
 
       {currentUserCheckin && (
         <section className="space-y-2">
-          <h2 className="text-lg font-semibold">Your Requests</h2>
+          <h2 className="text-lg font-semibold">Incoming Requests</h2>
           <IncomingRequests currentUserId={currentUserId} placeId={place.id} />
         </section>
       )}

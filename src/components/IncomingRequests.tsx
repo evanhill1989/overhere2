@@ -22,7 +22,16 @@ export function IncomingRequests({
     placeId,
   );
 
-  const filtered = requests.filter((r) => r.placeId === placeId);
+  const filtered = requests.filter(
+    (r) =>
+      r.placeId === placeId &&
+      r.initiatorId !== currentUserId && // ⬅️ Only incoming, not sent by current user
+      r.status === "pending", // ⬅️ Only care about still-pending requests
+  );
+
+  filtered.sort(
+    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+  );
 
   const initialState = { message: "" };
   const [state, formAction] = useActionState(
@@ -48,6 +57,7 @@ export function IncomingRequests({
       ) : (
         filtered.map((req) => {
           const isInitiator = req.initiatorId === currentUserId;
+
           const status: RequestStatus = req.status;
 
           return (
