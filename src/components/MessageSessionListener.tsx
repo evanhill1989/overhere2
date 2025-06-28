@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { createClient } from "@/utils/supabase/client";
 import { EphemeralSessionWindow } from "./EphemeralSessonWindow";
 import { MessageInput } from "./MessageInput";
-import type { SelectSession } from "@/lib/db/types";
+import type { SelectMessageSession } from "@/lib/db/types";
 
 export function MessageSessionListener({
   placeId,
@@ -17,10 +17,12 @@ export function MessageSessionListener({
   placeId: string;
   currentUserId: string;
   currentCheckinId?: number;
-  initialSession: SelectSession | null;
+  initialSession: SelectMessageSession | null;
   children: React.ReactNode;
 }) {
-  const [session, setSession] = useState<SelectSession | null>(initialSession);
+  const [session, setSession] = useState<SelectMessageSession | null>(
+    initialSession,
+  );
   const supabase = createClient();
   console.log(placeId, "placeId in MessageSessionListener");
 
@@ -37,7 +39,7 @@ export function MessageSessionListener({
         },
         (payload) => {
           const raw = payload.new;
-          const newSession: SelectSession = {
+          const newSession: SelectMessageSession = {
             id: raw.id,
             initiatorId: raw.initiator_id,
             initiateeId: raw.initiatee_id,

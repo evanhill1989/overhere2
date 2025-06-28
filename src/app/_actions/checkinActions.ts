@@ -2,7 +2,8 @@
 "use server";
 
 import { db } from "@/lib/db";
-import { checkinsTable, placesTable, type SelectPlace } from "@/lib/schema";
+import { checkinsTable, placesTable } from "@/lib/schema";
+import { SelectPlace } from "@/lib/db/types";
 
 import { redirect } from "next/navigation";
 import { and, eq, sql } from "drizzle-orm";

@@ -176,19 +176,3 @@ export const failedMessageRequests = pgTable("failed_message_requests", {
   reason: varchar("reason", { length: 255 }).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
-
-// Types
-export type InsertUser = typeof usersTable.$inferInsert;
-export type SelectUser = typeof usersTable.$inferSelect;
-export type InsertCheckin = typeof checkinsTable.$inferInsert;
-export type SelectCheckin = typeof checkinsTable.$inferSelect;
-export type InsertPlace = typeof placesTable.$inferInsert;
-export type SelectPlace = typeof placesTable.$inferSelect;
-export type InsertMessageSession = typeof messageSessionsTable.$inferInsert;
-export type SelectMessageSession = typeof messageSessionsTable.$inferSelect;
-export type InsertMessage = typeof messagesTable.$inferInsert;
-export type SelectMessage = typeof messagesTable.$inferSelect;
-export type InsertMessageSessionRequest =
-  typeof messageSessionRequestsTable.$inferInsert;
-export type SelectMessageSessionRequest =
-  typeof messageSessionRequestsTable.$inferSelect;

@@ -8,6 +8,7 @@ import { MessageRequestStatus } from "@/lib/db/types";
 import { useActionState } from "react";
 import { requestToMessage } from "@/app/_actions/messageActions";
 import { HandWaving } from "@phosphor-icons/react";
+import { usePollMessageRequests } from "@/hooks/usePollMessageRequests";
 
 export function CheckinList({
   placeId,
@@ -17,6 +18,14 @@ export function CheckinList({
   currentUserId: string;
 }) {
   const { checkins, isLoading } = usePollCheckins(placeId);
+  const { requests } = usePollMessageRequests(currentUserId, placeId);
+
+  const rejectedRequests = requests.filter(
+    (r) =>
+      r.initiatorId === currentUserId &&
+      r.placeId === placeId &&
+      r.status === "rejected",
+  );
 
   const [requestStatus, formAction] = useActionState<
     Record<string, MessageRequestStatus>,
@@ -43,6 +52,10 @@ export function CheckinList({
     },
     {} satisfies Record<string, MessageRequestStatus>,
   );
+
+  rejectedRequests.forEach((r) => {
+    requestStatus[r.initiateeId] = "rejected";
+  });
 
   if (isLoading) {
     return (
@@ -89,6 +102,11 @@ export function CheckinList({
                       size={32}
                       className="text-muted-foreground h-4 w-4"
                     />
+                  )}
+                  {status === "rejected" && (
+                    <span className="text-destructive text-xs font-normal">
+                      Request declined
+                    </span>
                   )}
                 </p>
                 <p className="text-muted-foreground text-sm capitalize">

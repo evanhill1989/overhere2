@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
-import { SelectCheckin } from "@/lib/schema";
+import { SelectCheckin } from "@/lib/db/types";
 
 export function usePollCheckins(placeId: string | null) {
   const [checkins, setCheckins] = useState<SelectCheckin[]>([]);

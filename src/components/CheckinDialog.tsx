@@ -1,7 +1,8 @@
-// components/CheckinDialog.tsx
-
 "use client";
 
+import { usePlaceFinder } from "@/context/PlaceFinderProvider";
+
+import { useState, useTransition } from "react";
 import {
   Dialog,
   DialogContent,
@@ -9,16 +10,20 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Place } from "@/lib/types/places";
-import { useTransition } from "react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { checkIn } from "@/app/_actions/checkinActions";
-import { usePlaceFinder } from "@/context/PlaceFinderProvider";
 
-type CheckinDialogProps = {
+interface CheckinDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  place: Place;
-};
+  place: {
+    place_id: string;
+    name: string;
+    address: string;
+  };
+}
 
 export default function CheckinDialog({
   open,
@@ -27,6 +32,11 @@ export default function CheckinDialog({
 }: CheckinDialogProps) {
   const { userLocation } = usePlaceFinder();
   const [isPending, startTransition] = useTransition();
+
+  const [topic, setTopic] = useState("");
+  const [availability, setAvailability] = useState<"available" | "busy">(
+    "available",
+  );
 
   const handleCheckin = () => {
     if (!userLocation) return;
@@ -37,6 +47,8 @@ export default function CheckinDialog({
     formData.append("placeAddress", place.address);
     formData.append("latitude", userLocation.latitude.toString());
     formData.append("longitude", userLocation.longitude.toString());
+    formData.append("topic", topic);
+    formData.append("status", status); // Drizzle expects this to match enum
 
     startTransition(() => checkIn(formData));
   };
@@ -47,11 +59,44 @@ export default function CheckinDialog({
         <DialogHeader>
           <DialogTitle>Check in to {place.name}?</DialogTitle>
         </DialogHeader>
+
         <p className="text-muted-foreground text-sm">{place.address}</p>
-        <div className="mt-4 flex justify-end">
-          <Button onClick={handleCheckin} disabled={isPending}>
-            {isPending ? "Checking in..." : "Check In"}
-          </Button>
+
+        <div className="mt-4 space-y-4">
+          <div>
+            <Label htmlFor="topic">What are you open to talking about?</Label>
+            <Input
+              id="topic"
+              placeholder="Optional topic"
+              value={topic}
+              onChange={(e) => setTopic(e.target.value)}
+            />
+          </div>
+
+          <div>
+            <Label className="mb-1 block">Availability</Label>
+            <RadioGroup
+              value={status}
+              onValueChange={(val: "available" | "busy") =>
+                setAvailability(val)
+              }
+            >
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="available" id="available" />
+                <Label htmlFor="available">Available to chat</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="busy" id="busy" />
+                <Label htmlFor="busy">Busy at the moment</Label>
+              </div>
+            </RadioGroup>
+          </div>
+
+          <div className="flex justify-end">
+            <Button onClick={handleCheckin} disabled={isPending}>
+              {isPending ? "Checking in..." : "Check In"}
+            </Button>
+          </div>
         </div>
       </DialogContent>
     </Dialog>

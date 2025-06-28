@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 type MessageRequest = {
   id: string;
   initiatorId: string;
+  initiateeId: string;
   status: "pending" | "accepted" | "rejected" | "canceled";
   placeId: string;
   createdAt: string;
