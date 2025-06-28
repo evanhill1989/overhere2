@@ -5,7 +5,8 @@ import { Lexend, Nunito_Sans } from "next/font/google";
 import "./globals.css";
 import { Footer } from "@/components/Footer";
 import { Toaster } from "@/components/ui/sonner";
-import { createClient as createServerSupabaseClient } from "@/utils/supabase/server";
+import { createClient } from "@/utils/supabase/server";
+import { SessionProvider } from "@/components/SessionProvider";
 import { Header } from "@/components/Header";
 
 const fontSans = Nunito_Sans({
@@ -27,10 +28,10 @@ export const metadata: Metadata = {
 
 export default async function RootLayout({
   children,
-}: Readonly<{
+}: {
   children: React.ReactNode;
-}>) {
-  const supabase = await createServerSupabaseClient();
+}) {
+  const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -40,10 +41,12 @@ export default async function RootLayout({
       <body
         className={`${fontHeading.variable} ${fontSans.variable} grid min-h-[100dvh] grid-rows-[auto_1fr_auto] antialiased`}
       >
-        <Header userId={user?.id ?? null} />
-        <main className="w-full">{children}</main>
-        <Footer />
-        <Toaster />
+        <SessionProvider userId={user?.id ?? null}>
+          <Header />
+          <main className="w-full">{children}</main>
+          <Footer />
+          <Toaster />
+        </SessionProvider>
       </body>
     </html>
   );

@@ -1,12 +1,17 @@
 // components/Header.tsx
 
-import Link from "next/link";
+"use client";
 
-import { LogoutButton } from "./LogoutButton";
+import Link from "next/link";
+import { useSession } from "@/components/SessionProvider";
 import { LoginButton } from "./LoginButton";
+import { LogoutButton } from "./LogoutButton";
 import LogoWithWave from "./LogoWithWave";
 
-export function Header({ userId }: { userId: string | null }) {
+export function Header() {
+  const session = useSession();
+  const userId = session?.userId;
+
   const isLoggedIn = !!userId;
 
   return (
