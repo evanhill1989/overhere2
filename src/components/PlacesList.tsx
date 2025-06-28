@@ -10,12 +10,18 @@ import { Place } from "@/lib/types/places";
 import { useSession } from "./SessionProvider";
 
 export default function PlacesList() {
-  const userId = useSession();
+  const session = useSession();
+  const userId = session?.userId;
+  console.log(userId, "userId in PlacesList!!!!!!!!1111");
   const { derivedDisplayedPlaces } = usePlaceFinder();
   const [activePlace, setActivePlace] = useState<Place | null>(null);
   const router = useRouter();
-
   const handlePlaceClick = async (place: Place) => {
+    if (!userId) {
+      console.warn("Tried to prefetch without a valid userId");
+      return;
+    }
+
     try {
       router.prefetch(`/places/${place.place_id}`);
 
@@ -28,7 +34,6 @@ export default function PlacesList() {
 
     setActivePlace(place);
   };
-
   return (
     <>
       <ul className="space-y-2 p-4">
@@ -51,7 +56,6 @@ export default function PlacesList() {
             if (!open) setActivePlace(null);
           }}
           place={activePlace}
-          userId={userId}
         />
       )}
     </>
