@@ -58,6 +58,8 @@ export function CheckinList({
       ) : (
         checkins.map((checkin) => {
           const isCurrentUser = checkin.userId === currentUserId;
+          if (isCurrentUser) return null; // ⬅️ Skip rendering current user
+
           const status = requestStatus[checkin.userId];
 
           return (
