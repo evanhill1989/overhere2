@@ -10,6 +10,7 @@ type MessageRequest = {
   status: "pending" | "accepted" | "rejected" | "canceled";
   placeId: string;
   createdAt: string;
+  topic: string;
 };
 
 export function usePollMessageRequests(

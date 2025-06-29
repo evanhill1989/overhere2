@@ -70,6 +70,11 @@ export function IncomingRequests({
               <p className="text-muted-foreground text-sm capitalize">
                 Status: {status}
               </p>
+              {req.topic && (
+                <p className="text-muted-foreground text-sm italic">
+                  They’re open to talking about: {req.topic}
+                </p>
+              )}
 
               {status === "pending" && (
                 <form action={formAction} className="mt-3 flex gap-2">

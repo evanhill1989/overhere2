@@ -27,25 +27,23 @@ export async function requestToMessage({
       initiateeId,
       placeId,
     });
-
     const existing = await db.query.messageSessionRequestsTable.findFirst({
       where: and(
         eq(messageSessionRequestsTable.initiatorId, initiatorId),
         eq(messageSessionRequestsTable.initiateeId, initiateeId),
         eq(messageSessionRequestsTable.placeId, placeId),
-        eq(messageSessionRequestsTable.status, "pending"),
       ),
     });
 
     if (existing) {
-      console.warn("⚠️ Duplicate request detected (pending)", {
-        initiatorId,
-        initiateeId,
-        placeId,
-        requestId: existing.id,
-        createdAt: existing.createdAt,
-      });
-      return { success: false, error: "Duplicate request" };
+      const terminalStatuses = ["rejected", "canceled", "accepted"];
+      if (!terminalStatuses.includes(existing.status)) {
+        console.warn("⚠️ Duplicate request (active or pending)");
+        return { success: false, error: "Duplicate request" };
+      }
+
+      // Optional: if you're OK re-requesting, you could update status back to pending here
+      // or delete and insert a fresh one.
     }
 
     await db.insert(messageSessionRequestsTable).values({

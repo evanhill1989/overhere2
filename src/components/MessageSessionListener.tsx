@@ -25,7 +25,7 @@ export function MessageSessionListener({
   const [session, setSession] = useState<SelectMessageSession | null>(
     initialSession,
   );
-  const [showMessaging, setShowMessaging] = useState(!!initialSession);
+  const [showMessaging, setShowMessaging] = useState(false); // ← force list view first
 
   const supabase = createClient();
 

@@ -2,7 +2,7 @@
 
 import { db } from "@/lib/db";
 import { eq, or, and, gt } from "drizzle-orm";
-import { messageSessionRequestsTable } from "@/lib/schema";
+import { messageSessionRequestsTable, checkinsTable } from "@/lib/schema";
 import { subHours } from "date-fns";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -17,8 +17,24 @@ export async function GET(req: NextRequest) {
   const twoHoursAgo = subHours(new Date(), 2);
 
   const requests = await db
-    .select()
+    .select({
+      id: messageSessionRequestsTable.id,
+      initiatorId: messageSessionRequestsTable.initiatorId,
+      initiateeId: messageSessionRequestsTable.initiateeId,
+      placeId: messageSessionRequestsTable.placeId,
+      status: messageSessionRequestsTable.status,
+      createdAt: messageSessionRequestsTable.createdAt,
+      topic: checkinsTable.topic, // ← pull topic from checkins
+    })
     .from(messageSessionRequestsTable)
+    .leftJoin(
+      checkinsTable,
+      and(
+        eq(checkinsTable.userId, messageSessionRequestsTable.initiatorId),
+        eq(checkinsTable.placeId, messageSessionRequestsTable.placeId),
+        eq(checkinsTable.isActive, true), // ensure it's the current check-in
+      ),
+    )
     .where(
       and(
         or(

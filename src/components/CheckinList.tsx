@@ -1,4 +1,3 @@
-// components/CheckinList.tsx
 "use client";
 
 import { Card } from "@/components/ui/card";
@@ -13,13 +12,9 @@ import { usePollMessageRequests } from "@/hooks/usePollMessageRequests";
 export function CheckinList({
   placeId,
   currentUserId,
-  activeSession,
-  onResumeSession,
 }: {
   placeId: string;
   currentUserId: string;
-  activeSession?: { initiatorId: string; initiateeId: string };
-  onResumeSession?: () => void;
 }) {
   const { checkins, isLoading } = usePollCheckins(placeId);
   const { requests } = usePollMessageRequests(currentUserId, placeId);
@@ -55,6 +50,17 @@ export function CheckinList({
     requestStatus[r.initiateeId] = "rejected";
   });
 
+  // 🧠 Helper to detect if a user sent *you* a request
+  const hasIncomingRequestFrom = (checkinUserId: string) => {
+    return requests.some(
+      (r) =>
+        r.initiatorId === checkinUserId &&
+        r.initiateeId === currentUserId &&
+        r.placeId === placeId &&
+        r.status === "pending",
+    );
+  };
+
   if (isLoading) {
     return (
       <p className="text-muted-foreground text-sm">Loading check-ins...</p>
@@ -81,15 +87,7 @@ export function CheckinList({
         sortedCheckins.map((checkin) => {
           const status = requestStatus[checkin.userId];
           const isPending = status === "pending";
-          const isSessionParticipant =
-            activeSession &&
-            [activeSession.initiatorId, activeSession.initiateeId].includes(
-              checkin.userId,
-            );
-          console.log(
-            isSessionParticipant,
-            "<<!!!!!!!!!!!-----------------isSessionParticipant in CHeckinLIST",
-          );
+          const isIncoming = hasIncomingRequestFrom(checkin.userId);
 
           return (
             <Card
@@ -100,7 +98,7 @@ export function CheckinList({
             >
               <div>
                 <p className="flex items-center gap-2 font-medium">
-                  {checkin.topic}
+                  {checkin.topic || "Available"}
                   {status === "sent" && (
                     <HandWaving
                       size={32}
@@ -118,13 +116,13 @@ export function CheckinList({
                 </p>
               </div>
 
-              {isSessionParticipant ? (
+              {isIncoming ? (
                 <Button
-                  type="button"
-                  onClick={onResumeSession}
-                  className="mt-2 sm:mt-0"
+                  disabled
+                  variant="secondary"
+                  className="border-primary text-primary mt-2 animate-pulse border sm:mt-0"
                 >
-                  💬 Resume Messaging
+                  Incoming Request
                 </Button>
               ) : (
                 <form action={formAction}>
@@ -139,6 +137,7 @@ export function CheckinList({
                     value={checkin.userId}
                   />
                   <input type="hidden" name="placeId" value={placeId} />
+
                   <Button
                     type="submit"
                     variant={status === "sent" ? "outline" : "default"}
