@@ -34,7 +34,7 @@ export default function CheckinDialog({
   const [isPending, startTransition] = useTransition();
 
   const [topic, setTopic] = useState("");
-  const [availability, setAvailability] = useState<"available" | "busy">(
+  const [checkinStatus, setCheckinStatus] = useState<"available" | "busy">(
     "available",
   );
 
@@ -48,7 +48,7 @@ export default function CheckinDialog({
     formData.append("latitude", userLocation.latitude.toString());
     formData.append("longitude", userLocation.longitude.toString());
     formData.append("topic", topic);
-    formData.append("status", status); // Drizzle expects this to match enum
+    formData.append("checkinStatus", checkinStatus);
 
     startTransition(() => checkIn(formData));
   };
@@ -76,9 +76,9 @@ export default function CheckinDialog({
           <div>
             <Label className="mb-1 block">Availability</Label>
             <RadioGroup
-              value={status}
+              value={checkinStatus}
               onValueChange={(val: "available" | "busy") =>
-                setAvailability(val)
+                setCheckinStatus(val)
               }
             >
               <div className="flex items-center space-x-2">

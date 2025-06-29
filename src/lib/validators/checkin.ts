@@ -8,7 +8,7 @@ export const checkInSchema = z
     latitude: z.number(),
     longitude: z.number(),
     topic: z.string().max(120).optional().nullable(),
-    status: z.enum(["available", "busy"]),
+    checkinStatus: z.enum(["available", "busy"]),
   })
   .transform((data) => ({
     place_id: data.placeId,
@@ -17,5 +17,5 @@ export const checkInSchema = z
     latitude: data.latitude,
     longitude: data.longitude,
     topic: data.topic,
-    status: data.status,
+    checkin_status: data.checkinStatus,
   }));

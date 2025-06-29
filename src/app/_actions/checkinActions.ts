@@ -133,6 +133,9 @@ export async function checkIn(formData: FormData) {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) throw new Error("Not authenticated");
+  for (const pair of formData.entries()) {
+    console.log(pair[0], pair[1], "formData DEBUGGGGG!!%@^@");
+  }
 
   await ensureUserInDb(user);
 
@@ -142,19 +145,20 @@ export async function checkIn(formData: FormData) {
     placeAddress: formData.get("placeAddress"),
     latitude: parseFloat(formData.get("latitude") as string),
     longitude: parseFloat(formData.get("longitude") as string),
+    topic: formData.get("topic") as string | null,
+    checkinStatus: formData.get("checkinStatus") as "available" | "busy",
   };
-
   const parsed = checkInSchema.parse(rawData);
 
   // ✅ Step 1: Deactivate any previous check-ins by this user
   await db
     .update(checkinsTable)
-    .set({ isActive: false, status: "available" }) // or "expired" if preferred
+    .set({ isActive: false, checkinStatus: "available" })
     .where(
       and(eq(checkinsTable.userId, user.id), eq(checkinsTable.isActive, true)),
     );
 
-  // Step 2: Upsert the new check-in
+  // ✅ Step 2: Upsert the new check-in
   await db
     .insert(checkinsTable)
     .values({
@@ -164,24 +168,25 @@ export async function checkIn(formData: FormData) {
       placeAddress: parsed.place_address,
       latitude: parsed.latitude,
       longitude: parsed.longitude,
-      status: "available",
+      checkinStatus: parsed.checkin_status, // 👈 USE THIS EXACTLY
+      topic: parsed.topic,
       isActive: true,
       createdAt: new Date(),
     })
     .onConflictDoUpdate({
-      target: [checkinsTable.userId], // 👈 user can only have one
+      target: [checkinsTable.userId],
       set: {
         placeId: parsed.place_id,
         placeName: parsed.place_name,
         placeAddress: parsed.place_address,
         latitude: parsed.latitude,
         longitude: parsed.longitude,
-        status: "available",
+        checkinStatus: parsed.checkin_status, // 👈 ALSO USE THIS
+        topic: parsed.topic,
         isActive: true,
         checkedOutAt: null,
         createdAt: new Date(),
       },
     });
-
   redirect(`/places/${parsed.place_id}`);
 }

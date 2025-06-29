@@ -63,7 +63,9 @@ export const checkinsTable = pgTable(
     placeAddress: varchar("place_address", { length: 511 }).notNull(),
     latitude: doublePrecision("latitude"),
     longitude: doublePrecision("longitude"),
-    status: checkinStatusEnum("status").notNull().default("available"),
+    checkinStatus: checkinStatusEnum("checkin_status")
+      .notNull()
+      .default("available"),
     topic: varchar("topic", { length: 120 }),
     isActive: boolean("is_active").notNull().default(false),
     checkedOutAt: timestamp("checked_out_at"),
@@ -72,7 +74,7 @@ export const checkinsTable = pgTable(
     // Indexes for performance
     userIdx: index("checkins_user_idx").on(table.userId),
     placeIdx: index("checkins_place_idx").on(table.placeId),
-    statusIdx: index("checkins_status_idx").on(table.status),
+    statusIdx: index("checkins_status_idx").on(table.checkinStatus),
     createdAtIndex: index("checkins_created_at_idx").on(table.createdAt),
 
     // 🚦 UNIQUE: ensure one active check‑in per user
