@@ -1,7 +1,4 @@
-"use client";
-
-import { IncomingRequests } from "@/components/IncomingRequests"; // ← Add this
-
+import { IncomingRequests } from "@/components/IncomingRequests";
 import type { SelectCheckin } from "@/lib/db/types";
 import { CheckinList } from "./CheckinList";
 
@@ -9,12 +6,19 @@ type PlaceDetailsProps = {
   place: { id: string; name: string; address: string };
   checkins: SelectCheckin[];
   currentUserId: string;
+  activeSession?: {
+    initiatorId: string;
+    initiateeId: string;
+  };
+  onResumeSession?: () => void;
 };
 
 export function PlaceDetails({
   place,
   checkins,
   currentUserId,
+  activeSession,
+  onResumeSession,
 }: PlaceDetailsProps) {
   const currentUserCheckin = checkins.find((c) => c.userId === currentUserId);
 
@@ -32,7 +36,13 @@ export function PlaceDetails({
         </section>
       )}
 
-      <CheckinList currentUserId={currentUserId} placeId={place.id} />
+      <CheckinList
+        currentUserId={currentUserId}
+        placeId={place.id}
+        activeSession={activeSession}
+        onResumeSession={onResumeSession}
+      />
     </section>
   );
 }
+export type { PlaceDetailsProps };

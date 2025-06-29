@@ -13,9 +13,13 @@ import { usePollMessageRequests } from "@/hooks/usePollMessageRequests";
 export function CheckinList({
   placeId,
   currentUserId,
+  activeSession,
+  onResumeSession,
 }: {
   placeId: string;
   currentUserId: string;
+  activeSession?: { initiatorId: string; initiateeId: string };
+  onResumeSession?: () => void;
 }) {
   const { checkins, isLoading } = usePollCheckins(placeId);
   const { requests } = usePollMessageRequests(currentUserId, placeId);
@@ -30,28 +34,22 @@ export function CheckinList({
   const [requestStatus, formAction] = useActionState<
     Record<string, MessageRequestStatus>,
     FormData
-  >(
-    async (
-      prevStatus: Record<string, MessageRequestStatus>,
-      formData: FormData,
-    ): Promise<Record<string, MessageRequestStatus>> => {
-      const initiateeId = formData.get("initiateeId") as string;
-      const initiatorId = formData.get("initiatorId") as string;
-      const placeId = formData.get("placeId") as string;
+  >(async (prevStatus, formData) => {
+    const initiateeId = formData.get("initiateeId") as string;
+    const initiatorId = formData.get("initiatorId") as string;
+    const placeId = formData.get("placeId") as string;
 
-      const result = await requestToMessage({
-        initiatorId,
-        initiateeId,
-        placeId,
-      });
+    const result = await requestToMessage({
+      initiatorId,
+      initiateeId,
+      placeId,
+    });
 
-      return {
-        ...prevStatus,
-        [initiateeId]: result.success ? "sent" : "failed",
-      };
-    },
-    {} satisfies Record<string, MessageRequestStatus>,
-  );
+    return {
+      ...prevStatus,
+      [initiateeId]: result.success ? "sent" : "failed",
+    };
+  }, {});
 
   rejectedRequests.forEach((r) => {
     requestStatus[r.initiateeId] = "rejected";
@@ -64,15 +62,12 @@ export function CheckinList({
   }
 
   const sortedCheckins = [...checkins]
-    .filter((checkin) => checkin.userId !== currentUserId) // Exclude current user
+    .filter((checkin) => checkin.userId !== currentUserId)
     .sort((a, b) => {
       const aPending = requestStatus[a.userId] === "pending";
       const bPending = requestStatus[b.userId] === "pending";
-
       if (aPending && !bPending) return -1;
       if (!aPending && bPending) return 1;
-
-      // Fallback to most recent check-in
       return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
     });
 
@@ -86,6 +81,15 @@ export function CheckinList({
         sortedCheckins.map((checkin) => {
           const status = requestStatus[checkin.userId];
           const isPending = status === "pending";
+          const isSessionParticipant =
+            activeSession &&
+            [activeSession.initiatorId, activeSession.initiateeId].includes(
+              checkin.userId,
+            );
+          console.log(
+            isSessionParticipant,
+            "<<!!!!!!!!!!!-----------------isSessionParticipant in CHeckinLIST",
+          );
 
           return (
             <Card
@@ -96,7 +100,7 @@ export function CheckinList({
             >
               <div>
                 <p className="flex items-center gap-2 font-medium">
-                  {checkin.topic || "Available"}
+                  {checkin.topic}
                   {status === "sent" && (
                     <HandWaving
                       size={32}
@@ -110,32 +114,45 @@ export function CheckinList({
                   )}
                 </p>
                 <p className="text-muted-foreground text-sm capitalize">
-                  {checkin.status}
+                  {checkin.checkinStatus}
                 </p>
               </div>
 
-              <form action={formAction}>
-                <input type="hidden" name="initiatorId" value={currentUserId} />
-                <input
-                  type="hidden"
-                  name="initiateeId"
-                  value={checkin.userId}
-                />
-                <input type="hidden" name="placeId" value={placeId} />
-
+              {isSessionParticipant ? (
                 <Button
-                  type="submit"
-                  variant={status === "sent" ? "outline" : "default"}
-                  disabled={status === "sent"}
+                  type="button"
+                  onClick={onResumeSession}
                   className="mt-2 sm:mt-0"
                 >
-                  {status === "sent"
-                    ? "Requested"
-                    : status === "failed"
-                      ? "Failed – Try Again"
-                      : "Request to Message"}
+                  💬 Resume Messaging
                 </Button>
-              </form>
+              ) : (
+                <form action={formAction}>
+                  <input
+                    type="hidden"
+                    name="initiatorId"
+                    value={currentUserId}
+                  />
+                  <input
+                    type="hidden"
+                    name="initiateeId"
+                    value={checkin.userId}
+                  />
+                  <input type="hidden" name="placeId" value={placeId} />
+                  <Button
+                    type="submit"
+                    variant={status === "sent" ? "outline" : "default"}
+                    disabled={status === "sent"}
+                    className="mt-2 sm:mt-0"
+                  >
+                    {status === "sent"
+                      ? "Requested"
+                      : status === "failed"
+                        ? "Failed – Try Again"
+                        : "Request to Message"}
+                  </Button>
+                </form>
+              )}
             </Card>
           );
         })

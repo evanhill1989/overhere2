@@ -30,12 +30,13 @@ type EphemeralSessionWindowProps = {
   currentUserId: string;
   checkinId?: number;
   children?: ReactElement<MessageInputProps>;
+  onBack?: () => void; // ✅ new
 };
-
 export function EphemeralSessionWindow({
   session,
   checkinId,
   children,
+  onBack,
 }: EphemeralSessionWindowProps) {
   // Realtime stream from Supabase
   const realtimeMessages = useRealtimeMessages(session.id);
@@ -60,6 +61,16 @@ export function EphemeralSessionWindow({
 
   return (
     <section className="flex h-[80vh] flex-col gap-4 rounded-lg border p-4 shadow">
+      {onBack && (
+        <div className="flex justify-between">
+          <button
+            onClick={onBack}
+            className="text-muted-foreground text-sm underline"
+          >
+            👈 Back to list
+          </button>
+        </div>
+      )}
       <div className="flex-1 space-y-3 overflow-y-auto pr-2">
         {loading ? (
           <p className="text-muted-foreground text-sm">Loading messages...</p>

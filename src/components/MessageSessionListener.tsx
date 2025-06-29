@@ -1,41 +1,44 @@
-// components/MessageSessionListener.tsx
 "use client";
 
 import { useEffect, useState } from "react";
 import { createClient } from "@/utils/supabase/client";
 import { EphemeralSessionWindow } from "./EphemeralSessonWindow";
 import { MessageInput } from "./MessageInput";
-import type { SelectMessageSession } from "@/lib/db/types";
+import { PlaceDetails } from "./PlaceDetails";
+import type { SelectMessageSession, SelectCheckin } from "@/lib/db/types";
 
-export function MessageSessionListener({
-  placeId,
-  currentUserId,
-  currentCheckinId,
-  initialSession,
-  children,
-}: {
-  placeId: string;
+type Props = {
+  place: { id: string; name: string; address: string };
+  checkins: SelectCheckin[];
   currentUserId: string;
   currentCheckinId?: number;
   initialSession: SelectMessageSession | null;
-  children: React.ReactNode;
-}) {
+};
+
+export function MessageSessionListener({
+  place,
+  checkins,
+  currentUserId,
+  currentCheckinId,
+  initialSession,
+}: Props) {
   const [session, setSession] = useState<SelectMessageSession | null>(
     initialSession,
   );
+  const [showMessaging, setShowMessaging] = useState(!!initialSession);
+
   const supabase = createClient();
-  console.log(placeId, "placeId in MessageSessionListener");
 
   useEffect(() => {
     const channel = supabase
-      .channel(`session:${placeId}`)
+      .channel(`session:${place.id}`)
       .on(
         "postgres_changes",
         {
           event: "INSERT",
           schema: "public",
           table: "message_sessions",
-          filter: `place_id=eq.${placeId}`,
+          filter: `place_id=eq.${place.id}`,
         },
         (payload) => {
           const raw = payload.new;
@@ -47,12 +50,14 @@ export function MessageSessionListener({
             status: raw.status,
             createdAt: raw.created_at,
           };
+
           const isParticipant =
             newSession.initiatorId === currentUserId ||
             newSession.initiateeId === currentUserId;
 
           if (isParticipant) {
             setSession(newSession);
+            setShowMessaging(true);
           }
         },
       )
@@ -61,14 +66,15 @@ export function MessageSessionListener({
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [placeId, currentUserId, supabase]);
+  }, [place.id, currentUserId, supabase]);
 
-  if (session) {
+  if (session && showMessaging) {
     return (
       <EphemeralSessionWindow
         session={session}
         currentUserId={currentUserId}
         checkinId={currentCheckinId}
+        onBack={() => setShowMessaging(false)}
       >
         <MessageInput
           sessionId={session.id}
@@ -78,5 +84,22 @@ export function MessageSessionListener({
     );
   }
 
-  return <>{children}</>;
+  return (
+    <>
+      <PlaceDetails
+        place={place}
+        checkins={checkins}
+        currentUserId={currentUserId}
+        activeSession={
+          session
+            ? {
+                initiatorId: session.initiatorId,
+                initiateeId: session.initiateeId,
+              }
+            : undefined
+        }
+        onResumeSession={() => setShowMessaging(true)}
+      />
+    </>
+  );
 }

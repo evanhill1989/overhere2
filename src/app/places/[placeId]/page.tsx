@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { createClient } from "@/utils/supabase/server";
 import { db } from "@/lib/db";
 import { checkinsTable, messageSessionsTable } from "@/lib/schema";
-import { PlaceDetails } from "@/components/PlaceDetails";
+
 import { eq, and, or, gt } from "drizzle-orm";
 
 //import { cache } from "react";  //Use this to memoize fetch if needed
@@ -73,17 +73,12 @@ export default async function PlacePage(props: {
   return (
     <main className="mx-auto max-w-md space-y-6 p-4">
       <MessageSessionListener
-        placeId={placeId}
+        place={place}
+        checkins={checkins}
         currentUserId={currentUserId}
         currentCheckinId={currentCheckinId}
         initialSession={session ?? null}
-      >
-        <PlaceDetails
-          place={place}
-          checkins={checkins}
-          currentUserId={currentUserId}
-        />
-      </MessageSessionListener>
+      />
     </main>
   );
 }
