@@ -1,42 +1,49 @@
 "use client";
 
+import { useState } from "react";
+import { useActionState } from "react";
 import { useFormStatus } from "react-dom";
+import { useRouter } from "next/navigation";
+
 import { respondToMessageRequest } from "@/app/_actions/messageActions";
+import { usePollMessageRequests } from "@/hooks/usePollMessageRequests";
 
 import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 import { Loader2 } from "lucide-react";
-import { usePollMessageRequests } from "@/hooks/usePollMessageRequests";
-import { useActionState } from "react";
+
+type IncomingRequestsProps = {
+  currentUserId: string;
+  placeId: string;
+};
 
 type RequestStatus = "pending" | "accepted" | "rejected" | "canceled";
 
-export function IncomingRequests({
+type OptimisticState = Record<string, "accepted" | "rejected">;
+
+export default function IncomingRequests({
   currentUserId,
   placeId,
-}: {
-  currentUserId: string;
-  placeId: string;
-}) {
+}: IncomingRequestsProps) {
   const { requests, isLoading } = usePollMessageRequests(
     currentUserId,
     placeId,
   );
+  const [optimisticState, setOptimisticState] = useState<OptimisticState>({});
+  const [state, formAction] = useActionState(respondToMessageRequest, {
+    message: "",
+  });
+  const router = useRouter();
 
   const filtered = requests.filter(
     (r) =>
       r.placeId === placeId &&
-      r.initiatorId !== currentUserId && // ⬅️ Only incoming, not sent by current user
-      r.status === "pending", // ⬅️ Only care about still-pending requests
+      r.status === "pending" &&
+      r.initiatorId !== currentUserId,
   );
 
   filtered.sort(
     (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
-  );
-
-  const initialState = { message: "" };
-  const [state, formAction] = useActionState(
-    respondToMessageRequest,
-    initialState,
   );
 
   if (isLoading) {
@@ -48,27 +55,38 @@ export function IncomingRequests({
     );
   }
 
+  if (filtered.length === 0) {
+    return (
+      <p className="text-muted-foreground text-sm">
+        No one’s trying to connect right now.
+      </p>
+    );
+  }
+
   return (
     <ul className="space-y-4">
-      {filtered.length === 0 ? (
-        <li className="text-muted-foreground">
-          No one’s trying to connect right now.
-        </li>
-      ) : (
-        filtered.map((req) => {
-          const isInitiator = req.initiatorId === currentUserId;
+      {filtered.map((req) => {
+        const optimistic = optimisticState[req.id];
 
-          const status: RequestStatus = req.status;
-
+        if (optimistic === "accepted") {
           return (
-            <li key={req.id} className="rounded-md border p-4">
-              <p className="text-sm font-medium">
-                {isInitiator
-                  ? "You sent a wave."
-                  : "Someone nearby is open to saying hi."}
+            <Card key={req.id} className="p-4 text-center">
+              <p className="text-muted-foreground text-sm">
+                Opening messaging window…
               </p>
-              <p className="text-muted-foreground text-sm capitalize">
-                Status: {status}
+            </Card>
+          );
+        }
+
+        if (optimistic === "rejected") {
+          return null;
+        }
+
+        return (
+          <li key={req.id}>
+            <Card className="p-4">
+              <p className="text-sm font-medium">
+                Someone nearby is open to saying hi.
               </p>
               {req.topic && (
                 <p className="text-muted-foreground text-sm italic">
@@ -76,46 +94,48 @@ export function IncomingRequests({
                 </p>
               )}
 
-              {status === "pending" && (
-                <form action={formAction} className="mt-3 flex gap-2">
-                  <input type="hidden" name="requestId" value={req.id} />
-                  {isInitiator ? (
-                    <>
-                      <input type="hidden" name="response" value="canceled" />
-                      <SubmitButton label="Changed your mind?" />
-                    </>
-                  ) : (
-                    <>
-                      <SubmitButton
-                        name="response"
-                        value="accepted"
-                        label="Sure"
-                      />
-                      <SubmitButton
-                        name="response"
-                        value="rejected"
-                        label="Not now"
-                      />
-                    </>
-                  )}
-                </form>
-              )}
+              <form
+                action={(formData) => {
+                  const requestId = req.id;
+                  const response = formData.get("response") as
+                    | "accepted"
+                    | "rejected";
+                  setOptimisticState((prev) => ({
+                    ...prev,
+                    [requestId]: response,
+                  }));
+                  formAction(formData);
+                }}
+                className="mt-3 flex gap-2"
+              >
+                <input type="hidden" name="requestId" value={req.id} />
+                <OptimisticSubmitButton
+                  name="response"
+                  value="accepted"
+                  label="Sure"
+                />
+                <OptimisticSubmitButton
+                  name="response"
+                  value="rejected"
+                  label="Not now"
+                />
+              </form>
 
               {state.message && (
                 <p className="text-muted-foreground mt-2 text-xs italic">
                   {state.message}
                 </p>
               )}
-            </li>
-          );
-        })
-      )}
+            </Card>
+          </li>
+        );
+      })}
     </ul>
   );
 }
 
-// Reusable button with pending state
-function SubmitButton({
+// Optimistic-aware submit button
+function OptimisticSubmitButton({
   label,
   ...props
 }: React.ComponentProps<"button"> & { label: string }) {

@@ -1,4 +1,4 @@
-import { IncomingRequests } from "@/components/IncomingRequests";
+import IncomingRequests from "@/components/IncomingRequests";
 import type { SelectCheckin } from "@/lib/db/types";
 import { CheckinList } from "./CheckinList";
 

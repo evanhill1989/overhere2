@@ -75,6 +75,7 @@ export function MessageSessionListener({
         currentUserId={currentUserId}
         checkinId={currentCheckinId}
         onBack={() => setShowMessaging(false)}
+        place={{ name: place.name, address: place.address }} // ✅ pass down
       >
         <MessageInput
           sessionId={session.id}

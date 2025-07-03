@@ -36,6 +36,15 @@ export default function PlacesList() {
   };
   return (
     <>
+      <div className="border-muted bg-card-foreground border-b px-4 py-3 shadow-md">
+        <h2 className="text-foreground text-xl font-bold tracking-tight">
+          Nearby Places
+        </h2>
+        <p className="text-muted-foreground text-sm">
+          These are real locations near you. Choose one to check in.
+        </p>
+      </div>
+
       <ul className="space-y-2 p-4">
         {derivedDisplayedPlaces.map((place) => (
           <li

@@ -12,6 +12,7 @@ export default function AboutPage() {
         <h1 className="text-foreground mb-6 text-center text-4xl font-bold md:text-5xl">
           Talk to people
         </h1>
+        <div className="bg-accent h-2"></div>
 
         {/* Longer Detailed Section - NEW STRUCTURE */}
         <section className="text-foreground space-y-6 text-base md:text-lg">
