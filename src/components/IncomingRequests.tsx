@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useActionState } from "react";
 import { useFormStatus } from "react-dom";
-import { useRouter } from "next/navigation";
+// import { useRouter } from "next/navigation";
 
 import { respondToMessageRequest } from "@/app/_actions/messageActions";
 import { usePollMessageRequests } from "@/hooks/usePollMessageRequests";
@@ -17,7 +17,7 @@ type IncomingRequestsProps = {
   placeId: string;
 };
 
-type RequestStatus = "pending" | "accepted" | "rejected" | "canceled";
+// type RequestStatus = "pending" | "accepted" | "rejected" | "canceled";
 
 type OptimisticState = Record<string, "accepted" | "rejected">;
 
@@ -33,7 +33,7 @@ export default function IncomingRequests({
   const [state, formAction] = useActionState(respondToMessageRequest, {
     message: "",
   });
-  const router = useRouter();
+  // const router = useRouter();
 
   const filtered = requests.filter(
     (r) =>

@@ -35,9 +35,9 @@ export default function PlacesList() {
     setActivePlace(place);
   };
   return (
-    <>
-      <div className="border-muted bg-card-foreground border-b px-4 py-3 shadow-md">
-        <h2 className="text-foreground text-xl font-bold tracking-tight">
+    <div className="">
+      <div className="">
+        <h2 className="text-card-foreground text-xl font-bold tracking-tight">
           Nearby Places
         </h2>
         <p className="text-muted-foreground text-sm">
@@ -67,6 +67,6 @@ export default function PlacesList() {
           place={activePlace}
         />
       )}
-    </>
+    </div>
   );
 }
