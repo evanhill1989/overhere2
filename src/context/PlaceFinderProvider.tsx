@@ -53,7 +53,7 @@ export function PlaceFinderProvider({
           },
         );
       } else {
-        router.replace("/about");
+        // Don't touch `ready`, just let the app decide what to render
       }
     });
 

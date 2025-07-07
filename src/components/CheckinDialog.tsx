@@ -62,19 +62,18 @@ export default function CheckinDialog({
 
         <p className="text-muted-foreground text-sm">{place.address}</p>
 
-        <div className="mt-4 space-y-4">
+        <div className="space-y-4">
           <div>
-            <Label htmlFor="topic">What are you open to talking about?</Label>
+            <Label htmlFor="topic" className="mb-2"></Label>
             <Input
               id="topic"
-              placeholder="Optional topic"
+              placeholder="Topic preferences"
               value={topic}
               onChange={(e) => setTopic(e.target.value)}
             />
           </div>
 
           <div>
-            <Label className="mb-1 block">Availability</Label>
             <RadioGroup
               value={checkinStatus}
               onValueChange={(val: "available" | "busy") =>
@@ -87,7 +86,7 @@ export default function CheckinDialog({
               </div>
               <div className="flex items-center space-x-2">
                 <RadioGroupItem value="busy" id="busy" />
-                <Label htmlFor="busy">Busy at the moment</Label>
+                <Label htmlFor="busy">I'll get back to you</Label>
               </div>
             </RadioGroup>
           </div>

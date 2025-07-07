@@ -37,10 +37,8 @@ export default function PlacesList() {
   return (
     <div className="flex h-full flex-col">
       {/* Sticky header */}
-      <div className="border-muted bg-background shrink-0 border-b px-4 py-3">
-        <h2 className="text-card-foreground text-xl font-bold tracking-tight">
-          Nearby Places
-        </h2>
+      <div className="border-muted bg-background shrink-0 px-4 py-5">
+        <h2 className="text-xl font-bold tracking-tight">Nearby Places</h2>
         <p className="text-muted-foreground text-sm">
           These are real locations near you. Choose one to check in.
         </p>
@@ -52,7 +50,7 @@ export default function PlacesList() {
           <li
             key={place.place_id}
             onClick={() => handlePlaceClick(place)}
-            className="border-muted hover:bg-accent cursor-pointer rounded border p-3 shadow-sm transition"
+            className="border-muted hover:bg-accent hover:text-secondary-foreground cursor-pointer rounded border p-3 shadow-sm transition"
           >
             <h3 className="text-base font-medium">{place.name}</h3>
             <p className="text-muted-foreground text-sm">{place.address}</p>
