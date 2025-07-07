@@ -58,8 +58,8 @@ export default function PlaceFinderUI() {
         </div>
       </div>
 
-      <div className="absolute right-0 bottom-0 left-0 z-10 h-[40%] md:left-auto md:w-1/3 md:p-3">
-        <div className="bg-background h-full overflow-y-auto rounded-lg shadow-xl">
+      <div className="absolute right-0 bottom-0 left-0 z-10 h-[60%] md:left-auto md:h-[70%] md:w-1/3 md:p-3">
+        <div className="bg-background h-full overflow-y-auto md:rounded-lg md:shadow-xl">
           {isLoadingOverall ? (
             <div className="flex h-full items-center justify-center">
               <Loader2 className="h-6 w-6 animate-spin" />

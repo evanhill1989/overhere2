@@ -16,7 +16,7 @@ export function Footer() {
           &copy; {currentYear} overHere. Get off your phone. Meet people.
         </p>
         {/* Add links to essential pages - create these pages later */}
-        <nav className="justify-center gap-x-4 gap-y-1 text-xs sm:hidden md:flex">
+        <nav className="hidden justify-center gap-x-4 gap-y-1 text-xs md:flex">
           <Link
             href="#"
             className="text-gray-600 hover:text-gray-900 hover:underline dark:text-gray-400 dark:hover:text-white"
