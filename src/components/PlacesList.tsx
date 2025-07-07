@@ -12,10 +12,10 @@ import { useSession } from "./SessionProvider";
 export default function PlacesList() {
   const session = useSession();
   const userId = session?.userId;
-  console.log(userId, "userId in PlacesList!!!!!!!!1111");
   const { derivedDisplayedPlaces } = usePlaceFinder();
   const [activePlace, setActivePlace] = useState<Place | null>(null);
   const router = useRouter();
+
   const handlePlaceClick = async (place: Place) => {
     if (!userId) {
       console.warn("Tried to prefetch without a valid userId");
@@ -24,7 +24,6 @@ export default function PlacesList() {
 
     try {
       router.prefetch(`/places/${place.place_id}`);
-
       await fetch(
         `/api/prefetch/place-data?placeId=${place.place_id}&userId=${userId}`,
       );
@@ -34,9 +33,11 @@ export default function PlacesList() {
 
     setActivePlace(place);
   };
+
   return (
-    <div className="">
-      <div className="">
+    <div className="flex h-full flex-col">
+      {/* Sticky header */}
+      <div className="border-muted bg-background shrink-0 border-b px-4 py-3">
         <h2 className="text-card-foreground text-xl font-bold tracking-tight">
           Nearby Places
         </h2>
@@ -45,7 +46,8 @@ export default function PlacesList() {
         </p>
       </div>
 
-      <ul className="space-y-2 p-4">
+      {/* Scrollable list */}
+      <ul className="grow space-y-2 overflow-y-auto p-4">
         {derivedDisplayedPlaces.map((place) => (
           <li
             key={place.place_id}
@@ -58,12 +60,11 @@ export default function PlacesList() {
         ))}
       </ul>
 
+      {/* Dialog */}
       {activePlace && (
         <CheckinDialog
           open={!!activePlace}
-          onOpenChange={(open) => {
-            if (!open) setActivePlace(null);
-          }}
+          onOpenChange={(open) => !open && setActivePlace(null)}
           place={activePlace}
         />
       )}
