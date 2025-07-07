@@ -14,10 +14,12 @@
   --background: oklch(0.96 0.0098 87.47); /* Cream */
   --foreground: oklch(0.16 0.04 18.98); /* Dark Sun */
 
+  --background-trans: oklch(95.931% 0.01015 81.702 / 0.653);
+
   --card: oklch(0.16 0.04 18.98); /* Beige */
   --card-foreground: oklch(0.91 0.0172 76.1); /* */
 
-  --popover: oklch(0.16 0.04 18.98); /* Cream */
+  --popover: oklch(0.16 0.04 18.98); /* Crem */
   --popover-foreground: oklch(0.96 0.0098 87.47); /* Dark Sun */
 
   --primary: oklch(0.76 0.12 301.62); /*Lavendar Foam */
@@ -39,11 +41,12 @@
   --input: oklch(86.082% 0.05703 302.242); /* Lavendar Foam */
   --ring: oklch(87.041% 0.09023 168.908); /* Terracotta (for focus rings) */
 
-  --nothing: oklch(86.02% 0.05703 302.2);
+  --nothing: oklch(86.82% 0.03 323.2);
 }
 
 @theme inline {
   --color-background: var(--background);
+  --color-background-trans: var(--background-trans);
   --color-foreground: var(--foreground);
   --color-primary: var(--primary);
   --color-secondary: var(--secondary);
@@ -73,6 +76,7 @@
 
     /* Backgrounds */
     --background: oklch(0.16 0.04 18.98); /*Dark sun*/
+    --background-trans: oklch(16.054% 0.03839 18.826 / 0.548); /*Dark sun*/
     --card: oklch(0.24 0.015 60); /* Dark Warm Neutral (Beige/Latte-inspired) */
     --popover: oklch(
       0.22 0.012 55
