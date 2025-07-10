@@ -14,7 +14,7 @@
   --background: oklch(0.96 0.0098 87.47); /* Cream */
   --foreground: oklch(0.16 0.04 18.98); /* Dark Sun */
 
-  --background-trans: oklch(95.931% 0.01015 81.702 / 0.653);
+  --background-trans: oklch(95.931% 0.01015 81.702 / 0.747);
 
   --card: oklch(0.16 0.04 18.98); /* Beige */
   --card-foreground: oklch(0.91 0.0172 76.1); /* */
@@ -76,7 +76,7 @@
 
     /* Backgrounds */
     --background: oklch(0.16 0.04 18.98); /*Dark sun*/
-    --background-trans: oklch(16.054% 0.03839 18.826 / 0.548); /*Dark sun*/
+    --background-trans: oklch(16.054% 0.03839 18.826 / 0s548); /*Dark sun*/
     --card: oklch(0.24 0.015 60); /* Dark Warm Neutral (Beige/Latte-inspired) */
     --popover: oklch(
       0.22 0.012 55
