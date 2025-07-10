@@ -95,6 +95,8 @@ export function MessageSessionListener({
   }, [initialSession, place.id, currentUserId, supabase]);
 
   // 👀 Fallback: re-check on tab focus if session hasn't been set
+  const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString();
+
   useEffect(() => {
     const handleFocus = async () => {
       if (session || initialSession) return;
@@ -104,6 +106,7 @@ export function MessageSessionListener({
         .select("*")
         .eq("place_id", place.id)
         .or(`initiator_id.eq.${currentUserId},initiatee_id.eq.${currentUserId}`)
+        .gte("created_at", twoHoursAgo)
         .order("created_at", { ascending: false })
         .limit(1)
         .maybeSingle();
