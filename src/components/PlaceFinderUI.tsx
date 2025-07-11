@@ -14,7 +14,6 @@ import {
   DrawerTitle,
 } from "@/components/ui/drawer";
 import PlacesList from "./PlacesList";
-import { DialogTrigger } from "./ui/dialog";
 
 // Dynamically import map
 const UserMap = dynamic(() => import("./UserMap"), {

@@ -94,7 +94,7 @@ export function MessageSessionListener({
     }, 4000);
 
     return () => clearTimeout(timeout);
-  }, [initialSession, place.id, currentUserId, supabase]);
+  }, [initialSession, place.id, currentUserId, supabase, twoHoursAgo]);
 
   // 👀 Fallback: re-check on tab focus if session hasn't been set
 
