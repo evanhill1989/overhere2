@@ -25,6 +25,7 @@ export const messageRequestStatusEnum = pgEnum("message_request_status", [
   "accepted",
   "rejected",
   "canceled",
+  "expired", // ✅ Add this
 ]);
 
 // Users
