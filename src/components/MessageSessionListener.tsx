@@ -69,6 +69,7 @@ export function MessageSessionListener({
     };
   }, [place.id, currentUserId, supabase]);
 
+  const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString();
   // ⏱ Fallback: check DB 4s after mount if session is still null
   useEffect(() => {
     if (initialSession) return;
@@ -79,6 +80,7 @@ export function MessageSessionListener({
         .select("*")
         .eq("place_id", place.id)
         .or(`initiator_id.eq.${currentUserId},initiatee_id.eq.${currentUserId}`)
+        .gte("created_at", twoHoursAgo)
         .order("created_at", { ascending: false })
         .limit(1)
         .maybeSingle();
@@ -95,7 +97,6 @@ export function MessageSessionListener({
   }, [initialSession, place.id, currentUserId, supabase]);
 
   // 👀 Fallback: re-check on tab focus if session hasn't been set
-  const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString();
 
   useEffect(() => {
     const handleFocus = async () => {
@@ -119,7 +120,7 @@ export function MessageSessionListener({
 
     window.addEventListener("focus", handleFocus);
     return () => window.removeEventListener("focus", handleFocus);
-  }, [session, initialSession, place.id, currentUserId, supabase]);
+  }, [session, initialSession, place.id, currentUserId, supabase, twoHoursAgo]);
 
   if (session && showMessaging) {
     return (
