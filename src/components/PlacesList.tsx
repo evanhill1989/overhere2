@@ -38,7 +38,6 @@ export default function PlacesList() {
     <div className="flex h-full flex-col">
       {/* Sticky header */}
       <div className="border-muted shrink-0 px-4 py-5">
-        <h2 className="text-xl font-bold tracking-tight">Nearby Places</h2>
         <p className="text-muted-foreground text-sm">
           These are real locations near you. Choose one to check in.
         </p>

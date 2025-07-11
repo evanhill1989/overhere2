@@ -77,7 +77,7 @@ export default function PlaceFinderUI() {
 
       {/* Places Drawer */}
       <Drawer open={drawerOpen} onOpenChange={setDrawerOpen}>
-        <div className="pointer-events-none absolute right-0 bottom-4 left-0 z-20 flex justify-center p-3 sm:p-4">
+        <div className="bg-background-trans pointer-events-none absolute right-0 bottom-4 left-0 z-20 flex justify-center p-3 sm:p-4">
           <div className="pointer-events-auto w-full max-w-md">
             <DrawerTrigger asChild>
               <Button
