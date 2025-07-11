@@ -76,7 +76,7 @@
 
     /* Backgrounds */
     --background: oklch(0.16 0.04 18.98); /*Dark sun*/
-    --background-trans: oklch(16.054% 0.03839 18.826 / 0s548); /*Dark sun*/
+    --background-trans: oklch(16.054% 0.03839 18.826 / 0.715); /*Dark sun*/
     --card: oklch(0.24 0.015 60); /* Dark Warm Neutral (Beige/Latte-inspired) */
     --popover: oklch(
       0.22 0.012 55
@@ -96,7 +96,7 @@
     --secondary-foreground: oklch(
       0.76 0.12 301.62
     ); /* Use main text color on secondary */
-    --muted-foreground: oklch(0.63 0.0122 54.39); /* Lighter Latte */
+    --muted-foreground: oklch(77.016% 0.0142 53.081); /* Lighter Latte */
     --accent-foreground: oklch(1 0 0); /* White (for max contrast on Accent) */
     --destructive-foreground: oklch(1 0 0); /* White */
 
