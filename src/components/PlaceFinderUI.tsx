@@ -47,10 +47,10 @@ export default function PlaceFinderUI() {
 
       {/* Floating Search Bar */}
       <div className="pointer-events-none absolute top-0 right-0 left-0 z-100 flex justify-center p-3 sm:p-4">
-        <div className="bg-background pointer-events-auto flex w-full max-w-md flex-col items-center gap-2 rounded-lg p-3 shadow-xl sm:p-4">
+        <div className="bg-accent/80 pointer-events-auto flex w-full max-w-md flex-col items-center gap-2 rounded-lg border-1 p-3 sm:p-4">
           <form action={searchFormAction} className="flex w-full items-center">
             <Input
-              className="bg-red-500"
+              className="bg-foreground text-muted rounded-none border-none"
               name="searchQuery"
               type="search"
               placeholder="Search place by name"
@@ -59,15 +59,16 @@ export default function PlaceFinderUI() {
               disabled={isLoadingOverall}
             />
             <Button
+              className="rounded-none border-white"
               type="submit"
               size="icon"
-              variant="ghost"
+              variant="outline"
               disabled={isLoadingOverall || !searchQuery.trim()}
             >
               {isSearchPending && searchQuery ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
               ) : (
-                <SearchIcon className="h-4 w-4" />
+                <SearchIcon className="h-4 w-4 font-bold" />
               )}
             </Button>
           </form>
@@ -82,8 +83,8 @@ export default function PlaceFinderUI() {
           <div className="pointer-events-auto w-full max-w-md">
             <DrawerTrigger asChild>
               <Button
-                className="bg-background-trans w-full p-8 text-2xl"
-                variant="secondary"
+                className="hover:bg-primary w-full border-white p-8 hover:text-white"
+                variant="outline"
                 size="sm"
                 onClick={() => setDrawerOpen(true)}
               >

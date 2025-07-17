@@ -32,7 +32,7 @@
   --muted-foreground: oklch(0.63 0.0122 54.39); /* Latte */
 
   --accent: oklch(87.041% 0.09023 168.908); /* Dark Sun */
-  --accent-foreground: oklch(1 0 0); /* White (Check contrast with Teal) */
+  --accent-foreground: oklch(44.226% 0.00005 271.152);
 
   --destructive: 0 84% 60%; /* Example Red - Define properly if needed */
   --destructive-foreground: oklch(1 0 0); /* White */
@@ -41,7 +41,7 @@
   --input: oklch(86.082% 0.05703 302.242); /* Lavendar Foam */
   --ring: oklch(87.041% 0.09023 168.908); /* Terracotta (for focus rings) */
 
-  --nothing: oklch(86.82% 0.03 323.2);
+  --nothing: oklch(86.82% 0.23 323.2);
 }
 
 @theme inline {
@@ -72,50 +72,38 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    /* --- Dark Mode Palette --- */
-
-    /* Backgrounds */
     --background: oklch(0.16 0.04 18.98); /*Dark sun*/
-    --background-trans: oklch(16.054% 0.03839 18.826 / 0.715); /*Dark sun*/
-    --card: oklch(0.24 0.015 60); /* Dark Warm Neutral (Beige/Latte-inspired) */
-    --popover: oklch(
-      0.22 0.012 55
-    ); /* Slightly darker than card for popovers */
-    --muted: oklch(0.28 0.01 65); /* Subtle dark neutral, lighter than card */
-    --secondary: var(--card); /* Reuse card for secondary background */
-
-    /* Foregrounds / Text */
     --foreground: oklch(0.96 0.0098 87.47); /* Cream */
-    --card-foreground: var(--foreground); /* Use main text color on cards */
-    --popover-foreground: var(
-      --foreground
-    ); /* Use main text color on popovers */
-    --primary-foreground: oklch(
-      1 0 0
-    ); /* White (for max contrast on Primary) */
-    --secondary-foreground: oklch(
-      0.76 0.12 301.62
-    ); /* Use main text color on secondary */
-    --muted-foreground: oklch(77.016% 0.0142 53.081); /* Lighter Latte */
-    --accent-foreground: oklch(1 0 0); /* White (for max contrast on Accent) */
-    --destructive-foreground: oklch(1 0 0); /* White */
 
-    /* Brand Colors (Adjusted for Dark Mode) */
+    --background-trans: oklch(16.054% 0.03839 18.826 / 0.715); /*Dark sun*/
+
+    --card: oklch(0.24 0.015 60);
+    --card-foreground: var(--foreground);
+
+    --popover: oklch(0.22 0.012 55);
+    --popover-foreground: var(--foreground);
+
     --primary: oklch(0.76 0.12 301.62); /* Teal */
-    --accent: oklch(87.041% 0.09023 168.908); /* Brighter Teal */
+    --primary-foreground: oklch(1 0 0);
+
+    --secondary: var(--card);
+    --secondary-foreground: oklch(0.76 0.12 301.62);
+
+    --muted: oklch(0.28 0.01 65);
+    --muted-foreground: oklch(77.016% 0.0142 53.081);
+
+    --destructive: oklch(0.65 0.2 15);
+    --destructive-foreground: oklch(1 0 0);
+
+    --accent: oklch(87.041% 0.09023 168.908);
+    --accent-foreground: oklch(44.226% 0.00005 271.152);
 
     /* Interactive Elements */
-    --border: oklch(
-      0.3 0.015 60
-    ); /* Subtle border, slightly lighter than card */
-    --input: var(--color-primary); /* Input background, matching border */
-    --ring: var(--color-primary); /* Focus Ring - Use adjusted Terracotta */
+    --border: oklch(0.3 0.015 60);
+    --input: var(--color-primary);
+    --ring: var(--color-primary);
 
-    /* Destructive */
-    --destructive: oklch(0.65 0.2 15); /* Example Dark-Mode-Friendly Red */
-
-    /* --- Ensure all variables from light mode are defined --- */
-    /* If you add more variables later, add their dark mode equivalents here */
+    --nothing: oklch(86.21% 0.13 314.2);
   }
 }
 
