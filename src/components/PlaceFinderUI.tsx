@@ -50,6 +50,7 @@ export default function PlaceFinderUI() {
         <div className="bg-background pointer-events-auto flex w-full max-w-md flex-col items-center gap-2 rounded-lg p-3 shadow-xl sm:p-4">
           <form action={searchFormAction} className="flex w-full items-center">
             <Input
+              className="bg-red-500"
               name="searchQuery"
               type="search"
               placeholder="Search place by name"
@@ -77,11 +78,11 @@ export default function PlaceFinderUI() {
 
       {/* Places Drawer */}
       <Drawer open={drawerOpen} onOpenChange={setDrawerOpen}>
-        <div className="bg-background-trans pointer-events-none absolute right-0 bottom-4 left-0 z-20 flex justify-center p-3 sm:p-4">
+        <div className="pointer-events-none absolute right-0 bottom-4 left-0 z-20 flex justify-center p-3 sm:p-4">
           <div className="pointer-events-auto w-full max-w-md">
             <DrawerTrigger asChild>
               <Button
-                className="w-full p-8 text-2xl"
+                className="bg-background-trans w-full p-8 text-2xl"
                 variant="secondary"
                 size="sm"
                 onClick={() => setDrawerOpen(true)}
@@ -91,7 +92,7 @@ export default function PlaceFinderUI() {
             </DrawerTrigger>
           </div>
         </div>
-        <DrawerContent className="max-h-[80vh]">
+        <DrawerContent className="bg-background-trans max-h-[80vh]">
           <div className="mx-auto w-full max-w-md">
             <DrawerHeader className="px-4">
               <DrawerTitle className="text-base">Nearby Places</DrawerTitle>
