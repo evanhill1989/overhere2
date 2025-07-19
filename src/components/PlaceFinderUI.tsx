@@ -38,6 +38,7 @@ export default function PlaceFinderUI() {
   } = usePlaceFinder();
 
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [searchMode, setSearchMode] = useState(false);
 
   return (
     <div className="relative h-full w-full">
@@ -49,7 +50,14 @@ export default function PlaceFinderUI() {
       {/* Floating Search Bar */}
       <div className="pointer-events-none absolute top-0 right-0 left-0 z-100 flex justify-center p-3 sm:p-4">
         <div className="bg-accent/80 pointer-events-auto flex w-full max-w-md flex-col items-center gap-2 rounded-lg border-1 p-3 sm:p-4">
-          <form action={searchFormAction} className="flex w-full items-center">
+          <form
+            action={async (formData) => {
+              await searchFormAction(formData);
+              setDrawerOpen(true);
+              setSearchMode(true);
+            }}
+            className="flex w-full items-center"
+          >
             <Input
               className="bg-foreground text-muted rounded-none border-none"
               name="searchQuery"
@@ -94,17 +102,19 @@ export default function PlaceFinderUI() {
             </DrawerTrigger>
           </div>
         </div>
-        <DrawerContent className="bg-background-trans max-h-[80vh]">
+        <DrawerContent className="bg-background-trans">
           <div className="mx-auto w-full max-w-md">
             {/* !!! Edited drawer.tsx style directly on tab element to white */}
             <DrawerHeader className="border-b-1 px-4">
               <DrawerTitle className="text-2xl">Nearby Places</DrawerTitle>
               <DrawerDescription>
-                Popular overhere locations close to you.
+                {searchMode
+                  ? "Search results"
+                  : "These are real locations near you."}
               </DrawerDescription>
             </DrawerHeader>
 
-            <div className="h-[60vh] overflow-y-auto">
+            <div className="h-[40dvh] overflow-y-auto md:h-[60vh]">
               {isLoadingOverall ? (
                 <div className="flex h-full items-center justify-center">
                   <Loader2 className="h-6 w-6 animate-spin" />

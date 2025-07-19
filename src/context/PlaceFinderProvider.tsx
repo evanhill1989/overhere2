@@ -107,7 +107,9 @@ export function PlaceFinderProvider({
   }, [userLocation]);
 
   const searchFormAction = async (formData: FormData) => {
+    console.log("searchFormAction running");
     const query = formData.get("searchQuery") as string;
+    console.log("query is :", query);
     setIsSearchPending(true);
     // TODO: Implement real search call
     await new Promise((r) => setTimeout(r, 1000));
@@ -118,6 +120,7 @@ export function PlaceFinderProvider({
         address: "789 Example Rd",
       },
     ]);
+    setSearchQuery("");
     setIsSearchPending(false);
   };
 
