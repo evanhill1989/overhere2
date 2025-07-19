@@ -6,6 +6,7 @@ import { useState, useEffect, useRef, useContext, createContext } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/utils/supabase/client";
 import { Place } from "@/lib/types/places";
+import { searchGooglePlaces } from "@/lib/api/googlePlaces";
 
 type PlaceFinderContextType = {
   userLocation: GeolocationCoordinates;
@@ -107,23 +108,20 @@ export function PlaceFinderProvider({
   }, [userLocation]);
 
   const searchFormAction = async (formData: FormData) => {
-    console.log("searchFormAction running");
     const query = formData.get("searchQuery") as string;
-    console.log("query is :", query);
+    if (!query?.trim() || !userLocation) return;
     setIsSearchPending(true);
-    // TODO: Implement real search call
-    await new Promise((r) => setTimeout(r, 1000));
-    setDerivedDisplayedPlaces([
-      {
-        place_id: "search456",
-        name: `Search Result for "${query}"`,
-        address: "789 Example Rd",
-      },
-    ]);
-    setSearchQuery("");
-    setIsSearchPending(false);
-  };
 
+    try {
+      const results = await searchGooglePlaces(query.trim(), userLocation);
+      setDerivedDisplayedPlaces(results);
+    } catch (err) {
+      console.error("Place search failed:", err);
+      // Optional: Show toast via sonner
+    } finally {
+      setIsSearchPending(false);
+    }
+  };
   if (!ready || !userLocation) return null;
 
   return (
