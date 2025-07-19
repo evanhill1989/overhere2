@@ -12,6 +12,7 @@ import {
   DrawerContent,
   DrawerHeader,
   DrawerTitle,
+  DrawerDescription,
 } from "@/components/ui/drawer";
 import PlacesList from "./PlacesList";
 
@@ -83,7 +84,7 @@ export default function PlaceFinderUI() {
           <div className="pointer-events-auto w-full max-w-md">
             <DrawerTrigger asChild>
               <Button
-                className="hover:bg-primary w-full border-white p-8 hover:text-white"
+                className="hover:bg-primary font-heading w-full border-white p-8 text-3xl font-extrabold hover:text-white"
                 variant="outline"
                 size="sm"
                 onClick={() => setDrawerOpen(true)}
@@ -95,8 +96,12 @@ export default function PlaceFinderUI() {
         </div>
         <DrawerContent className="bg-background-trans max-h-[80vh]">
           <div className="mx-auto w-full max-w-md">
-            <DrawerHeader className="px-4">
-              <DrawerTitle className="text-base">Nearby Places</DrawerTitle>
+            {/* !!! Edited drawer.tsx style directly on tab element to white */}
+            <DrawerHeader className="border-b-1 px-4">
+              <DrawerTitle className="text-2xl">Nearby Places</DrawerTitle>
+              <DrawerDescription>
+                Popular overhere locations close to you.
+              </DrawerDescription>
             </DrawerHeader>
 
             <div className="h-[60vh] overflow-y-auto">

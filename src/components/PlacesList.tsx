@@ -36,13 +36,6 @@ export default function PlacesList() {
 
   return (
     <div className="flex h-full flex-col">
-      {/* Sticky header */}
-      <div className="border-muted shrink-0 px-4 py-5">
-        <p className="text-muted-foreground text-sm">
-          These are real locations near you. Choose one to check in.
-        </p>
-      </div>
-
       {/* Scrollable list */}
       <ul className="grow space-y-2 overflow-y-auto p-4">
         {derivedDisplayedPlaces.map((place) => (

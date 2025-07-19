@@ -62,7 +62,7 @@ export function EphemeralSessionWindow({
   }, [messages]);
 
   return (
-    <section className="flex h-[80vh] flex-col gap-4 rounded-lg border p-4 shadow">
+    <section className="flex h-[80vh] flex-col gap-4 border p-4 shadow">
       {onBack && (
         <div className="flex justify-between">
           <button
@@ -88,10 +88,10 @@ export function EphemeralSessionWindow({
           messages.map((msg) => (
             <div
               key={msg.id}
-              className={`max-w-[70%] rounded-lg px-3 py-2 text-sm ${
+              className={`max-w-[70%] px-3 py-2 text-sm ${
                 msg.senderCheckinId === checkinId
-                  ? "bg-primary text-primary-foreground ml-auto"
-                  : "bg-muted"
+                  ? "bg-primary/10 text-primary-foreground ml-auto"
+                  : ""
               }`}
             >
               {msg.content}

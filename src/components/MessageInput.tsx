@@ -46,7 +46,7 @@ export function MessageInput({
         name="content"
         placeholder="Say something friendly…"
         className="flex-1"
-        rows={2}
+        rows={1}
         disabled={isPending}
         required
       />
