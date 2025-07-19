@@ -1,6 +1,14 @@
 // lib/api/googlePlaces.ts
 import { Place } from "@/lib/types/places";
 
+type RawGooglePlace = {
+  id: string;
+  displayName?: { text?: string };
+  formattedAddress?: string;
+  location?: { latitude: number; longitude: number };
+  primaryTypeDisplayName?: { text?: string };
+};
+
 export async function searchGooglePlaces(
   query: string,
   coords: GeolocationCoordinates,
@@ -40,7 +48,7 @@ export async function searchGooglePlaces(
 
   const data = await res.json();
   return (data.places || []).map(
-    (p: any): Place => ({
+    (p: RawGooglePlace): Place => ({
       place_id: p.id,
       name: p.displayName?.text || "Unknown",
       address: p.formattedAddress || "No address",
