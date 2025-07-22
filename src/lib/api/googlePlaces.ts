@@ -57,9 +57,7 @@ export async function getNearbyPlaces(coords: {
   latitude: number;
   longitude: number;
 }): Promise<Place[]> {
-  const PLACES_API_KEY =
-    process.env.GOOGLE_PLACES_API_KEY ||
-    process.env.NEXT_PUBLIC_GOOGLE_PLACES_API_KEY;
+  const PLACES_API_KEY = process.env.GOOGLE_PLACES_API_KEY;
 
   if (!PLACES_API_KEY) throw new Error("Missing Google Places API key");
 
