@@ -71,6 +71,7 @@ export function PlaceFinderProvider({
   }, [router]);
 
   useEffect(() => {
+    console.log(userLocation, "@@@@<<<<<<<<-------userLocation in useEffect");
     if (!userLocation) return;
 
     (async () => {
@@ -85,6 +86,10 @@ export function PlaceFinderProvider({
         });
         if (!res.ok) throw new Error("Failed to fetch");
         const results = await res.json();
+        console.log(
+          results,
+          "<<<<<<<<<<<<<<<<--------------results from nearby api fetch ",
+        );
         setDerivedDisplayedPlaces(results);
       } catch (err) {
         console.error("Failed to load nearby places:", err);
