@@ -42,51 +42,28 @@ export default function AboutPage() {
           <h2 className="text-foreground mb-4 text-2xl font-semibold md:text-3xl">
             How does it work?
           </h2>
-          <ol className="text-foreground list-outside list-decimal space-y-3 pl-6 text-base md:text-lg">
+          <p>
+            Overhere is a lightweight, mobile-first web app that lets users
+            discover nearby public places and check in anonymously. Once checked
+            in, they can see others at the same location and send a brief
+            request to start a real-time, ephemeral conversation. If the request
+            is accepted, a short-lived, private messaging window opens — no
+            profiles, no history, just real-world connection.
+          </p>
+          <ul className="text-foreground list-outside space-y-3 pl-6 text-base md:text-lg">
             <li>
-              Check In: When you're at a location (like a cafe, bar, park, or
-              co-working space) and looking to talk, check into that specific
-              place via the app. This verifies your presence.
+              Check in at a shared location, set a quick topic, and see who else
+              is around.
             </li>
             <li>
-              Set Your Status: You can indicate if you're generally 'available'
-              or 'busy' and add a topic (e.g., "local events," "reading,"
-              "tech") about which you are interested in talking.
+              Send a request to talk if someone’s interest aligns — they can
+              accept or ignore.
             </li>
             <li>
-              Discover Anonymously: The app shows when other people are
-              checked-in where you are and what their topical interests are.
+              If accepted, chat briefly and decide whether to meet — no
+              profiles, no pressure, and it all disappears soon after.
             </li>
-            <li>
-              Signal Interest: If you want to potentially talk with a user, you
-              send a request to message.
-            </li>
-            <li>
-              Connect (If Accepted): The other user receives your request and
-              can accept or ignore it. If they accept, a messaging window opens.
-            </li>
-            <li>
-              Break the Ice : Use messages to introduce yourself and decide if
-              you're interested in talking face to face.
-            </li>
-            <li>
-              <strong>Don't meet them</strong>: No hard feelings! If you don't
-              want to meet them, you can just end the chat. There are no user
-              names, no profiles, no pictures, no way of knowing who it is in
-              the room you are messaging, and they won't know who you are
-              either. The only identifier is the topic interest you gave when
-              you checked in.
-            </li>
-            <li>
-              <strong>Meet them!</strong>: The goal! Move your conversation
-              offline into the real world.
-            </li>
-            <li>
-              It Disappears: The chat session and the connection record are
-              temporary and vanish shortly after, leaving no digital trail
-              within the app.
-            </li>
-          </ol>
+          </ul>
         </section>
 
         {/* Section 3: Useful tips - NEW */}
@@ -102,11 +79,13 @@ export default function AboutPage() {
             <li>
               Keep it Light & Platonic: Remember, the aim is a casual, friendly,
               low-pressure interaction.{" "}
-              <strong>This isn't a dating app.</strong>
+              <span className="strong bg-accent-foreground font-bold">
+                This isn't a dating app.
+              </span>
             </li>
             <li>
-              Topics Can Help: Adding a simple topic is a great way to find
-              common ground.
+              Topics Can Help: Adding a clear topic is a great way to find
+              someone with whom you'll find common ground.
             </li>
             <li>
               Define clear parameters via messaging: If you are looking for a
@@ -138,8 +117,12 @@ export default function AboutPage() {
             </li>
             <li>
               Behave like you would in real life because{" "}
-              <strong> you are in real life</strong>. These are other real
-              people who happen to be in the same place as you.
+              <span className="strong bg-accent-foreground font-bold">
+                {" "}
+                you are in real life.
+              </span>
+              These are other real people who happen to be in the same place as
+              you.
             </li>
             <li>
               It's Just an Opener: Think of Overhere as just the very first step
