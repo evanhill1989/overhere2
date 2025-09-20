@@ -1,5 +1,4 @@
-// context/PlaceFinderProvider.tsx
-
+// src/context/PlaceFinderProvider.tsx - SIMPLER VERSION
 "use client";
 
 import { useState, useEffect, useRef, useContext, createContext } from "react";
@@ -9,13 +8,14 @@ import { Place } from "@/lib/types/places";
 import { searchGooglePlaces } from "@/lib/api/googlePlaces";
 
 type PlaceFinderContextType = {
-  userLocation: GeolocationCoordinates;
+  userLocation: GeolocationCoordinates | null;
   derivedDisplayedPlaces: Place[];
   isLoadingOverall: boolean;
   searchQuery: string;
   setSearchQuery: (value: string) => void;
   isSearchPending: boolean;
   searchFormAction: (formData: FormData) => void;
+  locationError: string | null;
 };
 
 const PlaceFinderContext = createContext<PlaceFinderContextType | null>(null);
@@ -36,7 +36,9 @@ export function PlaceFinderProvider({
   const [ready, setReady] = useState(false);
   const [isSearchPending, setIsSearchPending] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [locationError, setLocationError] = useState<string | null>(null);
 
+  // Geolocation setup - FIXED VERSION WITHOUT MOCK COORDINATES
   useEffect(() => {
     const client = supabase.current;
 
@@ -44,24 +46,52 @@ export function PlaceFinderProvider({
       data: { subscription },
     } = client.auth.onAuthStateChange((event, session) => {
       if (session?.user) {
+        // Request real location
         navigator.geolocation.getCurrentPosition(
           (pos) => {
-            const mockCoords = {
-              ...pos.coords,
-              latitude: 27.77022,
-              longitude: -82.63646,
-            };
-
-            setUserLocation(mockCoords);
-            console.log(pos.coords.latitude, "position coordinates");
+            // Use REAL coordinates from the browser
+            setUserLocation(pos.coords);
+            console.log(
+              "📍 Real location:",
+              pos.coords.latitude,
+              pos.coords.longitude,
+            );
+            console.log("📊 Accuracy:", pos.coords.accuracy, "meters");
+            setLocationError(null);
             setReady(true);
           },
-          () => {
-            router.replace("/explain-location");
+          (error) => {
+            console.error("❌ Location error:", error);
+
+            let errorMessage = "Unable to get your location.";
+
+            switch (error.code) {
+              case error.PERMISSION_DENIED:
+                errorMessage =
+                  "Location access denied. Please enable location permissions.";
+                router.replace("/explain-location");
+                break;
+              case error.POSITION_UNAVAILABLE:
+                errorMessage =
+                  "Location information unavailable. Please check your device settings.";
+                break;
+              case error.TIMEOUT:
+                errorMessage = "Location request timed out. Please try again.";
+                break;
+            }
+
+            setLocationError(errorMessage);
+            setReady(false);
+          },
+          {
+            enableHighAccuracy: true, // Use GPS if available
+            timeout: 10000, // Wait up to 10 seconds
+            maximumAge: 300000, // Accept 5-minute-old cached position
           },
         );
       } else {
-        // Don't touch `ready`, just let the app decide what to render
+        setReady(false);
+        setUserLocation(null);
       }
     });
 
@@ -70,8 +100,8 @@ export function PlaceFinderProvider({
     };
   }, [router]);
 
+  // Fetch nearby places when location is available
   useEffect(() => {
-    console.log(userLocation, "@@@@<<<<<<<<-------userLocation in useEffect");
     if (!userLocation) return;
 
     (async () => {
@@ -84,77 +114,58 @@ export function PlaceFinderProvider({
             longitude: userLocation.longitude,
           }),
         });
-        if (!res.ok) throw new Error("Failed to fetch");
+
+        if (!res.ok) throw new Error("Failed to fetch nearby places");
+
         const results = await res.json();
-        console.log(
-          results,
-          "<<<<<<<<<<<<<<<<--------------results from nearby api fetch ",
-        );
         setDerivedDisplayedPlaces(results);
       } catch (err) {
         console.error("Failed to load nearby places:", err);
-        // Optional: Fallback UI or toast
+        setLocationError("Failed to load nearby places");
       }
     })();
   }, [userLocation]);
 
-  // [
-  //     {
-  //       place_id: "abc123",
-  //       name: "Nearby Coffee",
-  //       address: "123 Main St",
-  //     },
-  //     {
-  //       place_id: "xyz789",
-  //       name: "Local Park",
-  //       address: "456 Park Ave",
-  //     },
-  //     { place_id: "uti456", name: "Pizza", address: "456 Park Ave" },
-  //     { place_id: "fbi666", name: "Library", address: "456 Park Ave" },
-  //     { place_id: "cia911", name: "Speakeasy", address: "456 Park Ave" },
-  //     { place_id: "qwe482", name: "Bluebird Café", address: "102 Elm St" },
-  //     { place_id: "lmn673", name: "Neon Diner", address: "310 Sunset Blvd" },
-  //     { place_id: "zxc384", name: "The Nook", address: "87 Maple Dr" },
-  //     { place_id: "vbn562", name: "Lucky's", address: "220 Birch Ln" },
-  //     { place_id: "jkl915", name: "Civic Lounge", address: "14 Grant Way" },
-  //     { place_id: "tyu327", name: "Hideout", address: "690 Oak Hill Rd" },
-  //     { place_id: "asd745", name: "Vinyl Room", address: "99 Beacon St" },
-  //     { place_id: "fgh896", name: "Third Rail", address: "12 Industrial Pkwy" },
-  //     { place_id: "bnm563", name: "Moonshot", address: "321 Riverside Ave" },
-  //     { place_id: "wer384", name: "Gallery Taproom", address: "75 5th Ave" },
-  //     { place_id: "poi665", name: "Firefly Bar", address: "448 Juniper Ln" },
-  //     { place_id: "uio774", name: "The Still", address: "58 Monroe Pl" },
-  //     { place_id: "hjk558", name: "Copper Hall", address: "17 Ash Ct" },
-  //     { place_id: "mnb987", name: "Driftwood", address: "639 Ocean View Dr" },
-  //     { place_id: "yui340", name: "The Pressroom", address: "84 Library St" },
-  //     { place_id: "opq771", name: "Lantern", address: "412 Spruce Way" },
-  //     { place_id: "cde342", name: "Back Bar", address: "235 Canal St" },
-  //     { place_id: "rtz661", name: "Rose & Crown", address: "138 Cedar Ave" },
-  //     { place_id: "plm489", name: "Studio 89", address: "902 Vine Rd" },
-  //     {
-  //       place_id: "ghj726",
-  //       name: "Cork & Flame",
-  //       address: "67 Peachtree Blvd",
-  //     },
-  //   ]
-
   const searchFormAction = async (formData: FormData) => {
     const query = formData.get("searchQuery") as string;
     if (!query?.trim() || !userLocation) return;
+
     setIsSearchPending(true);
 
     try {
       const results = await searchGooglePlaces(query.trim(), userLocation);
-      console.log(results);
       setDerivedDisplayedPlaces(results);
     } catch (err) {
       console.error("Place search failed:", err);
-      // Optional: Show toast via sonner
+      setLocationError("Search failed");
     } finally {
       setIsSearchPending(false);
     }
   };
-  if (!ready || !userLocation) return null;
+
+  if (!ready || !userLocation) {
+    if (locationError) {
+      return (
+        <div className="flex min-h-screen items-center justify-center p-4">
+          <div className="text-center">
+            <p className="text-destructive mb-4">{locationError}</p>
+            <button
+              onClick={() => window.location.reload()}
+              className="text-primary underline"
+            >
+              Retry
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <p className="text-muted-foreground">Getting your location...</p>
+      </div>
+    );
+  }
 
   return (
     <PlaceFinderContext.Provider
@@ -166,6 +177,7 @@ export function PlaceFinderProvider({
         setSearchQuery,
         isSearchPending,
         searchFormAction,
+        locationError,
       }}
     >
       {children}
