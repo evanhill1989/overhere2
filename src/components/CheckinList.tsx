@@ -38,12 +38,8 @@ export function CheckinList({
     const initiateeId = formData.get("initiateeId") as string;
     const initiatorId = formData.get("initiatorId") as string;
     const placeId = formData.get("placeId") as string;
-
-    const result = await requestToMessage({
-      initiatorId,
-      initiateeId,
-      placeId,
-    });
+    const input = { initiatorId, initiateeId, placeId };
+    const result = await requestToMessage(input);
 
     return {
       ...prevStatus,

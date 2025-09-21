@@ -1,5 +1,6 @@
 // db/schema.ts
 
+import { eq } from "drizzle-orm";
 import {
   pgTable,
   varchar,
@@ -13,6 +14,7 @@ import {
   text,
   boolean,
   unique,
+  uniqueIndex,
 } from "drizzle-orm/pg-core";
 
 // Enums
@@ -79,7 +81,9 @@ export const checkinsTable = pgTable(
     createdAtIndex: index("checkins_created_at_idx").on(table.createdAt),
 
     // 🚦 UNIQUE: ensure one active check‑in per user
-    uniqueByUser: unique().on(table.userId),
+    uniqueActiveCheckin: uniqueIndex("checkins_user_active_unique")
+      .on(table.userId)
+      .where(eq(table.isActive, true)),
   }),
 );
 

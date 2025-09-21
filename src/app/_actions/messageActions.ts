@@ -6,26 +6,26 @@ import { messagesTable } from "@/lib/schema";
 import { createClient } from "@/utils/supabase/server";
 import { subHours } from "date-fns";
 
+import {
+  messageSchema,
+  messageRequestSchema,
+  respondToRequestSchema,
+} from "@/lib/validators/message";
+import { sanitizeText } from "@/lib/validators/common";
+
 // ============================================
 // REQUEST TO MESSAGE (UPDATED)
 // ============================================
 
-export async function requestToMessage({
-  initiatorId,
-  initiateeId,
-  placeId,
-}: {
+export async function requestToMessage(input: {
   initiatorId: string;
   initiateeId: string;
   placeId: string;
 }) {
   try {
-    console.log("↪️ requestToMessage called with:", {
-      initiatorId,
-      initiateeId,
-      placeId,
-    });
+    console.log("↪️ requestToMessage called with:", input);
 
+    const validated = messageRequestSchema.parse(input);
     const supabase = await createClient();
     const {
       data: { user },
@@ -38,7 +38,7 @@ export async function requestToMessage({
     }
 
     // ✅ Verify initiatorId matches authenticated user
-    if (user.id !== initiatorId) {
+    if (user.id !== validated.initiatorId) {
       console.error("❌ Unauthorized: initiator doesn't match user");
       return { success: false, error: "Unauthorized" };
     }
@@ -47,8 +47,8 @@ export async function requestToMessage({
     const { data: samePlace, error: checkError } = await supabase.rpc(
       "are_users_at_same_place",
       {
-        user1_id: initiatorId,
-        user2_id: initiateeId,
+        user1_id: validated.initiatorId,
+        user2_id: validated.initiateeId,
       },
     );
 
@@ -64,9 +64,9 @@ export async function requestToMessage({
     const { data: existingRequests } = await supabase
       .from("message_session_requests")
       .select("*")
-      .eq("initiator_id", initiatorId)
-      .eq("initiatee_id", initiateeId)
-      .eq("place_id", placeId)
+      .eq("initiator_id", validated.initiatorId)
+      .eq("initiatee_id", validated.initiateeId)
+      .eq("place_id", validated.placeId)
       .in("status", ["pending", "accepted"]);
 
     if (existingRequests && existingRequests.length > 0) {
@@ -81,9 +81,9 @@ export async function requestToMessage({
     const { data: newRequest, error: insertError } = await supabase
       .from("message_session_requests")
       .insert({
-        initiator_id: initiatorId,
-        initiatee_id: initiateeId,
-        place_id: placeId,
+        initiator_id: validated.initiatorId,
+        initiatee_id: validated.initiateeId,
+        place_id: validated.placeId,
         status: "pending",
       })
       .select()
@@ -112,11 +112,10 @@ export async function respondToMessageRequest(
   prevState: { message: string },
   formData: FormData,
 ): Promise<{ message: string }> {
-  const requestId = formData.get("requestId") as string;
-  const response = formData.get("response") as
-    | "accepted"
-    | "rejected"
-    | "canceled";
+  const validated = respondToRequestSchema.parse({
+    requestId: formData.get("requestId"),
+    response: formData.get("response"),
+  });
 
   const supabase = await createClient();
   const {
@@ -133,7 +132,7 @@ export async function respondToMessageRequest(
   const { data: request, error: fetchError } = await supabase
     .from("message_session_requests")
     .select("*")
-    .eq("id", requestId)
+    .eq("id", validated.requestId)
     .single();
 
   if (fetchError || !request) {
@@ -148,7 +147,7 @@ export async function respondToMessageRequest(
   }
 
   // ✅ If accepted, create message session
-  if (response === "accepted" && request.initiatee_id === user.id) {
+  if (validated.response === "accepted" && request.initiatee_id === user.id) {
     console.log("✅ Creating message session for accepted request");
 
     const { error: sessionError } = await supabase
@@ -169,16 +168,16 @@ export async function respondToMessageRequest(
   // ✅ Update request status (RLS ensures we can only update our requests)
   const { error: updateError } = await supabase
     .from("message_session_requests")
-    .update({ status: response })
-    .eq("id", requestId);
+    .update({ status: validated.response })
+    .eq("id", validated.requestId);
 
   if (updateError) {
     console.error("❌ Failed to update request:", updateError);
     return { message: "Failed to update request." };
   }
 
-  console.log(`✅ Request ${response}:`, requestId);
-  return { message: `Request ${response}.` };
+  console.log(`✅ Request ${validated.response}:`, validated.requestId);
+  return { message: `Request ${validated.response}.` };
 }
 
 // ============================================
@@ -260,9 +259,21 @@ export async function submitMessage(
       return { ok: false, newMessage: null, error: "Not authenticated" };
     }
 
+    const rawData = {
+      sessionId: formData.get("sessionId"),
+      senderCheckinId: formData.get("senderCheckinId"),
+      content: formData.get("content"),
+    };
+
+    const validated = messageSchema.parse({
+      sessionId: rawData.sessionId,
+      senderCheckinId: Number(rawData.senderCheckinId),
+      content: sanitizeText(rawData.content as string),
+    });
+
     const sessionId = formData.get("sessionId") as string;
     const senderCheckinId = Number(formData.get("senderCheckinId"));
-    const content = (formData.get("content") as string).trim();
+    const content = validated.content;
 
     if (!content) {
       return { ok: false, newMessage: null, error: "Message cannot be empty" };

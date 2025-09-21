@@ -15,12 +15,9 @@ export function useMessageRequest() {
 
     onDone?: () => void,
   ) => {
+    const input = { initiatorId, initiateeId, placeId };
     startTransition(async () => {
-      const result = await requestToMessage({
-        initiatorId,
-        initiateeId,
-        placeId,
-      });
+      const result = await requestToMessage(input);
       onDone?.();
       if (!result.success) {
         console.error("Message request failed:", result.error);
