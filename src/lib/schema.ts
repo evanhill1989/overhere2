@@ -86,7 +86,6 @@ export const checkinsTable = pgTable(
       .where(eq(table.isActive, true)),
   }),
 );
-
 // Message Requests
 // Message Session Requests
 export const messageSessionRequestsTable = pgTable(
