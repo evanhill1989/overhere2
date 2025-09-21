@@ -7,8 +7,8 @@ import { usePollCheckins } from "@/hooks/usePollCheckins";
 import { MessageRequestStatus } from "@/lib/db/types";
 import { useActionState } from "react";
 import { requestToMessage } from "@/app/_actions/messageActions";
+import { useRealtimeMessageRequests } from "@/hooks/useRealtimeMessageRequests";
 import { HandWaving } from "@phosphor-icons/react";
-import { usePollMessageRequests } from "@/hooks/usePollMessageRequests";
 
 export function CheckinList({
   placeId,
@@ -22,7 +22,7 @@ export function CheckinList({
   onResumeSession?: () => void;
 }) {
   const { checkins, isLoading } = usePollCheckins(placeId);
-  const { requests } = usePollMessageRequests(currentUserId, placeId);
+  const { requests } = useRealtimeMessageRequests(currentUserId, placeId);
 
   const rejectedRequests = requests.filter(
     (r) =>

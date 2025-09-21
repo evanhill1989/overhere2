@@ -1,12 +1,12 @@
+// src/components/IncomingRequests.tsx
 "use client";
 
 import { useState } from "react";
 import { useActionState } from "react";
 import { useFormStatus } from "react-dom";
-// import { useRouter } from "next/navigation";
 
 import { respondToMessageRequest } from "@/app/_actions/messageActions";
-import { usePollMessageRequests } from "@/hooks/usePollMessageRequests";
+import { useRealtimeMessageRequests } from "@/hooks/useRealtimeMessageRequests"; // ✅ Changed
 
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -17,15 +17,14 @@ type IncomingRequestsProps = {
   placeId: string;
 };
 
-// type RequestStatus = "pending" | "accepted" | "rejected" | "canceled";
-
 type OptimisticState = Record<string, "accepted" | "rejected">;
 
 export default function IncomingRequests({
   currentUserId,
   placeId,
 }: IncomingRequestsProps) {
-  const { requests, isLoading } = usePollMessageRequests(
+  const { requests, isLoading } = useRealtimeMessageRequests(
+    // ✅ Changed
     currentUserId,
     placeId,
   );
@@ -33,7 +32,6 @@ export default function IncomingRequests({
   const [state, formAction] = useActionState(respondToMessageRequest, {
     message: "",
   });
-  // const router = useRouter();
 
   const filtered = requests.filter(
     (r) =>
@@ -58,7 +56,7 @@ export default function IncomingRequests({
   if (filtered.length === 0) {
     return (
       <p className="text-muted-foreground text-sm">
-        No one’s trying to connect right now.
+        No one's trying to connect right now.
       </p>
     );
   }
@@ -90,7 +88,7 @@ export default function IncomingRequests({
               </p>
               {req.topic && (
                 <p className="text-muted-foreground text-sm italic">
-                  They’re open to talking about: {req.topic}
+                  They're open to talking about: {req.topic}
                 </p>
               )}
 
@@ -134,7 +132,6 @@ export default function IncomingRequests({
   );
 }
 
-// Optimistic-aware submit button
 function OptimisticSubmitButton({
   label,
   ...props
