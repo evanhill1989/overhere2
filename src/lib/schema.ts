@@ -77,12 +77,8 @@ export const checkinsTable = pgTable(
     placeIdx: index("checkins_place_idx").on(table.placeId),
     statusIdx: index("checkins_status_idx").on(table.checkinStatus),
     createdAtIndex: index("checkins_created_at_idx").on(table.createdAt),
-
-    // 🚦 UNIQUE: ensure one active check‑in per user
-    uniqueByUser: unique().on(table.userId),
   }),
 );
-
 // Message Requests
 // Message Session Requests
 export const messageSessionRequestsTable = pgTable(

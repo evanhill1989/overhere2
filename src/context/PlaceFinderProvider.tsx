@@ -7,6 +7,8 @@ import { createClient } from "@/utils/supabase/client";
 import { Place } from "@/lib/types/places";
 import { searchGooglePlaces } from "@/lib/api/googlePlaces";
 
+import { searchPlaces } from "@/app/_actions/searchPlaces";
+
 type PlaceFinderContextType = {
   userLocation: GeolocationCoordinates | null;
   derivedDisplayedPlaces: Place[];
@@ -133,11 +135,11 @@ export function PlaceFinderProvider({
     setIsSearchPending(true);
 
     try {
-      const results = await searchGooglePlaces(query.trim(), userLocation);
+      const results = await searchPlaces(query.trim(), userLocation); // Use server action
+      console.log(results);
       setDerivedDisplayedPlaces(results);
     } catch (err) {
       console.error("Place search failed:", err);
-      setLocationError("Search failed");
     } finally {
       setIsSearchPending(false);
     }

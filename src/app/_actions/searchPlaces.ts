@@ -1,4 +1,6 @@
-// lib/api/googlePlaces.ts
+// src/app/_actions/searchPlaces.ts
+"use server";
+
 import { Place } from "@/lib/types/places";
 
 type RawGooglePlace = {
@@ -9,35 +11,32 @@ type RawGooglePlace = {
   primaryTypeDisplayName?: { text?: string };
 };
 
-// ---------- Search by Text (client-side or manual search) ----------
+export async function searchPlaces(
+  query: string,
+  coords: { latitude: number; longitude: number },
+): Promise<Place[]> {
+  const PLACES_API_KEY = process.env.GOOGLE_PLACES_API_KEY; // No NEXT_PUBLIC_
 
-// lib/api/googlePlaces.ts
-
-export async function getNearbyPlaces(coords: {
-  latitude: number;
-  longitude: number;
-}): Promise<Place[]> {
-  const PLACES_API_KEY = process.env.GOOGLE_PLACES_API_KEY;
-
-  if (!PLACES_API_KEY) throw new Error("Missing Google Places API key");
+  if (!PLACES_API_KEY) {
+    throw new Error("Missing API key");
+  }
 
   const requestBody = {
-    includedTypes: ["cafe"],
-    maxResultCount: 20,
-    locationRestriction: {
+    textQuery: query,
+    maxResultCount: 10,
+    locationBias: {
       circle: {
         center: {
           latitude: coords.latitude,
           longitude: coords.longitude,
         },
-        radius: 500,
+        radius: 20000,
       },
     },
-    rankPreference: "POPULARITY",
   };
 
   const res = await fetch(
-    "https://places.googleapis.com/v1/places:searchNearby",
+    "https://places.googleapis.com/v1/places:searchText",
     {
       method: "POST",
       headers: {
@@ -51,7 +50,6 @@ export async function getNearbyPlaces(coords: {
   );
 
   if (!res.ok) {
-    console.error("Nearby Places API failed:", await res.text());
     throw new Error(`Google API error: ${res.status}`);
   }
 
@@ -69,5 +67,3 @@ export async function getNearbyPlaces(coords: {
     }),
   );
 }
-
-// ---------- Shared Mapping ----------
