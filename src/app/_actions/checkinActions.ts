@@ -11,6 +11,10 @@ import { eq, sql } from "drizzle-orm";
 import { checkInSchema } from "@/lib/validators/checkin";
 import { ensureUserInDb } from "@/utils/supabase/ensureUserInDb";
 import { createClient } from "@/utils/supabase/server";
+import {
+  checkServerActionRateLimit,
+  RATE_LIMIT_CONFIGS,
+} from "@/lib/security/serverActionRateLimit";
 
 export type ActionResult = {
   success: boolean;
@@ -156,6 +160,19 @@ export async function fetchAndCacheGooglePlaceDetails(
 
 // ✅ UPDATED: Check-in action with RLS support
 export async function checkIn(formData: FormData) {
+  // ✅ Rate limiting check FIRST
+  const rateLimitResult = await checkServerActionRateLimit(
+    RATE_LIMIT_CONFIGS.checkin,
+  );
+
+  if (!rateLimitResult.success) {
+    throw new Error(rateLimitResult.error || "Rate limit exceeded");
+  }
+
+  console.log(
+    `✅ Rate limit check passed. Remaining: ${rateLimitResult.remaining}`,
+  );
+
   const supabase = await createClient();
 
   // Get authenticated user (RLS will ensure they can only modify their own data)

@@ -12,6 +12,10 @@ import {
   respondToRequestSchema,
 } from "@/lib/validators/message";
 import { sanitizeText } from "@/lib/validators/common";
+import {
+  checkServerActionRateLimit,
+  RATE_LIMIT_CONFIGS,
+} from "@/lib/security/serverActionRateLimit";
 
 // ============================================
 // REQUEST TO MESSAGE (UPDATED)
@@ -23,7 +27,20 @@ export async function requestToMessage(input: {
   placeId: string;
 }) {
   try {
+    // ✅ Rate limiting check FIRST
+    const rateLimitResult = await checkServerActionRateLimit(
+      RATE_LIMIT_CONFIGS.messageRequest,
+    );
+
+    if (!rateLimitResult.success) {
+      console.error("❌ Rate limit exceeded for message request");
+      return { success: false, error: rateLimitResult.error };
+    }
+
     console.log("↪️ requestToMessage called with:", input);
+    console.log(
+      `✅ Rate limit check passed. Remaining: ${rateLimitResult.remaining}`,
+    );
 
     const validated = messageRequestSchema.parse(input);
     const supabase = await createClient();
@@ -112,6 +129,18 @@ export async function respondToMessageRequest(
   prevState: { message: string },
   formData: FormData,
 ): Promise<{ message: string }> {
+  // ✅ Rate limiting check FIRST
+  const rateLimitResult = await checkServerActionRateLimit(
+    RATE_LIMIT_CONFIGS.respondToRequest,
+  );
+
+  if (!rateLimitResult.success) {
+    console.error("❌ Rate limit exceeded for responding to request");
+    return {
+      message: rateLimitResult.error || "Too many responses. Please slow down.",
+    };
+  }
+
   const validated = respondToRequestSchema.parse({
     requestId: formData.get("requestId"),
     response: formData.get("response"),
@@ -248,6 +277,22 @@ export async function submitMessage(
   formData: FormData,
 ) {
   try {
+    // ✅ Rate limiting check FIRST
+    const rateLimitResult = await checkServerActionRateLimit(
+      RATE_LIMIT_CONFIGS.sendMessage,
+    );
+
+    if (!rateLimitResult.success) {
+      console.error("❌ Rate limit exceeded for sending message");
+      return {
+        ok: false,
+        newMessage: null,
+        error:
+          rateLimitResult.error ||
+          "Sending messages too quickly. Please slow down.",
+      };
+    }
+
     const supabase = await createClient();
     const {
       data: { user },
@@ -337,6 +382,7 @@ export async function submitMessage(
     }
 
     console.log("✅ Message sent:", newMessage.id);
+    console.log(`✅ Rate limit remaining: ${rateLimitResult.remaining}`);
 
     // Convert timestamp to Date object for compatibility
     const messageWithDate = {
