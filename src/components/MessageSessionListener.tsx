@@ -6,6 +6,8 @@ import { EphemeralSessionWindow } from "./EphemeralSessonWindow";
 import { MessageInput } from "./MessageInput";
 import { PlaceDetails } from "./PlaceDetails";
 import type { SelectMessageSession, SelectCheckin } from "@/lib/db/types";
+import { MessageErrorBoundary } from "./error_boundaries/MessageErrorBoundary";
+import { PlaceDetailsErrorBoundary } from "./error_boundaries/PlaceDetailsErrorBoundary";
 
 type Props = {
   place: { id: string; name: string; address: string };
@@ -124,35 +126,39 @@ export function MessageSessionListener({
 
   if (session && showMessaging) {
     return (
-      <EphemeralSessionWindow
-        session={session}
-        currentUserId={currentUserId}
-        checkinId={currentCheckinId}
-        onBack={() => setShowMessaging(false)}
-        place={{ name: place.name, address: place.address }}
-      >
-        <MessageInput
-          sessionId={session.id}
-          senderCheckinId={currentCheckinId}
-        />
-      </EphemeralSessionWindow>
+      <MessageErrorBoundary onReset={() => setShowMessaging(false)}>
+        <EphemeralSessionWindow
+          session={session}
+          currentUserId={currentUserId}
+          checkinId={currentCheckinId}
+          onBack={() => setShowMessaging(false)}
+          place={{ name: place.name, address: place.address }}
+        >
+          <MessageInput
+            sessionId={session.id}
+            senderCheckinId={currentCheckinId}
+          />
+        </EphemeralSessionWindow>
+      </MessageErrorBoundary>
     );
   }
 
   return (
-    <PlaceDetails
-      place={place}
-      checkins={checkins}
-      currentUserId={currentUserId}
-      activeSession={
-        session
-          ? {
-              initiatorId: session.initiatorId,
-              initiateeId: session.initiateeId,
-            }
-          : undefined
-      }
-      onResumeSession={() => setShowMessaging(true)}
-    />
+    <PlaceDetailsErrorBoundary>
+      <PlaceDetails
+        place={place}
+        checkins={checkins}
+        currentUserId={currentUserId}
+        activeSession={
+          session
+            ? {
+                initiatorId: session.initiatorId,
+                initiateeId: session.initiateeId,
+              }
+            : undefined
+        }
+        onResumeSession={() => setShowMessaging(true)}
+      />
+    </PlaceDetailsErrorBoundary>
   );
 }
