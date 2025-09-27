@@ -15,6 +15,7 @@ import {
   DrawerDescription,
 } from "@/components/ui/drawer";
 import PlacesList from "./PlacesList";
+import { MapErrorBoundary } from "./error_boundaries/MapErrorBoundary";
 
 // Dynamically import map
 const UserMap = dynamic(() => import("./UserMap"), {
@@ -44,7 +45,9 @@ export default function PlaceFinderUI() {
     <div className="relative h-full w-full">
       {/* Background Map Layer */}
       <div className="absolute inset-0 z-0">
-        <UserMap places={derivedDisplayedPlaces} selectedPlace={null} />
+        <MapErrorBoundary>
+          <UserMap places={derivedDisplayedPlaces} selectedPlace={null} />
+        </MapErrorBoundary>
       </div>
 
       {/* Floating Search Bar */}

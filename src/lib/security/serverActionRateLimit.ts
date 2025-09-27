@@ -1,0 +1,88 @@
+// src/lib/security/serverActionRateLimit.ts
+import { headers } from "next/headers";
+import { rateLimit } from "./rateLimit";
+
+type ServerActionRateLimitConfig = {
+  limit: number;
+  windowMs: number;
+  storeType?: "checkin" | "messaging" | "search" | "default";
+  errorMessage?: string;
+};
+
+export async function checkServerActionRateLimit(
+  config: ServerActionRateLimitConfig,
+): Promise<{ success: boolean; error?: string; remaining?: number }> {
+  try {
+    const headersList = await headers();
+
+    // Get client IP from headers
+    const forwardedFor = headersList.get("x-forwarded-for");
+    const realIP = headersList.get("x-real-ip");
+    const cfConnectingIP = headersList.get("cf-connecting-ip");
+
+    const clientIP =
+      forwardedFor?.split(",")[0].trim() ||
+      realIP ||
+      cfConnectingIP ||
+      "unknown";
+
+    const result = rateLimit(clientIP, {
+      limit: config.limit,
+      windowMs: config.windowMs,
+      storeType: config.storeType || "default",
+    });
+
+    if (!result.success) {
+      const waitTime = Math.ceil((result.resetTime - Date.now()) / 1000);
+      return {
+        success: false,
+        error:
+          config.errorMessage ||
+          `Too many requests. Please try again in ${waitTime} seconds.`,
+        remaining: result.remaining,
+      };
+    }
+
+    return { success: true, remaining: result.remaining };
+  } catch (error) {
+    console.error("Rate limit check failed:", error);
+    // On error, allow the request (fail open)
+    return { success: true };
+  }
+}
+
+// Specific rate limit configs for different actions
+export const RATE_LIMIT_CONFIGS = {
+  checkin: {
+    limit: 3, // 3 check-ins per hour
+    windowMs: 60 * 60 * 1000, // 1 hour
+    storeType: "checkin" as const,
+    errorMessage:
+      "You can only check in 3 times per hour. Please try again later.",
+  },
+  messageRequest: {
+    limit: 10, // 10 message requests per 5 minutes
+    windowMs: 5 * 60 * 1000, // 5 minutes
+    storeType: "messaging" as const,
+    errorMessage:
+      "Too many message requests. Please wait before sending another request.",
+  },
+  sendMessage: {
+    limit: 60, // 60 messages per 10 minutes (1 per 10 seconds average)
+    windowMs: 10 * 60 * 1000, // 10 minutes
+    storeType: "messaging" as const,
+    errorMessage: "Slow down! You're sending messages too quickly.",
+  },
+  searchPlaces: {
+    limit: 30, // 30 searches per 5 minutes
+    windowMs: 5 * 60 * 1000, // 5 minutes
+    storeType: "search" as const,
+    errorMessage: "Too many searches. Please wait before searching again.",
+  },
+  respondToRequest: {
+    limit: 20, // 20 responses per 5 minutes
+    windowMs: 5 * 60 * 1000, // 5 minutes
+    storeType: "messaging" as const,
+    errorMessage: "Too many request responses. Please slow down.",
+  },
+} as const;

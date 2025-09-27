@@ -1,6 +1,10 @@
 // src/app/_actions/searchPlaces.ts
 "use server";
 
+import {
+  checkServerActionRateLimit,
+  RATE_LIMIT_CONFIGS,
+} from "@/lib/security/serverActionRateLimit";
 import { Place } from "@/lib/types/places";
 
 type RawGooglePlace = {
@@ -15,6 +19,23 @@ export async function searchPlaces(
   query: string,
   coords: { latitude: number; longitude: number },
 ): Promise<Place[]> {
+  // ✅ Rate limiting check FIRST
+  const rateLimitResult = await checkServerActionRateLimit(
+    RATE_LIMIT_CONFIGS.searchPlaces,
+  );
+
+  if (!rateLimitResult.success) {
+    console.error("❌ Rate limit exceeded for place search");
+    throw new Error(
+      rateLimitResult.error ||
+        "Too many searches. Please wait before searching again.",
+    );
+  }
+
+  console.log(
+    `✅ Search rate limit check passed. Remaining: ${rateLimitResult.remaining}`,
+  );
+
   const PLACES_API_KEY = process.env.GOOGLE_PLACES_API_KEY; // No NEXT_PUBLIC_
 
   if (!PLACES_API_KEY) {
