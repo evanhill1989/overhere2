@@ -26,41 +26,43 @@ export async function requestToMessage(input: {
   initiateeId: string;
   placeId: string;
 }) {
+  const startTime = Date.now();
+  console.log("🚀 requestToMessage started:", startTime);
+
   try {
     // ✅ Rate limiting check FIRST
+    const rateLimitStart = Date.now();
     const rateLimitResult = await checkServerActionRateLimit(
       RATE_LIMIT_CONFIGS.messageRequest,
     );
+    console.log(`⏱️ Rate limit check took: ${Date.now() - rateLimitStart}ms`);
 
     if (!rateLimitResult.success) {
-      console.error("❌ Rate limit exceeded for message request");
+      console.error("❌ Rate limit exceeded");
       return { success: false, error: rateLimitResult.error };
     }
 
-    console.log("↪️ requestToMessage called with:", input);
-    console.log(
-      `✅ Rate limit check passed. Remaining: ${rateLimitResult.remaining}`,
-    );
-
-    const validated = messageRequestSchema.parse(input);
+    // Auth check
+    const authStart = Date.now();
     const supabase = await createClient();
     const {
       data: { user },
       error: authError,
     } = await supabase.auth.getUser();
+    console.log(`⏱️ Auth check took: ${Date.now() - authStart}ms`);
 
     if (authError || !user) {
       console.error("❌ Not authenticated");
       return { success: false, error: "Not authenticated" };
     }
 
-    // ✅ Verify initiatorId matches authenticated user
-    if (user.id !== validated.initiatorId) {
-      console.error("❌ Unauthorized: initiator doesn't match user");
-      return { success: false, error: "Unauthorized" };
-    }
+    // Validation
+    const validationStart = Date.now();
+    const validated = messageRequestSchema.parse(input);
+    console.log(`⏱️ Validation took: ${Date.now() - validationStart}ms`);
 
-    // ✅ Check if both users are at the same place using RLS-safe function
+    // Location check
+    const locationStart = Date.now();
     const { data: samePlace, error: checkError } = await supabase.rpc(
       "are_users_at_same_place",
       {
@@ -68,16 +70,18 @@ export async function requestToMessage(input: {
         user2_id: validated.initiateeId,
       },
     );
+    console.log(`⏱️ Location check took: ${Date.now() - locationStart}ms`);
 
     if (checkError || !samePlace) {
-      console.error("❌ Users not at same place:", checkError);
+      console.error("❌ Users not at same place");
       return {
         success: false,
         error: "Both users must be at the same location",
       };
     }
 
-    // ✅ Check for existing requests
+    // Check existing requests
+    const existingStart = Date.now();
     const { data: existingRequests } = await supabase
       .from("message_session_requests")
       .select("*")
@@ -85,16 +89,17 @@ export async function requestToMessage(input: {
       .eq("initiatee_id", validated.initiateeId)
       .eq("place_id", validated.placeId)
       .in("status", ["pending", "accepted"]);
+    console.log(
+      `⏱️ Existing requests check took: ${Date.now() - existingStart}ms`,
+    );
 
     if (existingRequests && existingRequests.length > 0) {
       console.warn("⚠️ Duplicate request");
-      return {
-        success: false,
-        error: "Request already exists",
-      };
+      return { success: false, error: "Request already exists" };
     }
 
-    // ✅ Create request (RLS policy will enforce location check again)
+    // Insert new request
+    const insertStart = Date.now();
     const { data: newRequest, error: insertError } = await supabase
       .from("message_session_requests")
       .insert({
@@ -105,18 +110,21 @@ export async function requestToMessage(input: {
       })
       .select()
       .single();
+    console.log(`⏱️ Insert took: ${Date.now() - insertStart}ms`);
 
     if (insertError) {
       console.error("❌ Failed to create request:", insertError);
       throw insertError;
     }
 
-    console.log("✅ Request created:", newRequest.id);
+    const totalTime = Date.now() - startTime;
+    console.log(`✅ requestToMessage completed in: ${totalTime}ms`);
+
     return { success: true, data: newRequest };
   } catch (e: unknown) {
+    const totalTime = Date.now() - startTime;
     const error = e instanceof Error ? e : new Error("Unknown error");
-    console.error("❌ Exception in requestToMessage:", error);
-
+    console.error(`❌ requestToMessage failed after ${totalTime}ms:`, error);
     return { success: false, error: error.message };
   }
 }

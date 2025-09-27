@@ -5,7 +5,6 @@ import { useState, useEffect, useRef, useContext, createContext } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/utils/supabase/client";
 import { Place } from "@/lib/types/places";
-import { searchGooglePlaces } from "@/lib/api/googlePlaces";
 
 import { searchPlaces } from "@/app/_actions/searchPlaces";
 
@@ -30,8 +29,12 @@ export function PlaceFinderProvider({
   const supabase = useRef(createClient());
   const router = useRouter();
 
-  const [userLocation, setUserLocation] =
-    useState<GeolocationCoordinates | null>(null);
+  const [userLocation, setUserLocation] = useState<{
+    latitude: number;
+    longitude: number;
+    accuracy?: number;
+    timestamp?: number;
+  } | null>(null);
   const [derivedDisplayedPlaces, setDerivedDisplayedPlaces] = useState<Place[]>(
     [],
   );
@@ -51,8 +54,13 @@ export function PlaceFinderProvider({
         // Request real location
         navigator.geolocation.getCurrentPosition(
           (pos) => {
-            // Use REAL coordinates from the browser
-            setUserLocation(pos.coords);
+            const locationData = {
+              latitude: pos.coords.latitude,
+              longitude: pos.coords.longitude,
+              accuracy: pos.coords.accuracy,
+              timestamp: pos.timestamp,
+            };
+            setUserLocation(locationData);
             console.log(
               "📍 Real location:",
               pos.coords.latitude,
