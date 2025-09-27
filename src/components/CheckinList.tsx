@@ -8,6 +8,7 @@ import { CheckinCard } from "@/components/CheckinCard";
 import { Users } from "lucide-react";
 import { useMessageRequestsForPlace } from "@/hooks/useMessageFetchRequests";
 import { useMessageSendRequest } from "@/hooks/useMessageSendRequest";
+import { useRealtimeMessageRequests } from "@/hooks/useRealtimeMessageRequests";
 
 export function CheckinList({
   placeId,
@@ -26,7 +27,7 @@ export function CheckinList({
     error,
     refetch,
   } = useCheckins(placeId);
-  const { requests } = useMessageRequestsForPlace(currentUserId, placeId); // ✅ UPDATED
+  const { requests } = useRealtimeMessageRequests(currentUserId, placeId);
   const sendRequest = useMessageSendRequest();
 
   const otherCheckins = checkins.filter(

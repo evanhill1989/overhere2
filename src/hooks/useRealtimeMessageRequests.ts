@@ -83,6 +83,8 @@ export function useRealtimeMessageRequests(
         },
       )
       .subscribe((status) => {
+        console.log("📡 Subscription status:", status);
+
         if (status === "SUBSCRIBED") {
           console.log("✅ Subscribed to message requests");
         } else if (status === "CHANNEL_ERROR") {

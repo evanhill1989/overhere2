@@ -21,6 +21,7 @@ import {
 // REQUEST TO MESSAGE (UPDATED)
 // ============================================
 
+// src/app/_actions/messageActions.ts (ADD MORE DETAILED LOGGING)
 export async function requestToMessage(input: {
   initiatorId: string;
   initiateeId: string;
@@ -30,7 +31,7 @@ export async function requestToMessage(input: {
   console.log("🚀 requestToMessage started:", startTime);
 
   try {
-    // ✅ Rate limiting check FIRST
+    // Rate limiting check
     const rateLimitStart = Date.now();
     const rateLimitResult = await checkServerActionRateLimit(
       RATE_LIMIT_CONFIGS.messageRequest,
@@ -52,7 +53,7 @@ export async function requestToMessage(input: {
     console.log(`⏱️ Auth check took: ${Date.now() - authStart}ms`);
 
     if (authError || !user) {
-      console.error("❌ Not authenticated");
+      console.error("❌ Not authenticated", authError);
       return { success: false, error: "Not authenticated" };
     }
 
@@ -61,74 +62,127 @@ export async function requestToMessage(input: {
     const validated = messageRequestSchema.parse(input);
     console.log(`⏱️ Validation took: ${Date.now() - validationStart}ms`);
 
+    // Verify initiatorId matches authenticated user
+    if (user.id !== validated.initiatorId) {
+      console.error("❌ Unauthorized: initiator doesn't match user");
+      return { success: false, error: "Unauthorized" };
+    }
+
     // Location check
     const locationStart = Date.now();
-    const { data: samePlace, error: checkError } = await supabase.rpc(
-      "are_users_at_same_place",
-      {
-        user1_id: validated.initiatorId,
-        user2_id: validated.initiateeId,
-      },
-    );
-    console.log(`⏱️ Location check took: ${Date.now() - locationStart}ms`);
+    console.log("🔍 Starting location check...");
 
-    if (checkError || !samePlace) {
-      console.error("❌ Users not at same place");
-      return {
-        success: false,
-        error: "Both users must be at the same location",
-      };
+    try {
+      const { data: samePlace, error: checkError } = await supabase.rpc(
+        "are_users_at_same_place",
+        {
+          user1_id: validated.initiatorId,
+          user2_id: validated.initiateeId,
+        },
+      );
+      console.log(`⏱️ Location check took: ${Date.now() - locationStart}ms`);
+      console.log("🔍 Location check result:", { samePlace, checkError });
+
+      if (checkError) {
+        console.error("❌ Location check error:", checkError);
+        return { success: false, error: "Location verification failed" };
+      }
+
+      if (!samePlace) {
+        console.error("❌ Users not at same place");
+        return {
+          success: false,
+          error: "Both users must be at the same location",
+        };
+      }
+    } catch (locationError) {
+      console.error("❌ Location check threw error:", locationError);
+      return { success: false, error: "Location verification failed" };
     }
 
     // Check existing requests
     const existingStart = Date.now();
-    const { data: existingRequests } = await supabase
-      .from("message_session_requests")
-      .select("*")
-      .eq("initiator_id", validated.initiatorId)
-      .eq("initiatee_id", validated.initiateeId)
-      .eq("place_id", validated.placeId)
-      .in("status", ["pending", "accepted"]);
-    console.log(
-      `⏱️ Existing requests check took: ${Date.now() - existingStart}ms`,
-    );
+    console.log("🔍 Checking for existing requests...");
 
-    if (existingRequests && existingRequests.length > 0) {
-      console.warn("⚠️ Duplicate request");
-      return { success: false, error: "Request already exists" };
+    try {
+      const { data: existingRequests, error: existingError } = await supabase
+        .from("message_session_requests")
+        .select("*")
+        .eq("initiator_id", validated.initiatorId)
+        .eq("initiatee_id", validated.initiateeId)
+        .eq("place_id", validated.placeId)
+        .in("status", ["pending", "accepted"]);
+
+      console.log(
+        `⏱️ Existing requests check took: ${Date.now() - existingStart}ms`,
+      );
+      console.log("🔍 Existing requests result:", {
+        existingRequests,
+        existingError,
+      });
+
+      if (existingError) {
+        console.error("❌ Error checking existing requests:", existingError);
+        return { success: false, error: "Failed to check existing requests" };
+      }
+
+      if (existingRequests && existingRequests.length > 0) {
+        console.warn("⚠️ Duplicate request found:", existingRequests[0]);
+        return { success: false, error: "Request already exists" };
+      }
+    } catch (existingCheckError) {
+      console.error(
+        "❌ Existing requests check threw error:",
+        existingCheckError,
+      );
+      return { success: false, error: "Failed to check existing requests" };
     }
 
     // Insert new request
     const insertStart = Date.now();
-    const { data: newRequest, error: insertError } = await supabase
-      .from("message_session_requests")
-      .insert({
-        initiator_id: validated.initiatorId,
-        initiatee_id: validated.initiateeId,
-        place_id: validated.placeId,
-        status: "pending",
-      })
-      .select()
-      .single();
-    console.log(`⏱️ Insert took: ${Date.now() - insertStart}ms`);
+    console.log("🔍 Inserting new request...");
 
-    if (insertError) {
-      console.error("❌ Failed to create request:", insertError);
-      throw insertError;
+    try {
+      const { data: newRequest, error: insertError } = await supabase
+        .from("message_session_requests")
+        .insert({
+          initiator_id: validated.initiatorId,
+          initiatee_id: validated.initiateeId,
+          place_id: validated.placeId,
+          status: "pending",
+        })
+        .select()
+        .single();
+
+      console.log(`⏱️ Insert took: ${Date.now() - insertStart}ms`);
+      console.log("🔍 Insert result:", { newRequest, insertError });
+
+      if (insertError) {
+        console.error("❌ Failed to create request:", insertError);
+        return {
+          success: false,
+          error: `Failed to create request: ${insertError.message}`,
+        };
+      }
+
+      const totalTime = Date.now() - startTime;
+      console.log(
+        `✅ requestToMessage completed successfully in: ${totalTime}ms`,
+      );
+
+      return { success: true, data: newRequest };
+    } catch (insertThrownError) {
+      console.error("❌ Insert threw error:", insertThrownError);
+      return { success: false, error: "Failed to create request" };
     }
-
-    const totalTime = Date.now() - startTime;
-    console.log(`✅ requestToMessage completed in: ${totalTime}ms`);
-
-    return { success: true, data: newRequest };
   } catch (e: unknown) {
     const totalTime = Date.now() - startTime;
     const error = e instanceof Error ? e : new Error("Unknown error");
     console.error(`❌ requestToMessage failed after ${totalTime}ms:`, error);
+    console.error("❌ Full error details:", e);
     return { success: false, error: error.message };
   }
 }
-
 // ============================================
 // RESPOND TO MESSAGE REQUEST (UPDATED)
 // ============================================
