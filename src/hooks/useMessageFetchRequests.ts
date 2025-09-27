@@ -33,7 +33,7 @@ async function fetchMessageRequests(userId: string): Promise<MessageRequest[]> {
   return res.json();
 }
 
-export function useMessageRequests(userId: string | null) {
+export function useMessageFetchRequests(userId: string | null) {
   const queryClient = useQueryClient();
   const channelRef = useRef<ReturnType<
     ReturnType<typeof createClient>["channel"]
@@ -154,7 +154,8 @@ export function useMessageRequestsForPlace(
   userId: string | null,
   placeId: string | null,
 ) {
-  const { data: allRequests = [], ...queryState } = useMessageRequests(userId);
+  const { data: allRequests = [], ...queryState } =
+    useMessageFetchRequests(userId);
 
   const filteredRequests = allRequests.filter((r) => r.placeId === placeId);
 

@@ -2,11 +2,12 @@
 "use client";
 
 import { useCheckins } from "@/hooks/useCheckins";
-import { useMessageRequest } from "@/hooks/useMessageRequest";
-import { useMessageRequestsForPlace } from "@/hooks/useMessageRequests"; // ✅ NEW
+
 import { DataSection, EmptyState } from "@/components/ui/data-states";
 import { CheckinCard } from "@/components/CheckinCard";
 import { Users } from "lucide-react";
+import { useMessageRequestsForPlace } from "@/hooks/useMessageFetchRequests";
+import { useMessageSendRequest } from "@/hooks/useMessageSendRequest";
 
 export function CheckinList({
   placeId,
@@ -26,7 +27,7 @@ export function CheckinList({
     refetch,
   } = useCheckins(placeId);
   const { requests } = useMessageRequestsForPlace(currentUserId, placeId); // ✅ UPDATED
-  const sendRequest = useMessageRequest();
+  const sendRequest = useMessageSendRequest();
 
   const otherCheckins = checkins.filter(
     (checkin) => checkin.userId !== currentUserId,
