@@ -1,6 +1,6 @@
 "use client";
 
-import { usePlaceFinder } from "@/context/PlaceFinderProvider";
+import { usePlaceFinder } from "@/providers/PlaceFinderProvider";
 
 import { useState, useTransition } from "react";
 import {

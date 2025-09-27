@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import dynamic from "next/dynamic";
-import { usePlaceFinder } from "@/context/PlaceFinderProvider";
+import { usePlaceFinder } from "@/providers/PlaceFinderProvider";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Loader2, Search as SearchIcon } from "lucide-react";

@@ -2,7 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { PlaceFinderProvider } from "@/context/PlaceFinderProvider";
+import { PlaceFinderProvider } from "@/providers/PlaceFinderProvider";
 import PlaceFinderUI from "@/components/PlaceFinderUI";
 import { useSession } from "@/components/SessionProvider";
 

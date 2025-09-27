@@ -16,7 +16,7 @@ import ReactDOMServer from "react-dom/server";
 import { UserCircle, MapPin } from "@phosphor-icons/react/dist/ssr";
 import type { Place } from "@/lib/types/places";
 
-import { usePlaceFinder } from "@/context/PlaceFinderProvider";
+import { usePlaceFinder } from "@/providers/PlaceFinderProvider";
 import { LocationData } from "@/lib/types/location";
 
 export interface UserMapProps {

@@ -8,6 +8,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { createClient } from "@/utils/supabase/server";
 import { SessionProvider } from "@/components/SessionProvider";
 import { Header } from "@/components/Header";
+import { QueryProvider } from "@/providers/QueryProvider";
 
 const fontSans = Nunito_Sans({
   subsets: ["latin"],
@@ -41,12 +42,14 @@ export default async function RootLayout({
       <body
         className={`${fontHeading.variable} ${fontSans.variable} grid min-h-[100dvh] grid-rows-[auto_1fr_auto] antialiased`}
       >
-        <SessionProvider userId={user?.id ?? null}>
-          <Header />
-          <main className="w-full">{children}</main>
-          <Footer />
-          <Toaster />
-        </SessionProvider>
+        <QueryProvider>
+          <SessionProvider userId={user?.id ?? null}>
+            <Header />
+            <main className="w-full">{children}</main>
+            <Footer />
+            <Toaster />
+          </SessionProvider>
+        </QueryProvider>
       </body>
     </html>
   );

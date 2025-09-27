@@ -3,7 +3,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { usePlaceFinder } from "@/context/PlaceFinderProvider";
+import { usePlaceFinder } from "@/providers/PlaceFinderProvider";
 import CheckinDialog from "@/components/CheckinDialog";
 import { useState } from "react";
 import { Place } from "@/lib/types/places";
