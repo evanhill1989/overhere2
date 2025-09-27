@@ -1,11 +1,11 @@
-// src/hooks/useMessageRequest.ts
+// src/hooks/useMessageSendRequest.ts
 
 "use client";
 
 import { useTransition } from "react";
 import { requestToMessage } from "@/app/_actions/messageActions";
 
-export function useMessageRequest() {
+export function useMessageSendRequest() {
   const [isPending, startTransition] = useTransition();
 
   const submitRequest = (

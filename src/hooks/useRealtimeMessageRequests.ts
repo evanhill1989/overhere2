@@ -1,70 +1,41 @@
-// src/hooks/useRealtimeMessageRequests.ts
+// src/hooks/useRealtimeMessageRequests.ts (UPDATE)
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { createClient } from "@/utils/supabase/client";
-
-type MessageRequest = {
-  id: string;
-  initiatorId: string;
-  initiateeId: string;
-  status: "pending" | "accepted" | "rejected" | "canceled";
-  placeId: string;
-  createdAt: string;
-  topic: string | null;
-};
+import { useMessageFetchRequests } from "./useMessageFetchRequests";
 
 export function useRealtimeMessageRequests(
   userId: string | null,
   placeId: string | null,
 ) {
-  const [requests, setRequests] = useState<MessageRequest[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const queryClient = useQueryClient();
+  const { data: requests = [], isLoading } = useMessageFetchRequests(userId);
+  const channelRef = useRef<any>(null); // ✅ ADD: Track channel reference
 
   useEffect(() => {
-    if (!userId || !placeId) {
-      setIsLoading(false);
-      return;
-    }
+    if (!userId || !placeId) return;
 
     const supabase = createClient();
-    const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString();
 
-    // Initial fetch
-    const fetchRequests = async () => {
-      console.log("📡 Fetching initial message requests...");
+    // ✅ ADD: Cleanup any existing channel first
+    if (channelRef.current) {
+      console.log("🧹 Cleaning up existing channel");
+      supabase.removeChannel(channelRef.current);
+      channelRef.current = null;
+    }
 
-      const { data, error } = await supabase
-        .from("message_session_requests")
-        .select("*")
-        .or(`initiator_id.eq.${userId},initiatee_id.eq.${userId}`)
-        .eq("place_id", placeId)
-        .gte("created_at", twoHoursAgo)
-        .order("created_at", { ascending: false });
-
-      if (error) {
-        console.error("❌ Error fetching requests:", error);
-      } else {
-        console.log("✅ Fetched requests:", data?.length || 0);
-        setRequests(data || []);
-      }
-
-      setIsLoading(false);
-    };
-
-    fetchRequests();
-
-    // Set up real-time subscription
     console.log(
       `🔌 Subscribing to requests for user ${userId} at place ${placeId}`,
     );
 
     const channel = supabase
-      .channel(`message-requests:${userId}:${placeId}`)
+      .channel(`message-requests:${userId}:${placeId}:${Date.now()}`) // ✅ ADD: Unique timestamp
       .on(
         "postgres_changes",
         {
-          event: "*", // Listen to INSERT, UPDATE, DELETE
+          event: "*",
           schema: "public",
           table: "message_session_requests",
           filter: `place_id=eq.${placeId}`,
@@ -76,42 +47,38 @@ export function useRealtimeMessageRequests(
           );
 
           if (payload.eventType === "INSERT") {
-            const newReq = payload.new as MessageRequest;
-
-            // Only add if this user is involved
+            const newReq = payload.new;
             if (
-              newReq.initiatorId === userId ||
-              newReq.initiateeId === userId
+              newReq.initiator_id === userId ||
+              newReq.initiatee_id === userId
             ) {
-              console.log("➕ Adding new request:", newReq.id);
-              setRequests((prev) => {
-                // Prevent duplicates
-                if (prev.some((r) => r.id === newReq.id)) return prev;
-                return [newReq, ...prev];
-              });
+              queryClient.setQueryData(
+                ["messageRequests", userId],
+                (old: any[] = []) => {
+                  // ✅ ADD: Prevent duplicates
+                  if (old.some((r) => r.id === newReq.id)) return old;
+                  return [newReq, ...old];
+                },
+              );
             }
           } else if (payload.eventType === "UPDATE") {
-            const updated = payload.new as MessageRequest;
-
-            // Only update if this user is involved
+            const updated = payload.new;
             if (
-              updated.initiatorId === userId ||
-              updated.initiateeId === userId
+              updated.initiator_id === userId ||
+              updated.initiatee_id === userId
             ) {
-              console.log(
-                "🔄 Updating request:",
-                updated.id,
-                "->",
-                updated.status,
-              );
-              setRequests((prev) =>
-                prev.map((r) => (r.id === updated.id ? updated : r)),
+              queryClient.setQueryData(
+                ["messageRequests", userId],
+                (old: any[] = []) =>
+                  old.map((r) => (r.id === updated.id ? updated : r)),
               );
             }
           } else if (payload.eventType === "DELETE") {
-            const deleted = payload.old as { id: string };
-            console.log("🗑️ Deleting request:", deleted.id);
-            setRequests((prev) => prev.filter((r) => r.id !== deleted.id));
+            const deleted = payload.old;
+            queryClient.setQueryData(
+              ["messageRequests", userId],
+              (old: any[] = []) => old.filter((r) => r.id !== deleted.id),
+            );
           }
         },
       )
@@ -125,12 +92,19 @@ export function useRealtimeMessageRequests(
         }
       });
 
-    // Cleanup
+    channelRef.current = channel; // ✅ ADD: Store channel reference
+
     return () => {
       console.log(`🔌 Unsubscribing from requests for ${userId}:${placeId}`);
-      supabase.removeChannel(channel);
+      if (channelRef.current) {
+        supabase.removeChannel(channelRef.current);
+        channelRef.current = null;
+      }
     };
-  }, [userId, placeId]);
+  }, [userId, placeId, queryClient]);
 
-  return { requests, isLoading };
+  // Filter to current place
+  const filteredRequests = requests.filter((r) => r.placeId === placeId);
+
+  return { requests: filteredRequests, isLoading };
 }

@@ -21,26 +21,23 @@ export async function middleware(request: NextRequest) {
       return rateLimitResponse;
     }
   }
-  // Get response from Supabase auth
   const response = await updateSession(request);
-
-  // Add security headers
   const headers = new Headers(response.headers);
 
-  // Content Security Policy
+  //  Update CSP to allow Supabase WebSocket
   headers.set(
     "Content-Security-Policy",
     [
       "default-src 'self'",
-      "script-src 'self' 'unsafe-inline' 'unsafe-eval'", // Adjust based on your needs
+      "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
       "style-src 'self' 'unsafe-inline'",
       "img-src 'self' data: https:",
       "font-src 'self'",
-      "connect-src 'self' https://*.supabase.co https://places.googleapis.com",
+      // ✅ ADD: WebSocket support for Supabase realtime
+      "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://places.googleapis.com",
       "frame-ancestors 'none'",
     ].join("; "),
   );
-
   // Other security headers
   headers.set("X-Frame-Options", "DENY");
   headers.set("X-Content-Type-Options", "nosniff");
