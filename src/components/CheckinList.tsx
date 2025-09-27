@@ -1,14 +1,12 @@
-// src/components/CheckinList.tsx (ULTRA CLEAN VERSION - NOW WORKS!)
+// src/components/CheckinList.tsx (UPDATE)
 "use client";
 
 import { useCheckins } from "@/hooks/useCheckins";
-
-import { useRealtimeMessageRequests } from "@/hooks/useRealtimeMessageRequests";
+import { useMessageRequest } from "@/hooks/useMessageRequest";
+import { useMessageRequestsForPlace } from "@/hooks/useMessageRequests"; // ✅ NEW
 import { DataSection, EmptyState } from "@/components/ui/data-states";
-
+import { CheckinCard } from "@/components/CheckinCard";
 import { Users } from "lucide-react";
-import { useMessageRequestMutation } from "@/hooks/useMessageRequestMutation";
-import { CheckinCard } from "./CheckinCard";
 
 export function CheckinList({
   placeId,
@@ -27,8 +25,8 @@ export function CheckinList({
     error,
     refetch,
   } = useCheckins(placeId);
-  const { requests } = useRealtimeMessageRequests(currentUserId, placeId);
-  const sendRequest = useMessageRequestMutation();
+  const { requests } = useMessageRequestsForPlace(currentUserId, placeId); // ✅ UPDATED
+  const sendRequest = useMessageRequest();
 
   const otherCheckins = checkins.filter(
     (checkin) => checkin.userId !== currentUserId,
@@ -60,11 +58,7 @@ export function CheckinList({
             activeSession={activeSession}
             onResumeSession={onResumeSession}
             onRequest={() =>
-              sendRequest.mutate({
-                initiatorId: currentUserId,
-                initiateeId: checkin.userId,
-                placeId,
-              })
+              sendRequest.submitRequest(currentUserId, checkin.userId, placeId)
             }
             isRequesting={sendRequest.isPending}
           />
