@@ -1,42 +1,84 @@
-// components/MessageInput.tsx
-
+// src/components/MessageInput.tsx (UPDATE)
 "use client";
 
-import { useActionState, useEffect } from "react";
+import { useActionState } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Loader2 } from "lucide-react";
 import { submitMessage } from "@/app/_actions/messageActions";
 import { useFormStatus } from "react-dom";
+import { useQueryClient } from "@tanstack/react-query";
 import { Message } from "./EphemeralSessonWindow";
 
 export type MessageInputProps = {
   sessionId: string;
   senderCheckinId?: number;
-  onSent?: (msg: Message) => void;
 };
 
 export function MessageInput({
   sessionId,
   senderCheckinId,
-  onSent,
 }: MessageInputProps) {
+  const queryClient = useQueryClient();
+  const { pending: isPending } = useFormStatus();
+
   const initial = {
     ok: false,
     newMessage: null,
     error: "",
   };
 
-  const [state, formAction] = useActionState(submitMessage, initial);
-  const { pending: isPending } = useFormStatus();
+  const [state, formAction] = useActionState(
+    async (prevState: any, formData: FormData) => {
+      // Optimistic update - add message immediately
+      console.log(state);
+      const content = formData.get("content") as string;
+      const tempMessage: Message = {
+        id: Date.now(), // Temporary ID
+        content: content.trim(),
+        senderCheckinId: senderCheckinId!,
+        createdAt: new Date().toISOString(),
+      };
 
-  // side-effect when a new message comes back
-  useEffect(() => {
-    if (state.ok && state.newMessage && onSent) {
-      const { createdAt, ...rest } = state.newMessage;
-      onSent({ ...rest, createdAt: createdAt.toISOString() });
-    }
-  }, [state, onSent]);
+      // Add to React Query cache optimistically
+      queryClient.setQueryData(
+        ["messages", sessionId],
+        (oldMessages: Message[] = []) => [...oldMessages, tempMessage],
+      );
+
+      try {
+        const result = await submitMessage(prevState, formData);
+
+        if (result.ok) {
+          // Success - real-time will add the real message, remove temp one
+          queryClient.setQueryData(
+            ["messages", sessionId],
+            (oldMessages: Message[] = []) =>
+              oldMessages.filter((msg) => msg.id !== tempMessage.id),
+          );
+        } else {
+          // Error - remove optimistic message
+          queryClient.setQueryData(
+            ["messages", sessionId],
+            (oldMessages: Message[] = []) =>
+              oldMessages.filter((msg) => msg.id !== tempMessage.id),
+          );
+        }
+
+        return result;
+      } catch (error) {
+        // Error - remove optimistic message
+        queryClient.setQueryData(
+          ["messages", sessionId],
+          (oldMessages: Message[] = []) =>
+            oldMessages.filter((msg) => msg.id !== tempMessage.id),
+        );
+        throw error;
+      }
+    },
+    initial,
+  );
+
   return (
     <form action={formAction} className="flex gap-2">
       <input type="hidden" name="sessionId" value={sessionId} />
