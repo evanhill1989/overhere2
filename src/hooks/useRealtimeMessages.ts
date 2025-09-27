@@ -1,40 +1,54 @@
-import { useEffect, useState } from "react";
+// src/hooks/useRealtimeMessages.ts (UPDATE)
+import { useEffect } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { createClient } from "@/utils/supabase/client";
 import { Message } from "@/components/EphemeralSessonWindow";
 
-export function useRealtimeMessages(sessionId: string) {
+// Fetch messages function
+async function fetchMessages(sessionId: string): Promise<Message[]> {
   const supabase = createClient();
-  const [messages, setMessages] = useState<Message[]>([]);
 
-  // 1. Initial fetch
+  const { data, error } = await supabase
+    .from("messages")
+    .select("*")
+    .eq("session_id", sessionId)
+    .order("created_at", { ascending: true });
+
+  if (error) {
+    throw new Error(`Failed to fetch messages: ${error.message}`);
+  }
+
+  return (data || []).map((msg) => ({
+    id: msg.id,
+    content: msg.content,
+    senderCheckinId: msg.sender_checkin_id,
+    createdAt: msg.created_at,
+  }));
+}
+
+export function useRealtimeMessages(sessionId: string) {
+  const queryClient = useQueryClient();
+  const supabase = createClient();
+
+  // 1. React Query for initial fetch + caching
+  const query = useQuery({
+    queryKey: ["messages", sessionId],
+    queryFn: () => fetchMessages(sessionId),
+    enabled: !!sessionId,
+    staleTime: 5000, // Consider fresh for 5 seconds
+    refetchOnWindowFocus: false, // Real-time handles updates
+  });
+
+  // 2. Real-time subscription for live updates
   useEffect(() => {
-    const fetchInitial = async () => {
-      const { data, error } = await supabase
-        .from("messages")
-        .select("*")
-        .eq("session_id", sessionId)
-        .order("created_at", { ascending: true });
+    if (!sessionId) return;
 
-      if (error) {
-        console.error("❌ Error fetching initial messages:", error);
-      } else if (data) {
-        const formatted = data.map((msg) => ({
-          id: msg.id,
-          content: msg.content,
-          senderCheckinId: msg.sender_checkin_id,
-          createdAt: msg.created_at,
-        }));
-        setMessages(formatted);
-      }
-    };
+    console.log(
+      `🔌 Setting up real-time for messages in session: ${sessionId}`,
+    );
 
-    fetchInitial();
-  }, [sessionId, supabase]);
-
-  // 2. Realtime listener
-  useEffect(() => {
     const channel = supabase
-      .channel(`session:${sessionId}`)
+      .channel(`messages-${sessionId}-${Date.now()}`) // Unique channel
       .on(
         "postgres_changes",
         {
@@ -44,23 +58,42 @@ export function useRealtimeMessages(sessionId: string) {
           filter: `session_id=eq.${sessionId}`,
         },
         (payload) => {
-          const raw = payload.new;
-          const formatted: Message = {
-            id: raw.id,
-            content: raw.content,
-            senderCheckinId: raw.sender_checkin_id,
-            createdAt: raw.created_at,
+          const rawMessage = payload.new;
+          const formattedMessage: Message = {
+            id: rawMessage.id,
+            content: rawMessage.content,
+            senderCheckinId: rawMessage.sender_checkin_id,
+            createdAt: rawMessage.created_at,
           };
-          console.log("📥 Realtime message received:", formatted);
-          setMessages((prev) => [...prev, formatted]);
+
+          console.log("📥 Real-time message received:", formattedMessage);
+
+          // Update React Query cache
+          queryClient.setQueryData(
+            ["messages", sessionId],
+            (oldMessages: Message[] = []) => {
+              // Prevent duplicates
+              if (oldMessages.some((msg) => msg.id === formattedMessage.id)) {
+                return oldMessages;
+              }
+              return [...oldMessages, formattedMessage];
+            },
+          );
         },
       )
-      .subscribe();
+      .subscribe((status) => {
+        if (status === "SUBSCRIBED") {
+          console.log("✅ Subscribed to messages real-time");
+        } else if (status === "CHANNEL_ERROR") {
+          console.error("❌ Messages subscription error");
+        }
+      });
 
     return () => {
+      console.log(`🔌 Unsubscribing from messages for session ${sessionId}`);
       supabase.removeChannel(channel);
     };
-  }, [sessionId, supabase]);
+  }, [sessionId, queryClient, supabase]);
 
-  return messages;
+  return query.data || [];
 }
