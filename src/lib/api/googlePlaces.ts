@@ -19,8 +19,12 @@ export async function getNearbyPlaces(coords: {
 }): Promise<Place[]> {
   const PLACES_API_KEY = process.env.GOOGLE_PLACES_API_KEY;
 
-  if (!PLACES_API_KEY) throw new Error("Missing Google Places API key");
+  if (!PLACES_API_KEY) {
+    console.error("❌ Missing GOOGLE_PLACES_API_KEY environment variable");
+    throw new Error("Missing Google Places API key");
+  }
 
+  console.log("✅ API key found, length:", PLACES_API_KEY.length);
   const requestBody = {
     includedTypes: ["cafe"],
     maxResultCount: 20,
@@ -36,6 +40,7 @@ export async function getNearbyPlaces(coords: {
     rankPreference: "POPULARITY",
   };
 
+  console.time("⏱️ Google Places API HTTP request");
   const res = await fetch(
     "https://places.googleapis.com/v1/places:searchNearby",
     {
@@ -49,15 +54,19 @@ export async function getNearbyPlaces(coords: {
       body: JSON.stringify(requestBody),
     },
   );
+  console.timeEnd("⏱️ Google Places API HTTP request");
 
   if (!res.ok) {
     console.error("Nearby Places API failed:", await res.text());
     throw new Error(`Google API error: ${res.status}`);
   }
 
+  console.time("⏱️ Parse Google API response");
   const data = await res.json();
+  console.timeEnd("⏱️ Parse Google API response");
 
-  return (data.places || []).map(
+  console.time("⏱️ Map places data");
+  const mappedPlaces = (data.places || []).map(
     (p: RawGooglePlace): Place => ({
       place_id: p.id,
       name: p.displayName?.text || "Unknown",
@@ -68,6 +77,8 @@ export async function getNearbyPlaces(coords: {
       isVerified: false,
     }),
   );
-}
+  console.timeEnd("⏱️ Map places data");
 
+  return mappedPlaces;
+}
 // ---------- Shared Mapping ----------
