@@ -8,6 +8,7 @@ import CheckinDialog from "@/components/CheckinDialog";
 import { useState } from "react";
 import { Place } from "@/lib/types/places";
 import { useSession } from "./SessionProvider";
+import { usePlaceDataPrefetch } from "@/hooks/usePlaceDataPrefetch";
 
 export default function PlacesList() {
   const session = useSession();
@@ -15,6 +16,7 @@ export default function PlacesList() {
   const { derivedDisplayedPlaces } = usePlaceFinder();
   const [activePlace, setActivePlace] = useState<Place | null>(null);
   const router = useRouter();
+  const { prefetchPlaceData } = usePlaceDataPrefetch();
 
   const handlePlaceClick = async (place: Place) => {
     if (!userId) {
@@ -24,9 +26,7 @@ export default function PlacesList() {
 
     try {
       router.prefetch(`/places/${place.place_id}`);
-      await fetch(
-        `/api/prefetch/place-data?placeId=${place.place_id}&userId=${userId}`,
-      );
+      await prefetchPlaceData(place.place_id, userId);
     } catch (error) {
       console.error("Prefetch error:", error);
     }
