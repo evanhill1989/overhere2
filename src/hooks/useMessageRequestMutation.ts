@@ -58,6 +58,17 @@ export function useMessageRequestMutation() {
         );
       }
     },
+    onSuccess: (data, variables) => {
+      console.log("✅ Message request sent successfully");
+
+      // ✅ Update both sender and receiver caches
+      queryClient.invalidateQueries({
+        queryKey: ["messageRequests", variables.initiatorId],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["messageRequests", variables.initiateeId],
+      });
+    },
     onSettled: (data, error, variables) => {
       // ✅ REFRESH: Always refetch to get true server state
       queryClient.invalidateQueries({
