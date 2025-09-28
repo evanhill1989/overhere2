@@ -1,3 +1,4 @@
+// src/components/PlaceFinderUI.tsx
 "use client";
 
 import { useState } from "react";
@@ -5,7 +6,7 @@ import dynamic from "next/dynamic";
 import { usePlaceFinder } from "@/providers/PlaceFinderProvider";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Loader2, Search as SearchIcon } from "lucide-react";
+import { Loader2, Search as SearchIcon, X } from "lucide-react";
 import {
   Drawer,
   DrawerTrigger,
@@ -16,8 +17,8 @@ import {
 } from "@/components/ui/drawer";
 import PlacesList from "./PlacesList";
 import { MapErrorBoundary } from "./error_boundaries/MapErrorBoundary";
+import { InlineError } from "@/components/ui/error";
 
-// Dynamically import map
 const UserMap = dynamic(() => import("./UserMap"), {
   ssr: false,
   loading: () => (
@@ -36,10 +37,23 @@ export default function PlaceFinderUI() {
     isSearchPending,
     searchQuery,
     setSearchQuery,
+    searchError,
+    clearSearch,
   } = usePlaceFinder();
 
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [searchMode, setSearchMode] = useState(false);
+
+  const handleSearchSubmit = async (formData: FormData) => {
+    await searchFormAction(formData);
+    setDrawerOpen(true);
+    setSearchMode(true);
+  };
+
+  const handleClearSearch = () => {
+    clearSearch();
+    setSearchMode(false);
+  };
 
   return (
     <div className="relative h-full w-full">
@@ -54,11 +68,7 @@ export default function PlaceFinderUI() {
       <div className="pointer-events-none absolute top-0 right-0 left-0 z-100 flex justify-center p-3 sm:p-4">
         <div className="bg-accent/80 pointer-events-auto flex w-full max-w-md flex-col items-center gap-2 rounded-lg border-1 p-3 sm:p-4">
           <form
-            action={async (formData) => {
-              await searchFormAction(formData);
-              setDrawerOpen(true);
-              setSearchMode(true);
-            }}
+            action={handleSearchSubmit}
             className="flex w-full items-center"
           >
             <Input
@@ -70,6 +80,20 @@ export default function PlaceFinderUI() {
               onChange={(e) => setSearchQuery(e.target.value)}
               disabled={isLoadingOverall}
             />
+
+            {/* ✅ Show clear button when in search mode */}
+            {searchMode && (
+              <Button
+                type="button"
+                size="icon"
+                variant="ghost"
+                onClick={handleClearSearch}
+                className="rounded-none"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            )}
+
             <Button
               className="rounded-none border-white"
               type="submit"
@@ -84,10 +108,13 @@ export default function PlaceFinderUI() {
               )}
             </Button>
           </form>
+
+          {/* ✅ Show search error inline */}
+          {searchError && (
+            <InlineError message={searchError} className="w-full text-xs" />
+          )}
         </div>
       </div>
-
-      {/* Drawer Trigger Button */}
 
       {/* Places Drawer */}
       <Drawer open={drawerOpen} onOpenChange={setDrawerOpen}>
@@ -105,14 +132,21 @@ export default function PlaceFinderUI() {
             </DrawerTrigger>
           </div>
         </div>
+
         <DrawerContent className="bg-background-trans">
           <div className="mx-auto w-full max-w-md">
-            {/* !!! Edited drawer.tsx style directly on tab element to white */}
             <DrawerHeader className="border-b-1 px-4">
-              <DrawerTitle className="text-2xl">Nearby Places</DrawerTitle>
+              <DrawerTitle className="text-2xl">
+                {searchMode ? "Search Results" : "Nearby Places"}
+                {searchMode && searchQuery && (
+                  <span className="text-muted-foreground ml-2 text-base font-normal">
+                    for "{searchQuery}"
+                  </span>
+                )}
+              </DrawerTitle>
               <DrawerDescription>
                 {searchMode
-                  ? "Search results"
+                  ? `Found ${derivedDisplayedPlaces.length} places`
                   : "These are real locations near you."}
               </DrawerDescription>
             </DrawerHeader>

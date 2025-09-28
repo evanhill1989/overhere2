@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/utils/supabase/client";
 import { Place } from "@/lib/types/places";
 import { useNearbyPlaces } from "@/hooks/useNearbyPlaces";
-import { searchPlaces } from "@/app/_actions/searchPlaces";
+import { useSearchPlacesMutation } from "@/hooks/useSearchPlacesMutation";
 
 type PlaceFinderContextType = {
   userLocation: GeolocationCoordinates | null;
@@ -17,8 +17,10 @@ type PlaceFinderContextType = {
   isSearchPending: boolean;
   searchFormAction: (formData: FormData) => void;
   locationError: string | null;
-  nearbyError: string | null; // Add this for nearby-specific errors
-  isNearbyLoading: boolean; // Add this for nearby loading state
+  nearbyError: string | null;
+  isNearbyLoading: boolean;
+  searchError: string | null; // ✅ Add search-specific error
+  clearSearch: () => void; // ✅ Add clear function
 };
 
 const PlaceFinderContext = createContext<PlaceFinderContextType | null>(null);
@@ -39,10 +41,13 @@ export function PlaceFinderProvider({
   } | null>(null);
 
   const [ready, setReady] = useState(false);
-  const [isSearchPending, setIsSearchPending] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [locationError, setLocationError] = useState<string | null>(null);
   const [isInSearchMode, setIsInSearchMode] = useState(false);
+  const [searchResults, setSearchResults] = useState<Place[]>([]);
+
+  // ✅ Use the search mutation hook
+  const searchMutation = useSearchPlacesMutation();
 
   // ✅ Use the nearby places hook
   const {
@@ -52,10 +57,13 @@ export function PlaceFinderProvider({
   } = useNearbyPlaces(userLocation);
 
   // ✅ Derive displayed places from either search results or nearby places
-  const [searchResults, setSearchResults] = useState<Place[]>([]);
   const derivedDisplayedPlaces = isInSearchMode ? searchResults : nearbyPlaces;
 
-  // Geolocation setup
+  // ✅ Extract search state from mutation
+  const isSearchPending = searchMutation.isPending;
+  const searchError = searchMutation.error?.message || null;
+
+  // Geolocation setup (unchanged)
   useEffect(() => {
     const client = supabase.current;
 
@@ -121,28 +129,40 @@ export function PlaceFinderProvider({
     };
   }, [router]);
 
+  // ✅ Updated search form action using mutation
   const searchFormAction = async (formData: FormData) => {
     const query = formData.get("searchQuery") as string;
     if (!query?.trim() || !userLocation) return;
 
-    setIsSearchPending(true);
     setIsInSearchMode(true);
 
     try {
-      const results = await searchPlaces(query.trim(), userLocation);
-      console.log("🔍 Search results:", results);
+      const results = await searchMutation.mutateAsync({
+        query: query.trim(),
+        coords: userLocation,
+      });
+
       setSearchResults(results);
-    } catch (err) {
-      console.error("Place search failed:", err);
+    } catch (error) {
+      console.error("❌ Search mutation failed:", error);
       setSearchResults([]);
-    } finally {
-      setIsSearchPending(false);
+      // Error is automatically handled by the mutation's onError
     }
   };
 
-  // ✅ Overall loading combines location readiness + nearby loading
+  // ✅ Clear search function
+  const clearSearch = () => {
+    setIsInSearchMode(false);
+    setSearchResults([]);
+    setSearchQuery("");
+    searchMutation.reset(); // Clear mutation state
+  };
+
+  // ✅ Overall loading combines location readiness + nearby loading + search pending
   const isLoadingOverall =
-    !ready || (ready && !!userLocation && !!isNearbyLoading);
+    !ready ||
+    (ready && !!userLocation && isNearbyLoading) ||
+    (isInSearchMode && isSearchPending);
 
   if (!ready || !userLocation) {
     if (locationError) {
@@ -181,6 +201,8 @@ export function PlaceFinderProvider({
         locationError,
         nearbyError: nearbyError?.message || null,
         isNearbyLoading,
+        searchError,
+        clearSearch,
       }}
     >
       {children}
