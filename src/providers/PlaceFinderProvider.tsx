@@ -1,11 +1,11 @@
-// src/context/PlaceFinderProvider.tsx - SIMPLER VERSION
+// src/providers/PlaceFinderProvider.tsx
 "use client";
 
 import { useState, useEffect, useRef, useContext, createContext } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/utils/supabase/client";
 import { Place } from "@/lib/types/places";
-
+import { useNearbyPlaces } from "@/hooks/useNearbyPlaces";
 import { searchPlaces } from "@/app/_actions/searchPlaces";
 
 type PlaceFinderContextType = {
@@ -17,6 +17,8 @@ type PlaceFinderContextType = {
   isSearchPending: boolean;
   searchFormAction: (formData: FormData) => void;
   locationError: string | null;
+  nearbyError: string | null; // Add this for nearby-specific errors
+  isNearbyLoading: boolean; // Add this for nearby loading state
 };
 
 const PlaceFinderContext = createContext<PlaceFinderContextType | null>(null);
@@ -35,15 +37,25 @@ export function PlaceFinderProvider({
     accuracy?: number;
     timestamp?: number;
   } | null>(null);
-  const [derivedDisplayedPlaces, setDerivedDisplayedPlaces] = useState<Place[]>(
-    [],
-  );
+
   const [ready, setReady] = useState(false);
   const [isSearchPending, setIsSearchPending] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [locationError, setLocationError] = useState<string | null>(null);
+  const [isInSearchMode, setIsInSearchMode] = useState(false);
 
-  // Geolocation setup - FIXED VERSION WITHOUT MOCK COORDINATES
+  // ✅ Use the nearby places hook
+  const {
+    data: nearbyPlaces = [],
+    isLoading: isNearbyLoading,
+    error: nearbyError,
+  } = useNearbyPlaces(userLocation);
+
+  // ✅ Derive displayed places from either search results or nearby places
+  const [searchResults, setSearchResults] = useState<Place[]>([]);
+  const derivedDisplayedPlaces = isInSearchMode ? searchResults : nearbyPlaces;
+
+  // Geolocation setup
   useEffect(() => {
     const client = supabase.current;
 
@@ -51,7 +63,6 @@ export function PlaceFinderProvider({
       data: { subscription },
     } = client.auth.onAuthStateChange((event, session) => {
       if (session?.user) {
-        // Request real location
         navigator.geolocation.getCurrentPosition(
           (pos) => {
             const locationData = {
@@ -94,9 +105,9 @@ export function PlaceFinderProvider({
             setReady(false);
           },
           {
-            enableHighAccuracy: true, // Use GPS if available
-            timeout: 10000, // Wait up to 10 seconds
-            maximumAge: 300000, // Accept 5-minute-old cached position
+            enableHighAccuracy: true,
+            timeout: 10000,
+            maximumAge: 300000,
           },
         );
       } else {
@@ -110,48 +121,28 @@ export function PlaceFinderProvider({
     };
   }, [router]);
 
-  // Fetch nearby places when location is available
-  useEffect(() => {
-    if (!userLocation) return;
-
-    (async () => {
-      try {
-        const res = await fetch("/api/nearby", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            latitude: userLocation.latitude,
-            longitude: userLocation.longitude,
-          }),
-        });
-
-        if (!res.ok) throw new Error("Failed to fetch nearby places");
-
-        const results = await res.json();
-        setDerivedDisplayedPlaces(results);
-      } catch (err) {
-        console.error("Failed to load nearby places:", err);
-        setLocationError("Failed to load nearby places");
-      }
-    })();
-  }, [userLocation]);
-
   const searchFormAction = async (formData: FormData) => {
     const query = formData.get("searchQuery") as string;
     if (!query?.trim() || !userLocation) return;
 
     setIsSearchPending(true);
+    setIsInSearchMode(true);
 
     try {
-      const results = await searchPlaces(query.trim(), userLocation); // Use server action
-      console.log(results);
-      setDerivedDisplayedPlaces(results);
+      const results = await searchPlaces(query.trim(), userLocation);
+      console.log("🔍 Search results:", results);
+      setSearchResults(results);
     } catch (err) {
       console.error("Place search failed:", err);
+      setSearchResults([]);
     } finally {
       setIsSearchPending(false);
     }
   };
+
+  // ✅ Overall loading combines location readiness + nearby loading
+  const isLoadingOverall =
+    !ready || (ready && !!userLocation && !!isNearbyLoading);
 
   if (!ready || !userLocation) {
     if (locationError) {
@@ -182,12 +173,14 @@ export function PlaceFinderProvider({
       value={{
         userLocation,
         derivedDisplayedPlaces,
-        isLoadingOverall: !ready,
+        isLoadingOverall,
         searchQuery,
         setSearchQuery,
         isSearchPending,
         searchFormAction,
         locationError,
+        nearbyError: nearbyError?.message || null,
+        isNearbyLoading,
       }}
     >
       {children}

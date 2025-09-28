@@ -1,14 +1,13 @@
 // src/components/CheckinList.tsx (UPDATE)
 "use client";
 
-import { useCheckins } from "@/hooks/useCheckins";
-
 import { DataSection, EmptyState } from "@/components/ui/data-states";
 import { CheckinCard } from "@/components/CheckinCard";
 import { Users } from "lucide-react";
-import { useMessageRequestsForPlace } from "@/hooks/useMessageFetchRequests";
+
 import { useMessageSendRequest } from "@/hooks/useMessageSendRequest";
 import { useRealtimeMessageRequests } from "@/hooks/useRealtimeMessageRequests";
+import { useRealtimeCheckins } from "@/hooks/useRealtimeCheckins";
 
 export function CheckinList({
   placeId,
@@ -26,7 +25,8 @@ export function CheckinList({
     isLoading,
     error,
     refetch,
-  } = useCheckins(placeId);
+  } = useRealtimeCheckins(placeId);
+
   const { requests } = useRealtimeMessageRequests(currentUserId, placeId);
   const sendRequest = useMessageSendRequest();
 
