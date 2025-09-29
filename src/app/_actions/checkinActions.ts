@@ -8,7 +8,20 @@ import { SelectPlace } from "@/lib/db/types";
 import { redirect } from "next/navigation";
 import { eq, sql } from "drizzle-orm";
 
-import { checkInSchema } from "@/lib/validators/checkin";
+// ✅ Import canonical types and schemas
+import {
+  // Branded types
+  type UserId,
+  type PlaceId,
+  type CheckinId,
+
+  // Validation schemas
+  createCheckinSchema,
+  placeIdSchema,
+  userIdSchema,
+  checkinIdSchema,
+} from "@/lib/types/core";
+
 import { ensureUserInDb } from "@/utils/supabase/ensureUserInDb";
 import { createClient } from "@/utils/supabase/server";
 import {
@@ -16,10 +29,11 @@ import {
   RATE_LIMIT_CONFIGS,
 } from "@/lib/security/serverActionRateLimit";
 
+// ✅ Updated return type with branded types
 export type ActionResult = {
   success: boolean;
   message: string;
-  checkinId?: number;
+  checkinId?: CheckinId;
 };
 
 const CACHE_STALE_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
@@ -32,9 +46,12 @@ interface GooglePlaceDetailsNewResult {
   primaryTypeDisplayName?: { text: string; languageCode?: string };
 }
 
-// ✅ RESTORED: Fetch and cache Google Place details
+// ============================================
+// PLACE CACHING (Updated with branded types)
+// ============================================
+
 export async function fetchAndCacheGooglePlaceDetails(
-  placeId: string,
+  placeId: PlaceId, // ✅ Branded type
 ): Promise<SelectPlace | null> {
   try {
     // Check cache first
@@ -158,9 +175,23 @@ export async function fetchAndCacheGooglePlaceDetails(
   }
 }
 
-// ✅ UPDATED: Check-in action with RLS support
-export async function checkIn(formData: FormData) {
-  // ✅ Rate limiting check FIRST
+// ============================================
+// CHECK-IN ACTION (Updated with new type system)
+// ============================================
+
+// ✅ Updated input type for better type safety
+type CheckInInput = {
+  placeId: string;
+  placeName: string;
+  placeAddress: string;
+  latitude: number;
+  longitude: number;
+  topic?: string | null;
+  checkinStatus: "available" | "busy";
+};
+
+export async function checkIn(formData: FormData): Promise<void> {
+  // Rate limiting check FIRST
   const rateLimitResult = await checkServerActionRateLimit(
     RATE_LIMIT_CONFIGS.checkin,
   );
@@ -175,7 +206,7 @@ export async function checkIn(formData: FormData) {
 
   const supabase = await createClient();
 
-  // Get authenticated user (RLS will ensure they can only modify their own data)
+  // Get authenticated user
   const {
     data: { user },
     error: authError,
@@ -185,40 +216,55 @@ export async function checkIn(formData: FormData) {
     throw new Error("Not authenticated");
   }
 
-  console.log("🔐 Check-in request from user:", user.id);
+  // ✅ Parse user ID as branded type
+  const userId = userIdSchema.parse(user.id);
+  console.log("🔐 Check-in request from user:", userId);
 
   // Ensure user exists in database
   await ensureUserInDb(user);
 
-  // Parse form data
-  const rawData = {
-    placeId: formData.get("placeId"),
-    placeName: formData.get("placeName"),
-    placeAddress: formData.get("placeAddress"),
-    latitude: parseFloat(formData.get("latitude") as string),
-    longitude: parseFloat(formData.get("longitude") as string),
-    topic: formData.get("topic") as string | null,
-    checkinStatus: formData.get("checkinStatus") as "available" | "busy",
-  };
-
-  // Validate with Zod
-  const parsed = checkInSchema.parse(rawData);
-
-  console.log("📝 Check-in data validated:", {
-    placeId: parsed.place_id,
-    status: parsed.checkin_status,
-    topic: parsed.topic,
-  });
-
+  // ✅ Parse and validate all form data with branded types
   try {
-    // ✅ Step 1: Deactivate previous check-ins (using Supabase client for RLS)
+    // Extract raw form data
+    const rawInput: CheckInInput = {
+      placeId: formData.get("placeId") as string,
+      placeName: formData.get("placeName") as string,
+      placeAddress: formData.get("placeAddress") as string,
+      latitude: parseFloat(formData.get("latitude") as string),
+      longitude: parseFloat(formData.get("longitude") as string),
+      topic: (formData.get("topic") as string | null) || null,
+      checkinStatus: formData.get("checkinStatus") as "available" | "busy",
+    };
+
+    // ✅ Validate with comprehensive schema
+    const validated = createCheckinSchema.parse({
+      userId,
+      placeId: rawInput.placeId,
+      placeName: rawInput.placeName,
+      placeAddress: rawInput.placeAddress,
+      coordinates: {
+        latitude: rawInput.latitude,
+        longitude: rawInput.longitude,
+      },
+      topic: rawInput.topic,
+      checkinStatus: rawInput.checkinStatus,
+      isActive: true,
+    });
+
+    console.log("📝 Check-in data validated:", {
+      placeId: validated.placeId,
+      status: validated.checkinStatus,
+      topic: validated.topic,
+    });
+
+    // ✅ Step 1: Deactivate previous check-ins
     const { error: deactivateError } = await supabase
       .from("checkins")
       .update({
         is_active: false,
         checked_out_at: new Date().toISOString(),
       })
-      .eq("user_id", user.id)
+      .eq("user_id", validated.userId)
       .eq("is_active", true);
 
     if (deactivateError) {
@@ -231,19 +277,19 @@ export async function checkIn(formData: FormData) {
 
     console.log("✅ Previous check-ins deactivated");
 
-    // ✅ Step 2: Create new check-in (using Supabase client for RLS)
+    // ✅ Step 2: Create new check-in with validated data
     const { data: newCheckin, error: insertError } = await supabase
       .from("checkins")
       .insert({
-        user_id: user.id,
-        place_id: parsed.place_id,
-        place_name: parsed.place_name,
-        place_address: parsed.place_address,
-        latitude: parsed.latitude,
-        longitude: parsed.longitude,
-        checkin_status: parsed.checkin_status,
-        topic: parsed.topic,
-        is_active: true,
+        user_id: validated.userId,
+        place_id: validated.placeId,
+        place_name: validated.placeName,
+        place_address: validated.placeAddress,
+        latitude: validated.coordinates?.latitude ?? null,
+        longitude: validated.coordinates?.longitude ?? null,
+        checkin_status: validated.checkinStatus,
+        topic: validated.topic ?? null,
+        is_active: validated.isActive,
       })
       .select()
       .single();
@@ -253,26 +299,30 @@ export async function checkIn(formData: FormData) {
       throw new Error(`Failed to check in: ${insertError.message}`);
     }
 
-    console.log("✅ Check-in created:", newCheckin.id);
+    // ✅ Parse returned checkin ID as branded type
+    const checkinId = checkinIdSchema.parse(newCheckin.id);
+    console.log("✅ Check-in created:", checkinId);
 
-    // ✅ Step 3: Optionally cache place details (for faster future lookups)
-    // This runs in background, doesn't block the redirect
-    fetchAndCacheGooglePlaceDetails(parsed.place_id).catch((err) => {
+    // ✅ Step 3: Cache place details in background
+    fetchAndCacheGooglePlaceDetails(validated.placeId).catch((err) => {
       console.warn("⚠️ Failed to cache place details (non-critical):", err);
     });
+
+    // Redirect to place page
+    redirect(`/places/${validated.placeId}`);
   } catch (error) {
-    console.error("❌ Check-in error:", error);
+    console.error("❌ Check-in validation or processing error:", error);
     throw error;
   }
-
-  // Redirect to place page
-  redirect(`/places/${parsed.place_id}`);
 }
 
-// ✅ NEW: Function to verify user is checked in at a place
+// ============================================
+// VERIFICATION FUNCTIONS (Updated with branded types)
+// ============================================
+
 export async function verifyCheckinAtPlace(
-  userId: string,
-  placeId: string,
+  userId: UserId, // ✅ Branded type
+  placeId: PlaceId, // ✅ Branded type
 ): Promise<boolean> {
   const supabase = await createClient();
 
@@ -282,7 +332,7 @@ export async function verifyCheckinAtPlace(
     .eq("user_id", userId)
     .eq("place_id", placeId)
     .eq("is_active", true)
-    .gte("created_at", new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString()) // Within 2 hours
+    .gte("created_at", new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString())
     .single();
 
   if (error || !data) {
@@ -292,8 +342,9 @@ export async function verifyCheckinAtPlace(
   return true;
 }
 
-// ✅ NEW: Function to get user's current check-in
-export async function getCurrentCheckin(userId: string) {
+export async function getCurrentCheckin(
+  userId: UserId, // ✅ Branded type
+) {
   const supabase = await createClient();
 
   const { data, error } = await supabase
@@ -312,8 +363,7 @@ export async function getCurrentCheckin(userId: string) {
   return data;
 }
 
-// ✅ NEW: Function to check out (deactivate current check-in)
-export async function checkOut() {
+export async function checkOut(): Promise<void> {
   const supabase = await createClient();
 
   const {
@@ -324,13 +374,16 @@ export async function checkOut() {
     throw new Error("Not authenticated");
   }
 
+  // ✅ Parse as branded type
+  const userId = userIdSchema.parse(user.id);
+
   const { error } = await supabase
     .from("checkins")
     .update({
       is_active: false,
       checked_out_at: new Date().toISOString(),
     })
-    .eq("user_id", user.id)
+    .eq("user_id", userId)
     .eq("is_active", true);
 
   if (error) {
@@ -341,10 +394,9 @@ export async function checkOut() {
   console.log("✅ User checked out successfully");
 }
 
-// ✅ NEW: Server-side check if user is at place (uses RLS-safe function)
 export async function verifyUserAtPlace(
-  userId: string,
-  placeId: string,
+  userId: UserId, // ✅ Branded type
+  placeId: PlaceId, // ✅ Branded type
 ): Promise<boolean> {
   const supabase = await createClient();
 
@@ -370,8 +422,9 @@ export async function verifyUserAtPlace(
   return data === true;
 }
 
-// ✅ NEW: Get user's current places
-export async function getUserActivePlaces(userId: string): Promise<string[]> {
+export async function getUserActivePlaces(
+  userId: UserId, // ✅ Branded type
+): Promise<PlaceId[]> {
   const supabase = await createClient();
 
   const {
@@ -391,5 +444,10 @@ export async function getUserActivePlaces(userId: string): Promise<string[]> {
     return [];
   }
 
-  return data?.map((row: { place_id: string }) => row.place_id) || [];
+  // ✅ Parse returned place IDs as branded types
+  return (
+    data?.map((row: { place_id: string }) =>
+      placeIdSchema.parse(row.place_id),
+    ) || []
+  );
 }
