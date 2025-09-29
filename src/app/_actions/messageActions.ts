@@ -17,11 +17,6 @@ import {
   RATE_LIMIT_CONFIGS,
 } from "@/lib/security/serverActionRateLimit";
 
-// ============================================
-// REQUEST TO MESSAGE (UPDATED)
-// ============================================
-
-// src/app/_actions/messageActions.ts (ADD MORE DETAILED LOGGING)
 export async function requestToMessage(input: {
   initiatorId: string;
   initiateeId: string;
@@ -29,7 +24,14 @@ export async function requestToMessage(input: {
 }) {
   const startTime = Date.now();
   console.log("🚀 requestToMessage started:", startTime);
-
+  console.log("📥 requestToMessage received input:", input);
+  console.log("📥 Input type:", typeof input);
+  console.log("📥 Input keys:", Object.keys(input));
+  console.log(
+    "📥 initiateeId specifically:",
+    input.initiateeId,
+    typeof input.initiateeId,
+  );
   try {
     // Rate limiting check
     const rateLimitStart = Date.now();
@@ -183,9 +185,6 @@ export async function requestToMessage(input: {
     return { success: false, error: error.message };
   }
 }
-// ============================================
-// RESPOND TO MESSAGE REQUEST (UPDATED)
-// ============================================
 
 export async function respondToMessageRequest(
   prevState: { message: string },

@@ -1,4 +1,4 @@
-// src/components/CheckinList.tsx (UPDATE)
+// src/components/CheckinList.tsx (UPDATE - Add debugging)
 "use client";
 
 import { DataSection, EmptyState } from "@/components/ui/data-states";
@@ -50,21 +50,38 @@ export function CheckinList({
       }
     >
       <div className="space-y-3">
-        {otherCheckins.map((checkin) => (
-          <CheckinCard
-            key={checkin.id}
-            checkin={checkin}
-            currentUserId={currentUserId}
-            requests={requests}
-            placeId={placeId}
-            activeSession={activeSession}
-            onResumeSession={onResumeSession}
-            onRequest={() =>
-              sendRequest.submitRequest(currentUserId, checkin.userId, placeId)
-            }
-            isRequesting={sendRequest.isPending}
-          />
-        ))}
+        {otherCheckins.map((checkin) => {
+          // ✅ ADD: Debug logging
+          console.log("🔍 Checkin data:", checkin);
+          console.log("🔍 User ID from checkin:", checkin.userId);
+
+          return (
+            <CheckinCard
+              key={checkin.id}
+              checkin={checkin}
+              currentUserId={currentUserId}
+              requests={requests}
+              placeId={placeId}
+              activeSession={activeSession}
+              onResumeSession={onResumeSession}
+              onRequest={() => {
+                // ✅ ADD: Debug logging before sending request
+                console.log("🚀 Sending request:", {
+                  initiatorId: currentUserId,
+                  initiateeId: checkin.userId,
+                  placeId: placeId,
+                });
+
+                sendRequest.submitRequest(
+                  currentUserId,
+                  checkin.userId,
+                  placeId,
+                );
+              }}
+              isRequesting={sendRequest.isPending}
+            />
+          );
+        })}
       </div>
     </DataSection>
   );

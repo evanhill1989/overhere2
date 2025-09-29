@@ -1,4 +1,4 @@
-// src/hooks/useRealtimeCheckins.ts (NEW)
+// src/hooks/useRealtimeCheckins.ts (FIX TypeScript errors)
 "use client";
 
 import { useEffect, useRef } from "react";
@@ -6,7 +6,24 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { createClient } from "@/utils/supabase/client";
 import { SelectCheckin } from "@/lib/db/types";
 
-// Fetch checkins function
+// ✅ FIXED: Helper function with proper null handling and boolean operators
+function mapCheckinFromDatabase(rawCheckin: any): SelectCheckin {
+  return {
+    id: rawCheckin.id,
+    userId: rawCheckin.user_id,
+    placeId: rawCheckin.place_id,
+    placeName: rawCheckin.place_name,
+    placeAddress: rawCheckin.place_address,
+    latitude: rawCheckin.latitude,
+    longitude: rawCheckin.longitude,
+    checkinStatus: rawCheckin.checkin_status,
+    topic: rawCheckin.topic,
+    isActive: rawCheckin.is_active,
+    createdAt: rawCheckin.created_at,
+    checkedOutAt: rawCheckin.checked_out_at, // This can be null, which is fine
+  };
+}
+
 async function fetchCheckins(placeId: string): Promise<SelectCheckin[]> {
   const res = await fetch(`/api/checkins?placeId=${placeId}`, {
     cache: "no-store",
@@ -23,27 +40,24 @@ async function fetchCheckins(placeId: string): Promise<SelectCheckin[]> {
 
 export function useRealtimeCheckins(placeId: string | null) {
   const queryClient = useQueryClient();
-  const channelRef = useRef<ReturnType<
+  const channelRef = useRef<ReturnType
     ReturnType<typeof createClient>["channel"]
   > | null>(null);
 
-  // 1. React Query for initial fetch + caching
   const query = useQuery({
     queryKey: ["checkins", placeId],
-    queryFn: () => fetchCheckins(placeId!),
-    enabled: !!placeId,
-    staleTime: 10000, // Consider fresh for 10 seconds
+    queryFn: () => fetchCheckins(placeId!), // ✅ Non-null assertion is safe here due to enabled check
+    enabled: !!placeId, // ✅ This ensures placeId is truthy before queryFn runs
+    staleTime: 10000,
     refetchOnWindowFocus: true,
     refetchOnReconnect: true,
   });
 
-  // 2. Real-time subscription for live updates
   useEffect(() => {
     if (!placeId) return;
 
     const supabase = createClient();
 
-    // Clean up any existing channel
     if (channelRef.current) {
       console.log("🧹 Cleaning up existing checkins channel");
       supabase.removeChannel(channelRef.current);
@@ -53,14 +67,14 @@ export function useRealtimeCheckins(placeId: string | null) {
     console.log(`🔌 Setting up real-time for checkins at place: ${placeId}`);
 
     const channel = supabase
-      .channel(`checkins-${placeId}-${Date.now()}`) // Unique channel name
+      .channel(`checkins-${placeId}-${Date.now()}`)
       .on(
         "postgres_changes",
         {
-          event: "*", // Listen to all events
+          event: "*",
           schema: "public",
           table: "checkins",
-          filter: `place_id=eq.${placeId}`, // Only checkins at this place
+          filter: `place_id=eq.${placeId}`,
         },
         (payload) => {
           console.log(
@@ -69,29 +83,36 @@ export function useRealtimeCheckins(placeId: string | null) {
             payload.new || payload.old,
           );
 
-          // Update React Query cache with real-time changes
           queryClient.setQueryData(
             ["checkins", placeId],
             (oldCheckins: SelectCheckin[] = []) => {
               if (payload.eventType === "INSERT") {
-                const newCheckin = payload.new as SelectCheckin;
+                // ✅ FIXED: Proper null check
+                if (!payload.new) return oldCheckins;
+                
+                const newCheckin = mapCheckinFromDatabase(payload.new);
 
-                // Prevent duplicates
                 if (oldCheckins.some((c) => c.id === newCheckin.id)) {
                   return oldCheckins;
                 }
 
-                console.log("✅ Adding new checkin:", newCheckin.id);
+                console.log("✅ Adding mapped checkin:", newCheckin);
                 return [...oldCheckins, newCheckin];
               } else if (payload.eventType === "UPDATE") {
-                const updatedCheckin = payload.new as SelectCheckin;
+                // ✅ FIXED: Proper null check
+                if (!payload.new) return oldCheckins;
+                
+                const updatedCheckin = mapCheckinFromDatabase(payload.new);
 
-                console.log("✅ Updating checkin:", updatedCheckin.id);
+                console.log("✅ Updating mapped checkin:", updatedCheckin);
                 return oldCheckins.map((c) =>
                   c.id === updatedCheckin.id ? updatedCheckin : c,
                 );
               } else if (payload.eventType === "DELETE") {
-                const deletedCheckin = payload.old as SelectCheckin;
+                // ✅ FIXED: Proper null check and typing
+                if (!payload.old) return oldCheckins;
+                
+                const deletedCheckin = payload.old as { id: number };
 
                 console.log("✅ Removing checkin:", deletedCheckin.id);
                 return oldCheckins.filter((c) => c.id !== deletedCheckin.id);

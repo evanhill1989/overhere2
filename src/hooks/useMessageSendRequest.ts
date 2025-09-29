@@ -17,6 +17,11 @@ export function useMessageSendRequest() {
   ) => {
     const input = { initiatorId, initiateeId, placeId };
     startTransition(async () => {
+      console.log(
+        "📤 IMMEDIATELY before requestToMessage call:",
+        JSON.stringify(input),
+      );
+
       const result = await requestToMessage(input);
       onDone?.();
       if (!result.success) {
