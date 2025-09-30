@@ -1,30 +1,79 @@
-// src/hooks/useRealtimeCheckins.ts (FIX the logging line)
+// src/hooks/useRealtimeCheckins.ts - ONLY CANONICAL TYPE SYSTEM
 "use client";
 
 import { useEffect, useRef } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { createClient } from "@/utils/supabase/client";
-import { SelectCheckin } from "@/lib/db/types";
-import { RealtimeChannel } from "@supabase/supabase-js";
+import type { RealtimeChannel } from "@supabase/supabase-js";
 
-function mapCheckinFromDatabase(rawCheckin: any): SelectCheckin {
-  return {
-    id: rawCheckin.id,
-    userId: rawCheckin.user_id,
-    placeId: rawCheckin.place_id,
-    placeName: rawCheckin.place_name,
-    placeAddress: rawCheckin.place_address,
-    latitude: rawCheckin.latitude,
-    longitude: rawCheckin.longitude,
-    checkinStatus: rawCheckin.checkin_status,
-    topic: rawCheckin.topic,
-    isActive: rawCheckin.is_active,
-    createdAt: rawCheckin.created_at,
-    checkedOutAt: rawCheckin.checked_out_at,
-  };
+// ✅ ONLY import from canonical type system
+import type { Checkin } from "@/lib/types/database";
+import type { PlaceId, CheckinId, UserId } from "@/lib/types/core";
+import {
+  checkinIdSchema,
+  userIdSchema,
+  placeIdSchema,
+  checkinStatusSchema,
+  validatedTopicSchema,
+  timestampSchema,
+  placeNameSchema,
+  placeAddressSchema,
+} from "@/lib/types/core";
+
+// ============================================
+// RAW DATABASE PAYLOAD TYPE (snake_case from Postgres)
+// ============================================
+type DatabaseCheckinPayload = {
+  id: number;
+  user_id: string;
+  place_id: string;
+  place_name: string;
+  place_address: string;
+  latitude: number | null;
+  longitude: number | null;
+  checkin_status: "available" | "busy";
+  topic: string | null;
+  is_active: boolean;
+  created_at: string;
+  checked_out_at: string | null;
+};
+
+// ============================================
+// MAPPER: Database → Validated Canonical Type
+// ============================================
+function validateDatabaseCheckin(raw: unknown): Checkin {
+  // Type guard for runtime safety
+  const payload = raw as DatabaseCheckinPayload;
+
+  try {
+    // ✅ Validate each field with canonical schemas
+    return {
+      id: checkinIdSchema.parse(payload.id),
+      userId: userIdSchema.parse(payload.user_id),
+      placeId: placeIdSchema.parse(payload.place_id),
+      placeName: placeNameSchema.parse(payload.place_name),
+      placeAddress: placeAddressSchema.parse(payload.place_address),
+      latitude: payload.latitude,
+      longitude: payload.longitude,
+      checkinStatus: checkinStatusSchema.parse(payload.checkin_status),
+      topic: payload.topic ? validatedTopicSchema.parse(payload.topic) : null,
+      isActive: payload.is_active,
+      createdAt: timestampSchema.parse(payload.created_at),
+      checkedOutAt: payload.checked_out_at
+        ? timestampSchema.parse(payload.checked_out_at)
+        : null,
+    };
+  } catch (error) {
+    console.error("❌ Failed to validate checkin from database:", error);
+    console.error("❌ Raw payload:", payload);
+    throw new Error(`Invalid checkin data: ${error}`);
+  }
 }
 
-async function fetchCheckins(placeId: string): Promise<SelectCheckin[]> {
+// ============================================
+// FETCH FUNCTION
+// ============================================
+async function fetchCheckins(placeId: PlaceId): Promise<Checkin[]> {
   const res = await fetch(`/api/checkins?placeId=${placeId}`, {
     cache: "no-store",
   });
@@ -35,14 +84,18 @@ async function fetchCheckins(placeId: string): Promise<SelectCheckin[]> {
     );
   }
 
-  return res.json();
+  const rawCheckins: unknown[] = await res.json();
+  return rawCheckins.map(validateDatabaseCheckin);
 }
 
-export function useRealtimeCheckins(placeId: string | null) {
+// ============================================
+// REAL-TIME HOOK
+// ============================================
+export function useRealtimeCheckins(placeId: PlaceId | null) {
   const queryClient = useQueryClient();
-  // ✅ FIXED: Added missing angle bracket after first ReturnType
   const channelRef = useRef<RealtimeChannel | null>(null);
-  const query = useQuery({
+
+  const query = useQuery<Checkin[], Error>({
     queryKey: ["checkins", placeId],
     queryFn: () => fetchCheckins(placeId!),
     enabled: !!placeId,
@@ -50,6 +103,7 @@ export function useRealtimeCheckins(placeId: string | null) {
     refetchOnWindowFocus: true,
     refetchOnReconnect: true,
   });
+
   useEffect(() => {
     if (!placeId) return;
 
@@ -74,48 +128,56 @@ export function useRealtimeCheckins(placeId: string | null) {
           filter: `place_id=eq.${placeId}`,
         },
         (payload) => {
-          // ✅ FIXED: Separate the logging to avoid boolean operator issues
           console.log("🔔 Real-time checkin update:", payload.eventType);
-          if (payload.new) {
-            console.log("🔔 New data:", payload.new);
-          }
-          if (payload.old) {
-            console.log("🔔 Old data:", payload.old);
-          }
 
-          queryClient.setQueryData(
+          queryClient.setQueryData<Checkin[]>(
             ["checkins", placeId],
-            (oldCheckins: SelectCheckin[] = []) => {
-              if (payload.eventType === "INSERT") {
-                if (!payload.new) return oldCheckins;
+            (oldCheckins = []) => {
+              try {
+                if (payload.eventType === "INSERT") {
+                  if (!payload.new) return oldCheckins;
 
-                const newCheckin = mapCheckinFromDatabase(payload.new);
+                  const newCheckin = validateDatabaseCheckin(payload.new);
 
-                if (oldCheckins.some((c) => c.id === newCheckin.id)) {
-                  return oldCheckins;
+                  if (oldCheckins.some((c) => c.id === newCheckin.id)) {
+                    console.log(
+                      "⚠️ Duplicate checkin, skipping:",
+                      newCheckin.id,
+                    );
+                    return oldCheckins;
+                  }
+
+                  console.log("✅ Adding validated checkin:", newCheckin.id);
+                  return [...oldCheckins, newCheckin];
+                } else if (payload.eventType === "UPDATE") {
+                  if (!payload.new) return oldCheckins;
+
+                  const updatedCheckin = validateDatabaseCheckin(payload.new);
+
+                  console.log(
+                    "✅ Updating validated checkin:",
+                    updatedCheckin.id,
+                  );
+                  return oldCheckins.map((c) =>
+                    c.id === updatedCheckin.id ? updatedCheckin : c,
+                  );
+                } else if (payload.eventType === "DELETE") {
+                  if (!payload.old) return oldCheckins;
+
+                  const deletedId = checkinIdSchema.parse(
+                    (payload.old as DatabaseCheckinPayload).id,
+                  );
+
+                  console.log("✅ Removing checkin:", deletedId);
+                  return oldCheckins.filter((c) => c.id !== deletedId);
                 }
 
-                console.log("✅ Adding mapped checkin:", newCheckin);
-                return [...oldCheckins, newCheckin];
-              } else if (payload.eventType === "UPDATE") {
-                if (!payload.new) return oldCheckins;
-
-                const updatedCheckin = mapCheckinFromDatabase(payload.new);
-
-                console.log("✅ Updating mapped checkin:", updatedCheckin);
-                return oldCheckins.map((c) =>
-                  c.id === updatedCheckin.id ? updatedCheckin : c,
-                );
-              } else if (payload.eventType === "DELETE") {
-                if (!payload.old) return oldCheckins;
-
-                const deletedCheckin = payload.old as { id: number };
-
-                console.log("✅ Removing checkin:", deletedCheckin.id);
-                return oldCheckins.filter((c) => c.id !== deletedCheckin.id);
+                return oldCheckins;
+              } catch (error) {
+                console.error("❌ Error processing real-time update:", error);
+                console.error("❌ Payload:", payload);
+                return oldCheckins;
               }
-
-              return oldCheckins;
             },
           );
         },
@@ -142,4 +204,19 @@ export function useRealtimeCheckins(placeId: string | null) {
   }, [placeId, queryClient]);
 
   return query;
+}
+
+// ============================================
+// HELPER FUNCTIONS
+// ============================================
+export function extractCheckinId(checkin: Checkin): CheckinId {
+  return checkin.id;
+}
+
+export function extractUserId(checkin: Checkin): UserId {
+  return checkin.userId;
+}
+
+export function extractPlaceId(checkin: Checkin): PlaceId {
+  return checkin.placeId;
 }
