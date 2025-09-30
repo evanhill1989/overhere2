@@ -1,4 +1,4 @@
-// src/hooks/useRealtimeCheckins.ts (FIX TypeScript errors)
+// src/hooks/useRealtimeCheckins.ts (FIX the logging line)
 "use client";
 
 import { useEffect, useRef } from "react";
@@ -6,7 +6,6 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { createClient } from "@/utils/supabase/client";
 import { SelectCheckin } from "@/lib/db/types";
 
-// ✅ FIXED: Helper function with proper null handling and boolean operators
 function mapCheckinFromDatabase(rawCheckin: any): SelectCheckin {
   return {
     id: rawCheckin.id,
@@ -20,7 +19,7 @@ function mapCheckinFromDatabase(rawCheckin: any): SelectCheckin {
     topic: rawCheckin.topic,
     isActive: rawCheckin.is_active,
     createdAt: rawCheckin.created_at,
-    checkedOutAt: rawCheckin.checked_out_at, // This can be null, which is fine
+    checkedOutAt: rawCheckin.checked_out_at,
   };
 }
 
@@ -46,8 +45,8 @@ export function useRealtimeCheckins(placeId: string | null) {
 
   const query = useQuery({
     queryKey: ["checkins", placeId],
-    queryFn: () => fetchCheckins(placeId!), // ✅ Non-null assertion is safe here due to enabled check
-    enabled: !!placeId, // ✅ This ensures placeId is truthy before queryFn runs
+    queryFn: () => fetchCheckins(placeId!),
+    enabled: !!placeId,
     staleTime: 10000,
     refetchOnWindowFocus: true,
     refetchOnReconnect: true,
@@ -77,17 +76,19 @@ export function useRealtimeCheckins(placeId: string | null) {
           filter: `place_id=eq.${placeId}`,
         },
         (payload) => {
-          console.log(
-            "🔔 Real-time checkin update:",
-            payload.eventType,
-            payload.new || payload.old,
-          );
+          // ✅ FIXED: Separate the logging to avoid boolean operator issues
+          console.log("🔔 Real-time checkin update:", payload.eventType);
+          if (payload.new) {
+            console.log("🔔 New data:", payload.new);
+          }
+          if (payload.old) {
+            console.log("🔔 Old data:", payload.old);
+          }
 
           queryClient.setQueryData(
             ["checkins", placeId],
             (oldCheckins: SelectCheckin[] = []) => {
               if (payload.eventType === "INSERT") {
-                // ✅ FIXED: Proper null check
                 if (!payload.new) return oldCheckins;
                 
                 const newCheckin = mapCheckinFromDatabase(payload.new);
@@ -99,7 +100,6 @@ export function useRealtimeCheckins(placeId: string | null) {
                 console.log("✅ Adding mapped checkin:", newCheckin);
                 return [...oldCheckins, newCheckin];
               } else if (payload.eventType === "UPDATE") {
-                // ✅ FIXED: Proper null check
                 if (!payload.new) return oldCheckins;
                 
                 const updatedCheckin = mapCheckinFromDatabase(payload.new);
@@ -109,7 +109,6 @@ export function useRealtimeCheckins(placeId: string | null) {
                   c.id === updatedCheckin.id ? updatedCheckin : c,
                 );
               } else if (payload.eventType === "DELETE") {
-                // ✅ FIXED: Proper null check and typing
                 if (!payload.old) return oldCheckins;
                 
                 const deletedCheckin = payload.old as { id: number };
