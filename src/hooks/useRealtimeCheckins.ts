@@ -5,6 +5,7 @@ import { useEffect, useRef } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { createClient } from "@/utils/supabase/client";
 import { SelectCheckin } from "@/lib/db/types";
+import { RealtimeChannel } from "@supabase/supabase-js";
 
 function mapCheckinFromDatabase(rawCheckin: any): SelectCheckin {
   return {
@@ -39,10 +40,8 @@ async function fetchCheckins(placeId: string): Promise<SelectCheckin[]> {
 
 export function useRealtimeCheckins(placeId: string | null) {
   const queryClient = useQueryClient();
-  const channelRef = useRef<ReturnType
-    ReturnType<typeof createClient>["channel"]
-  > | null>(null);
-
+  // ✅ FIXED: Added missing angle bracket after first ReturnType
+  const channelRef = useRef<RealtimeChannel | null>(null);
   const query = useQuery({
     queryKey: ["checkins", placeId],
     queryFn: () => fetchCheckins(placeId!),
@@ -51,7 +50,6 @@ export function useRealtimeCheckins(placeId: string | null) {
     refetchOnWindowFocus: true,
     refetchOnReconnect: true,
   });
-
   useEffect(() => {
     if (!placeId) return;
 
@@ -90,7 +88,7 @@ export function useRealtimeCheckins(placeId: string | null) {
             (oldCheckins: SelectCheckin[] = []) => {
               if (payload.eventType === "INSERT") {
                 if (!payload.new) return oldCheckins;
-                
+
                 const newCheckin = mapCheckinFromDatabase(payload.new);
 
                 if (oldCheckins.some((c) => c.id === newCheckin.id)) {
@@ -101,7 +99,7 @@ export function useRealtimeCheckins(placeId: string | null) {
                 return [...oldCheckins, newCheckin];
               } else if (payload.eventType === "UPDATE") {
                 if (!payload.new) return oldCheckins;
-                
+
                 const updatedCheckin = mapCheckinFromDatabase(payload.new);
 
                 console.log("✅ Updating mapped checkin:", updatedCheckin);
@@ -110,7 +108,7 @@ export function useRealtimeCheckins(placeId: string | null) {
                 );
               } else if (payload.eventType === "DELETE") {
                 if (!payload.old) return oldCheckins;
-                
+
                 const deletedCheckin = payload.old as { id: number };
 
                 console.log("✅ Removing checkin:", deletedCheckin.id);

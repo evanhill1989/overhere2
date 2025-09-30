@@ -5,12 +5,12 @@ import { useState } from "react";
 import { useActionState } from "react";
 import { useFormStatus } from "react-dom";
 
-import { respondToMessageRequest } from "@/app/_actions/messageActions";
 import { useRealtimeMessageRequests } from "@/hooks/useRealtimeMessageRequests"; // ✅ Changed
 
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Loader2 } from "lucide-react";
+import { respondToMessageRequest } from "@/app/_actions/messageActions";
 
 type IncomingRequestsProps = {
   currentUserId: string;
