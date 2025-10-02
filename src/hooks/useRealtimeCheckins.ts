@@ -1,4 +1,4 @@
-// src/hooks/useRealtimeCheckins.ts - ONLY CANONICAL TYPE SYSTEM
+// src/hooks/useRealtimeCheckins.ts - FIXED FOR CAMELCASE API
 "use client";
 
 import { useEffect, useRef } from "react";
@@ -21,12 +21,30 @@ import {
 } from "@/lib/types/core";
 
 // ============================================
-// RAW DATABASE PAYLOAD TYPE (snake_case from Postgres)
+// RAW API PAYLOAD TYPE (camelCase from API route)
+// ============================================
+type ApiCheckinPayload = {
+  id: number;
+  userId: string; // ✅ camelCase from API
+  placeId: string; // ✅ camelCase from API
+  placeName: string;
+  placeAddress: string;
+  latitude: number | null;
+  longitude: number | null;
+  checkinStatus: "available" | "busy";
+  topic: string | null;
+  isActive: boolean;
+  createdAt: string;
+  checkedOutAt: string | null;
+};
+
+// ============================================
+// RAW DATABASE PAYLOAD TYPE (snake_case from Postgres/Realtime)
 // ============================================
 type DatabaseCheckinPayload = {
   id: number;
-  user_id: string;
-  place_id: string;
+  user_id: string; // ✅ snake_case from database
+  place_id: string; // ✅ snake_case from database
   place_name: string;
   place_address: string;
   latitude: number | null;
@@ -39,18 +57,75 @@ type DatabaseCheckinPayload = {
 };
 
 // ============================================
-// MAPPER: Database → Validated Canonical Type
+// MAPPERS: Different sources → Validated Canonical Type
 // ============================================
-function validateDatabaseCheckin(raw: unknown): Checkin {
-  // Type guard for runtime safety
-  const payload = raw as DatabaseCheckinPayload;
+
+// ✅ For API responses (already camelCase)
+function validateApiCheckin(raw: unknown): Checkin {
+  if (!raw || typeof raw !== "object") {
+    throw new Error("Invalid checkin data: not an object");
+  }
+
+  const payload = raw as ApiCheckinPayload;
+
+  if (
+    typeof payload.id !== "number" ||
+    typeof payload.userId !== "string" ||
+    typeof payload.placeId !== "string"
+  ) {
+    console.error("❌ Missing required fields in API payload:", payload);
+    throw new Error("Invalid checkin data: missing required fields");
+  }
 
   try {
-    // ✅ Validate each field with canonical schemas
-    return {
+    const validated: Checkin = {
       id: checkinIdSchema.parse(payload.id),
-      userId: userIdSchema.parse(payload.user_id),
-      placeId: placeIdSchema.parse(payload.place_id),
+      userId: userIdSchema.parse(payload.userId), // ✅ camelCase
+      placeId: placeIdSchema.parse(payload.placeId), // ✅ camelCase
+      placeName: placeNameSchema.parse(payload.placeName),
+      placeAddress: placeAddressSchema.parse(payload.placeAddress),
+      latitude: payload.latitude,
+      longitude: payload.longitude,
+      checkinStatus: checkinStatusSchema.parse(payload.checkinStatus),
+      topic: payload.topic ? validatedTopicSchema.parse(payload.topic) : null,
+      isActive: payload.isActive,
+      createdAt: timestampSchema.parse(payload.createdAt),
+      checkedOutAt: payload.checkedOutAt
+        ? timestampSchema.parse(payload.checkedOutAt)
+        : null,
+    };
+
+    console.log("✅ Successfully validated API checkin:", validated.id);
+    return validated;
+  } catch (error) {
+    console.error("❌ Failed to validate API checkin:", error);
+    console.error("❌ Raw payload:", JSON.stringify(payload, null, 2));
+    throw new Error(`Invalid checkin data: ${error}`);
+  }
+}
+
+// ✅ For realtime database payloads (snake_case)
+function validateDatabaseCheckin(raw: unknown): Checkin {
+  if (!raw || typeof raw !== "object") {
+    throw new Error("Invalid checkin data: not an object");
+  }
+
+  const payload = raw as DatabaseCheckinPayload;
+
+  if (
+    typeof payload.id !== "number" ||
+    typeof payload.user_id !== "string" ||
+    typeof payload.place_id !== "string"
+  ) {
+    console.error("❌ Missing required fields in database payload:", payload);
+    throw new Error("Invalid checkin data: missing required fields");
+  }
+
+  try {
+    const validated: Checkin = {
+      id: checkinIdSchema.parse(payload.id),
+      userId: userIdSchema.parse(payload.user_id), // ✅ snake_case
+      placeId: placeIdSchema.parse(payload.place_id), // ✅ snake_case
       placeName: placeNameSchema.parse(payload.place_name),
       placeAddress: placeAddressSchema.parse(payload.place_address),
       latitude: payload.latitude,
@@ -63,9 +138,12 @@ function validateDatabaseCheckin(raw: unknown): Checkin {
         ? timestampSchema.parse(payload.checked_out_at)
         : null,
     };
+
+    console.log("✅ Successfully validated database checkin:", validated.id);
+    return validated;
   } catch (error) {
-    console.error("❌ Failed to validate checkin from database:", error);
-    console.error("❌ Raw payload:", payload);
+    console.error("❌ Failed to validate database checkin:", error);
+    console.error("❌ Raw payload:", JSON.stringify(payload, null, 2));
     throw new Error(`Invalid checkin data: ${error}`);
   }
 }
@@ -85,7 +163,23 @@ async function fetchCheckins(placeId: PlaceId): Promise<Checkin[]> {
   }
 
   const rawCheckins: unknown[] = await res.json();
-  return rawCheckins.map(validateDatabaseCheckin);
+
+  if (!Array.isArray(rawCheckins)) {
+    console.error("❌ API did not return an array:", rawCheckins);
+    throw new Error("Invalid API response: expected array");
+  }
+
+  console.log(`📥 Fetched ${rawCheckins.length} checkins for place ${placeId}`);
+
+  // ✅ Use validateApiCheckin since API returns camelCase
+  return rawCheckins.map((raw, index) => {
+    try {
+      return validateApiCheckin(raw); // ✅ Changed from validateDatabaseCheckin
+    } catch (error) {
+      console.error(`❌ Failed to validate checkin at index ${index}:`, error);
+      throw error;
+    }
+  });
 }
 
 // ============================================
@@ -135,8 +229,12 @@ export function useRealtimeCheckins(placeId: PlaceId | null) {
             (oldCheckins = []) => {
               try {
                 if (payload.eventType === "INSERT") {
-                  if (!payload.new) return oldCheckins;
+                  if (!payload.new) {
+                    console.warn("⚠️ INSERT event without new data");
+                    return oldCheckins;
+                  }
 
+                  // ✅ Use validateDatabaseCheckin for realtime (snake_case)
                   const newCheckin = validateDatabaseCheckin(payload.new);
 
                   if (oldCheckins.some((c) => c.id === newCheckin.id)) {
@@ -150,8 +248,12 @@ export function useRealtimeCheckins(placeId: PlaceId | null) {
                   console.log("✅ Adding validated checkin:", newCheckin.id);
                   return [...oldCheckins, newCheckin];
                 } else if (payload.eventType === "UPDATE") {
-                  if (!payload.new) return oldCheckins;
+                  if (!payload.new) {
+                    console.warn("⚠️ UPDATE event without new data");
+                    return oldCheckins;
+                  }
 
+                  // ✅ Use validateDatabaseCheckin for realtime (snake_case)
                   const updatedCheckin = validateDatabaseCheckin(payload.new);
 
                   console.log(
@@ -162,7 +264,10 @@ export function useRealtimeCheckins(placeId: PlaceId | null) {
                     c.id === updatedCheckin.id ? updatedCheckin : c,
                   );
                 } else if (payload.eventType === "DELETE") {
-                  if (!payload.old) return oldCheckins;
+                  if (!payload.old) {
+                    console.warn("⚠️ DELETE event without old data");
+                    return oldCheckins;
+                  }
 
                   const deletedId = checkinIdSchema.parse(
                     (payload.old as DatabaseCheckinPayload).id,

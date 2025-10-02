@@ -61,8 +61,6 @@ export function useMessageFetchRequests(userId: string | null) {
       channelRef.current = null;
     }
 
-    console.log(`🔌 Setting up real-time for message requests: ${userId}`);
-
     const channel = supabase
       .channel(`message-requests-${userId}-${Date.now()}`) // Unique channel name
       .on(
@@ -138,7 +136,6 @@ export function useMessageFetchRequests(userId: string | null) {
     channelRef.current = channel;
 
     return () => {
-      console.log(`🔌 Unsubscribing from message requests for ${userId}`);
       if (channelRef.current) {
         supabase.removeChannel(channelRef.current);
         channelRef.current = null;

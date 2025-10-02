@@ -26,10 +26,6 @@ export function useRealtimeMessageRequests(
       channelRef.current = null;
     }
 
-    console.log(
-      `🔌 Subscribing to requests for user ${userId} at place ${placeId}`,
-    );
-
     const channel = supabase
       .channel(`message-requests:${userId}:${placeId}:${Date.now()}`) // ✅ ADD: Unique timestamp
       .on(
@@ -97,7 +93,6 @@ export function useRealtimeMessageRequests(
     channelRef.current = channel; // ✅ ADD: Store channel reference
 
     return () => {
-      console.log(`🔌 Unsubscribing from requests for ${userId}:${placeId}`);
       if (channelRef.current) {
         supabase.removeChannel(channelRef.current);
         channelRef.current = null;
