@@ -54,9 +54,8 @@ export const requestIdSchema = z
 
 // Serial integer IDs (checkins, messages, failed_requests)
 export const checkinIdSchema = z
-  .number()
-  .int()
-  .positive("Checkin ID must be positive")
+  .string()
+  .uuid("Checkin ID must be a valid UUID")
   .brand<"CheckinId">();
 
 export const messageIdSchema = z

@@ -69,7 +69,7 @@ function validateApiCheckin(raw: unknown): Checkin {
   const payload = raw as ApiCheckinPayload;
 
   if (
-    typeof payload.id !== "number" ||
+    typeof payload.id !== "string" ||
     typeof payload.userId !== "string" ||
     typeof payload.placeId !== "string"
   ) {

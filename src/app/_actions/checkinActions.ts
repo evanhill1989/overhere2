@@ -256,8 +256,24 @@ export async function checkIn(formData: FormData): Promise<void> {
       status: validated.checkinStatus,
       topic: validated.topic,
     });
+    // ✅ Step 1: Cache place details in background
+    console.log("🔍 About to cache place:", validated.placeId);
+    const cachedPlace = await fetchAndCacheGooglePlaceDetails(
+      validated.placeId,
+    );
+    console.log("📦 Cached place result:", cachedPlace);
 
-    // ✅ Step 1: Deactivate previous check-ins
+    if (!cachedPlace) {
+      throw new Error(`Failed to cache place details for ${validated.placeId}`);
+    }
+
+    fetchAndCacheGooglePlaceDetails(validated.placeId).catch((err) => {
+      console.warn("⚠️ Failed to cache place details (non-critical):", err);
+    });
+
+    console.log("✅ Place cached successfully, proceeding with check-in");
+
+    // ✅ Step 2: Deactivate previous check-ins
     const { error: deactivateError } = await supabase
       .from("checkins")
       .update({
@@ -277,7 +293,7 @@ export async function checkIn(formData: FormData): Promise<void> {
 
     console.log("✅ Previous check-ins deactivated");
 
-    // ✅ Step 2: Create new check-in with validated data
+    // ✅ Step 3: Create new check-in with validated data
     const { data: newCheckin, error: insertError } = await supabase
       .from("checkins")
       .insert({
@@ -302,11 +318,6 @@ export async function checkIn(formData: FormData): Promise<void> {
     // ✅ Parse returned checkin ID as branded type
     const checkinId = checkinIdSchema.parse(newCheckin.id);
     console.log("✅ Check-in created:", checkinId);
-
-    // ✅ Step 3: Cache place details in background
-    fetchAndCacheGooglePlaceDetails(validated.placeId).catch((err) => {
-      console.warn("⚠️ Failed to cache place details (non-critical):", err);
-    });
 
     // Redirect to place page
     redirect(`/places/${validated.placeId}`);
