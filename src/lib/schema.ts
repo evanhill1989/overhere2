@@ -3,7 +3,6 @@ import { eq } from "drizzle-orm";
 import {
   pgTable,
   varchar,
-  integer,
   timestamp,
   serial,
   doublePrecision,
@@ -69,7 +68,7 @@ export const placesTable = pgTable("places", {
 export const checkinsTable = pgTable(
   "checkins",
   {
-    id: serial("id").primaryKey(),
+    id: uuid("id").primaryKey().defaultRandom(),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(), // ✅ Added timezone
@@ -183,7 +182,7 @@ export const messagesTable = pgTable(
     sessionId: uuid("session_id")
       .notNull()
       .references(() => messageSessionsTable.id, { onDelete: "cascade" }),
-    senderCheckinId: integer("sender_checkin_id")
+    senderCheckinId: uuid("sender_checkin_id")
       .notNull()
       .references(() => checkinsTable.id, { onDelete: "cascade" }),
     content: text("content").notNull(),

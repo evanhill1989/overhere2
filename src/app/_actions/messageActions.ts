@@ -4,21 +4,19 @@
 import { createClient } from "@/utils/supabase/server";
 import { subHours } from "date-fns";
 
-// ✅ Import domain entity types
+// ============================================
+// IMPORT FROM TYPE SYSTEM (NOT local definitions)
+// ============================================
+
+// Domain entity types & branded primitives
 import {
-  // Domain entity types
   type Message,
   type MessageRequest,
   type MessageSession,
-
-  // Branded types
   type UserId,
   type PlaceId,
   type SessionId,
   type RequestId,
-  type MessageRequestStatus,
-
-  // Validation schemas
   userIdSchema,
   placeIdSchema,
   checkinIdSchema,
@@ -31,58 +29,31 @@ import {
   messageSessionStatusSchema,
   sendMessageFormSchema,
   respondToRequestFormSchema,
-
-  // Status constants
   MESSAGE_REQUEST_STATUS,
   MESSAGE_SESSION_STATUS,
 } from "@/lib/types/database";
 
+// API contracts (request/response types)
+import {
+  CreateMessageRequestRequest,
+  CreateMessageRequestResponse,
+  SendMessageResponse,
+  ApiResponse,
+} from "@/lib/types/api";
+
+// Security
 import {
   checkServerActionRateLimit,
   RATE_LIMIT_CONFIGS,
 } from "@/lib/security/serverActionRateLimit";
 
 // ============================================
-// ACTION INPUT/OUTPUT TYPES
-// ============================================
-
-// Request to Message
-export type RequestToMessageInput = {
-  initiatorId: UserId;
-  initiateeId: UserId;
-  placeId: PlaceId;
-};
-
-export type RequestToMessageResult = {
-  success: boolean;
-  error?: string;
-  data?: {
-    requestId: RequestId;
-    status: MessageRequestStatus;
-  };
-};
-
-// Submit Message
-export type SubmitMessageResult = {
-  ok: boolean;
-  newMessage: Message | null;
-  error: string;
-};
-
-// Generic action result
-export type ActionResult<T = void> = {
-  success: boolean;
-  error?: string;
-  data?: T;
-};
-
-// ============================================
 // REQUEST TO MESSAGE
 // ============================================
 
 export async function requestToMessage(
-  input: RequestToMessageInput,
-): Promise<RequestToMessageResult> {
+  input: CreateMessageRequestRequest,
+): Promise<CreateMessageRequestResponse> {
   try {
     // Rate limiting
     const rateLimitResult = await checkServerActionRateLimit(
@@ -91,7 +62,10 @@ export async function requestToMessage(
 
     if (!rateLimitResult.success) {
       console.error("❌ Rate limit exceeded for message request");
-      return { success: false, error: rateLimitResult.error };
+      return {
+        success: false,
+        error: rateLimitResult.error || "Rate limit exceeded",
+      };
     }
 
     // Auth check
@@ -106,10 +80,14 @@ export async function requestToMessage(
       return { success: false, error: "Not authenticated" };
     }
 
+    // Validate & brand primitives
     const authenticatedUserId = userIdSchema.parse(user.id);
+    const initiatorId = userIdSchema.parse(input.initiatorId);
+    const initiateeId = userIdSchema.parse(input.initiateeId);
+    const placeId = placeIdSchema.parse(input.placeId);
 
     // Verify initiator matches authenticated user
-    if (authenticatedUserId !== input.initiatorId) {
+    if (authenticatedUserId !== initiatorId) {
       console.error("❌ Unauthorized: initiator doesn't match user");
       return { success: false, error: "Unauthorized" };
     }
@@ -118,8 +96,8 @@ export async function requestToMessage(
     const { data: samePlace, error: checkError } = await supabase.rpc(
       "are_users_at_same_place",
       {
-        user1_id: input.initiatorId,
-        user2_id: input.initiateeId,
+        user1_id: initiatorId,
+        user2_id: initiateeId,
       },
     );
 
@@ -140,9 +118,9 @@ export async function requestToMessage(
     const { data: existingRequests, error: existingError } = await supabase
       .from("message_session_requests")
       .select("*")
-      .eq("initiator_id", input.initiatorId)
-      .eq("initiatee_id", input.initiateeId)
-      .eq("place_id", input.placeId)
+      .eq("initiator_id", initiatorId)
+      .eq("initiatee_id", initiateeId)
+      .eq("place_id", placeId)
       .in("status", ["pending", "accepted"]);
 
     if (existingError) {
@@ -158,9 +136,9 @@ export async function requestToMessage(
     const { data: newRequest, error: insertError } = await supabase
       .from("message_session_requests")
       .insert({
-        initiator_id: input.initiatorId,
-        initiatee_id: input.initiateeId,
-        place_id: input.placeId,
+        initiator_id: initiatorId,
+        initiatee_id: initiateeId,
+        place_id: placeId,
         status: MESSAGE_REQUEST_STATUS.PENDING,
       })
       .select()
@@ -377,9 +355,9 @@ export async function getMessageSession(input: {
 // ============================================
 
 export async function submitMessage(
-  prev: SubmitMessageResult,
+  prev: SendMessageResponse,
   formData: FormData,
-): Promise<SubmitMessageResult> {
+): Promise<SendMessageResponse> {
   try {
     // Rate limiting
     const rateLimitResult = await checkServerActionRateLimit(
@@ -389,8 +367,7 @@ export async function submitMessage(
     if (!rateLimitResult.success) {
       console.error("❌ Rate limit exceeded for sending message");
       return {
-        ok: false,
-        newMessage: null,
+        success: false,
         error:
           rateLimitResult.error ||
           "Sending messages too quickly. Please slow down.",
@@ -405,7 +382,7 @@ export async function submitMessage(
 
     if (authError || !user) {
       console.error("❌ Not authenticated");
-      return { ok: false, newMessage: null, error: "Not authenticated" };
+      return { success: false, error: "Not authenticated" };
     }
 
     const userId = userIdSchema.parse(user.id);
@@ -429,7 +406,7 @@ export async function submitMessage(
 
     if (checkinError || !checkin || checkin.user_id !== userId) {
       console.error("❌ Invalid or unauthorized sender checkin");
-      return { ok: false, newMessage: null, error: "Invalid sender" };
+      return { success: false, error: "Invalid sender" };
     }
 
     // Verify user is part of the session
@@ -441,14 +418,13 @@ export async function submitMessage(
 
     if (sessionError || !session) {
       console.error("❌ Session not found");
-      return { ok: false, newMessage: null, error: "Session not found" };
+      return { success: false, error: "Session not found" };
     }
 
     if (session.initiator_id !== userId && session.initiatee_id !== userId) {
       console.error("❌ User not part of session");
       return {
-        ok: false,
-        newMessage: null,
+        success: false,
         error: "Not authorized for this session",
       };
     }
@@ -466,7 +442,7 @@ export async function submitMessage(
 
     if (insertError) {
       console.error("❌ Failed to insert message:", insertError);
-      return { ok: false, newMessage: null, error: insertError.message };
+      return { success: false, error: insertError.message };
     }
 
     const messageId = messageIdSchema.parse(newMessage.id);
@@ -488,14 +464,16 @@ export async function submitMessage(
     };
 
     return {
-      ok: true,
-      newMessage: message,
-      error: "",
+      success: true,
+      data: {
+        messageId,
+        message,
+      },
     };
   } catch (e: unknown) {
     const error = e instanceof Error ? e : new Error("Unknown error");
     console.error("❌ submitMessage failed:", error.message);
-    return { ok: false, newMessage: null, error: error.message };
+    return { success: false, error: error.message };
   }
 }
 
@@ -556,7 +534,7 @@ export async function getMessageRequests(
 
 export async function cancelMessageRequest(
   requestId: RequestId,
-): Promise<ActionResult> {
+): Promise<ApiResponse<void>> {
   try {
     const supabase = await createClient();
     const {
@@ -583,7 +561,7 @@ export async function cancelMessageRequest(
     }
 
     console.log("✅ Request canceled:", requestId);
-    return { success: true };
+    return { success: true, data: undefined };
   } catch (e: unknown) {
     const error = e instanceof Error ? e : new Error("Unknown error");
     console.error("❌ cancelMessageRequest failed:", error.message);

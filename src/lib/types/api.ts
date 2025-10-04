@@ -1,3 +1,5 @@
+// src/lib/types/api.ts
+
 import { z } from "zod";
 import {
   // Domain types
