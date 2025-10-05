@@ -2,7 +2,7 @@
 import { useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { createClient } from "@/utils/supabase/client";
-import { Message } from "@/components/EphemeralSessonWindow";
+import { Message } from "@/app/places/[placeId]/_components/EphemeralSessonWindow";
 
 // Fetch messages function
 async function fetchMessages(sessionId: string): Promise<Message[]> {

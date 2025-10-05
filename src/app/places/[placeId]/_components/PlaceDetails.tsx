@@ -1,14 +1,16 @@
-import IncomingRequests from "@/components/IncomingRequests";
-import type { SelectCheckin } from "@/lib/db/types";
+// src/components/PlaceDetails.tsx (UPDATE)
+
 import { CheckinList } from "./CheckinList";
+import type { Checkin, UserId, PlaceId } from "@/lib/types/database";
+import IncomingRequests from "./IncomingRequests";
 
 type PlaceDetailsProps = {
-  place: { id: string; name: string; address: string };
-  checkins: SelectCheckin[];
-  currentUserId: string;
+  place: { id: PlaceId; name: string; address: string };
+  checkins: Checkin[];
+  currentUserId: UserId;
   activeSession?: {
-    initiatorId: string;
-    initiateeId: string;
+    initiatorId: UserId;
+    initiateeId: UserId;
   };
   onResumeSession?: () => void;
 };
@@ -23,7 +25,7 @@ export function PlaceDetails({
   const currentUserCheckin = checkins.find((c) => c.userId === currentUserId);
 
   return (
-    <section className="space-y-6 px-4 py-6">
+    <section className="space-y-6">
       <header>
         <h1 className="text-2xl font-bold">{place.name}</h1>
         <p className="text-muted-foreground text-sm">{place.address}</p>
@@ -45,4 +47,5 @@ export function PlaceDetails({
     </section>
   );
 }
+
 export type { PlaceDetailsProps };

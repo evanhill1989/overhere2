@@ -5,7 +5,7 @@ import { useState } from "react";
 import { useActionState } from "react";
 import { useFormStatus } from "react-dom";
 
-import { useRealtimeMessageRequests } from "@/hooks/useRealtimeMessageRequests"; // ✅ Changed
+import { useRealtimeMessageRequests } from "@/hooks/realtime-hooks/useRealtimeMessageRequests"; // ✅ Changed
 
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";

@@ -6,8 +6,8 @@ import { CheckinCard } from "@/components/CheckinCard";
 import { Users } from "lucide-react";
 
 import { useMessageSendRequest } from "@/hooks/useMessageSendRequest";
-import { useRealtimeMessageRequests } from "@/hooks/useRealtimeMessageRequests";
-import { useRealtimeCheckins } from "@/hooks/useRealtimeCheckins";
+import { useRealtimeMessageRequests } from "@/hooks/realtime-hooks/useRealtimeMessageRequests";
+import { useRealtimeCheckins } from "@/hooks/realtime-hooks/useRealtimeCheckins";
 
 export function CheckinList({
   placeId,

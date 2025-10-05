@@ -2,8 +2,10 @@
 "use client";
 
 import { useRef, useEffect, ReactElement } from "react";
-import { useRealtimeMessages } from "@/hooks/useRealtimeMessages";
+
 import type { MessageInputProps } from "@/components/MessageInput";
+import type { UserId, PlaceId, SessionId } from "@/lib/types/database";
+import { useRealtimeMessages } from "@/hooks/realtime-hooks/useRealtimeMessages";
 
 export type Message = {
   id: number;
@@ -14,12 +16,12 @@ export type Message = {
 
 type EphemeralSessionWindowProps = {
   session: {
-    id: string;
-    placeId: string;
-    initiatorId: string;
-    initiateeId: string;
+    id: SessionId; // ✅ Branded type
+    placeId: PlaceId; // ✅ Branded type
+    initiatorId: UserId; // ✅ Branded type
+    initiateeId: UserId; // ✅ Branded type
   };
-  currentUserId: string;
+  currentUserId: UserId; // ✅ Branded type
   checkinId?: number;
   children?: ReactElement<MessageInputProps>;
   onBack?: () => void;

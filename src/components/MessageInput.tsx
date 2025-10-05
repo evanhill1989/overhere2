@@ -8,7 +8,7 @@ import { Loader2 } from "lucide-react";
 import { submitMessage } from "@/app/_actions/messageActions";
 import { useFormStatus } from "react-dom";
 import { useQueryClient } from "@tanstack/react-query";
-import { Message } from "./EphemeralSessonWindow";
+import { Message } from "../app/places/[placeId]/_components/EphemeralSessonWindow";
 
 export type MessageInputProps = {
   sessionId: string;

@@ -4,7 +4,7 @@
 import { useEffect, useRef } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { createClient } from "@/utils/supabase/client";
-import { useMessageFetchRequests } from "./useMessageFetchRequests";
+import { useMessageFetchRequests } from "../useMessageFetchRequests";
 
 export function useRealtimeMessageRequests(
   userId: string | null,
