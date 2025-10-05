@@ -1,11 +1,13 @@
 // src/lib/utils/caseConverter.ts
 import type {
   Checkin,
+  DatabaseCheckin,
   MessageRequest,
   MessageSession,
   Message,
   User,
   Place,
+  ApiCheckin,
 } from "@/lib/types/database";
 import {
   checkinSchema,
@@ -14,26 +16,21 @@ import {
   messageSchema,
   userSchema,
   placeSchema,
+  checkinIdSchema,
+  userIdSchema,
+  placeIdSchema,
 } from "@/lib/types/database";
+import {
+  checkinStatusSchema,
+  placeAddressSchema,
+  placeNameSchema,
+  timestampSchema,
+  validatedTopicSchema,
+} from "./types/core";
 
 // ============================================
 // SNAKE_CASE DATABASE TYPES
 // ============================================
-
-type DatabaseCheckin = {
-  id: number;
-  user_id: string;
-  place_id: string;
-  place_name: string;
-  place_address: string;
-  latitude: number | null;
-  longitude: number | null;
-  checkin_status: "available" | "busy";
-  topic: string | null;
-  is_active: boolean;
-  created_at: string;
-  checked_out_at: string | null;
-};
 
 type DatabaseMessageRequest = {
   id: string;
@@ -109,6 +106,28 @@ export function mapCheckinToCamel(raw: DatabaseCheckin): Checkin {
   };
 
   return checkinSchema.parse(converted);
+}
+
+/**
+ * Convert and validate REST API checkin (camelCase) to canonical Checkin type
+ */
+export function mapApiToCheckin(raw: ApiCheckin): Checkin {
+  return {
+    id: checkinIdSchema.parse(raw.id),
+    userId: userIdSchema.parse(raw.userId),
+    placeId: placeIdSchema.parse(raw.placeId),
+    placeName: placeNameSchema.parse(raw.placeName),
+    placeAddress: placeAddressSchema.parse(raw.placeAddress),
+    latitude: raw.latitude,
+    longitude: raw.longitude,
+    checkinStatus: checkinStatusSchema.parse(raw.checkinStatus),
+    topic: raw.topic ? validatedTopicSchema.parse(raw.topic) : null,
+    isActive: raw.isActive,
+    createdAt: timestampSchema.parse(raw.createdAt),
+    checkedOutAt: raw.checkedOutAt
+      ? timestampSchema.parse(raw.checkedOutAt)
+      : null,
+  };
 }
 
 /**

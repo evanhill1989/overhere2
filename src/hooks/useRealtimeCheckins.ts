@@ -1,4 +1,4 @@
-// src/hooks/useRealtimeCheckins.ts - FIXED FOR CAMELCASE API
+// src/hooks/useRealtimeCheckins.ts
 "use client";
 
 import { useEffect, useRef } from "react";
@@ -6,170 +6,52 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { createClient } from "@/utils/supabase/client";
 import type { RealtimeChannel } from "@supabase/supabase-js";
 
-// ✅ ONLY import from canonical type system
-import type { Checkin } from "@/lib/types/database";
-import type { PlaceId, CheckinId, UserId } from "@/lib/types/core";
-import {
-  checkinIdSchema,
-  userIdSchema,
-  placeIdSchema,
-  checkinStatusSchema,
-  validatedTopicSchema,
-  timestampSchema,
-  placeNameSchema,
-  placeAddressSchema,
-} from "@/lib/types/core";
+import type {
+  Checkin,
+  DatabaseCheckin,
+  ApiCheckin,
+} from "@/lib/types/database";
+import type { PlaceId, CheckinId } from "@/lib/types/core";
+import { checkinIdSchema } from "@/lib/types/core";
 
-// ============================================
-// RAW API PAYLOAD TYPE (camelCase from API route)
-// ============================================
-type ApiCheckinPayload = {
-  id: number;
-  userId: string; // ✅ camelCase from API
-  placeId: string; // ✅ camelCase from API
-  placeName: string;
-  placeAddress: string;
-  latitude: number | null;
-  longitude: number | null;
-  checkinStatus: "available" | "busy";
-  topic: string | null;
-  isActive: boolean;
-  createdAt: string;
-  checkedOutAt: string | null;
-};
+import { mapApiToCheckin, mapCheckinToCamel } from "@/lib/caseConverter";
 
-// ============================================
-// RAW DATABASE PAYLOAD TYPE (snake_case from Postgres/Realtime)
-// ============================================
-type DatabaseCheckinPayload = {
-  id: number;
-  user_id: string; // ✅ snake_case from database
-  place_id: string; // ✅ snake_case from database
-  place_name: string;
-  place_address: string;
-  latitude: number | null;
-  longitude: number | null;
-  checkin_status: "available" | "busy";
-  topic: string | null;
-  is_active: boolean;
-  created_at: string;
-  checked_out_at: string | null;
-};
-
-// ============================================
-// MAPPERS: Different sources → Validated Canonical Type
-// ============================================
-
-// ✅ For API responses (already camelCase)
-function validateApiCheckin(raw: unknown): Checkin {
-  if (!raw || typeof raw !== "object") {
-    throw new Error("Invalid checkin data: not an object");
-  }
-
-  const payload = raw as ApiCheckinPayload;
-  console.log(
-    "🔍 Full ApiCheckinPayload payload:",
-    JSON.stringify(payload, null, 2),
-  );
-
-  if (
-    typeof payload.id !== "string" ||
-    typeof payload.userId !== "string" ||
-    typeof payload.placeId !== "string"
-  ) {
-    console.error("❌ Missing required fields in API payload:", payload);
-    throw new Error("Invalid checkin data: missing required fields");
-  }
-
-  try {
-    const validated: Checkin = {
-      id: checkinIdSchema.parse(payload.id),
-      userId: userIdSchema.parse(payload.userId), // ✅ camelCase
-      placeId: placeIdSchema.parse(payload.placeId), // ✅ camelCase
-      placeName: placeNameSchema.parse(payload.placeName),
-      placeAddress: placeAddressSchema.parse(payload.placeAddress),
-      latitude: payload.latitude,
-      longitude: payload.longitude,
-      checkinStatus: checkinStatusSchema.parse(payload.checkinStatus),
-      topic: payload.topic ? validatedTopicSchema.parse(payload.topic) : null,
-      isActive: payload.isActive,
-      createdAt: timestampSchema.parse(payload.createdAt),
-      checkedOutAt: payload.checkedOutAt
-        ? timestampSchema.parse(payload.checkedOutAt)
-        : null,
-    };
-
-    console.log("✅ Successfully validated API checkin:", validated.id);
-    return validated;
-  } catch (error) {
-    console.error("❌ Failed to validate API checkin:", error);
-    console.error("❌ Raw payload:", JSON.stringify(payload, null, 2));
-    throw new Error(`Invalid checkin data: ${error}`);
-  }
-}
-
-// ============================================
-// FETCH FUNCTION
-// ============================================
 async function fetchCheckins(placeId: PlaceId): Promise<Checkin[]> {
   const res = await fetch(`/api/checkins?placeId=${placeId}`, {
     cache: "no-store",
   });
 
   if (!res.ok) {
-    throw new Error(
-      `Failed to fetch checkins: ${res.status} ${res.statusText}`,
-    );
+    throw new Error(`Failed to fetch checkins: ${res.status}`);
   }
 
-  const rawCheckins: unknown[] = await res.json();
-
-  if (!Array.isArray(rawCheckins)) {
-    console.error("❌ API did not return an array:", rawCheckins);
-    throw new Error("Invalid API response: expected array");
-  }
-
-  console.log(`📥 Fetched ${rawCheckins.length} checkins for place ${placeId}`);
-
-  // ✅ Use validateApiCheckin since API returns camelCase
-  return rawCheckins.map((raw, index) => {
-    try {
-      return validateApiCheckin(raw); // ✅ Changed from validateDatabaseCheckin
-    } catch (error) {
-      console.error(`❌ Failed to validate checkin at index ${index}:`, error);
-      throw error;
-    }
-  });
+  const rawCheckins: ApiCheckin[] = await res.json();
+  return rawCheckins.map(mapApiToCheckin);
 }
 
-// ============================================
-// REAL-TIME HOOK
-// ============================================
 export function useRealtimeCheckins(placeId: PlaceId | null) {
   const queryClient = useQueryClient();
   const channelRef = useRef<RealtimeChannel | null>(null);
 
+  // Fetch initial data
   const query = useQuery<Checkin[], Error>({
     queryKey: ["checkins", placeId],
     queryFn: () => fetchCheckins(placeId!),
     enabled: !!placeId,
     staleTime: 10000,
-    refetchOnWindowFocus: true,
-    refetchOnReconnect: true,
   });
 
+  // Real-time subscription
   useEffect(() => {
     if (!placeId) return;
 
     const supabase = createClient();
 
+    // Clean up existing channel
     if (channelRef.current) {
-      console.log("🧹 Cleaning up existing checkins channel");
       supabase.removeChannel(channelRef.current);
       channelRef.current = null;
     }
-
-    console.log(`🔌 Setting up real-time for checkins at place: ${placeId}`);
 
     const channel = supabase
       .channel(`checkins-${placeId}-${Date.now()}`)
@@ -182,84 +64,46 @@ export function useRealtimeCheckins(placeId: PlaceId | null) {
           filter: `place_id=eq.${placeId}`,
         },
         (payload) => {
-          console.log("🔔 Real-time checkin update:", payload.eventType);
-
           queryClient.setQueryData<Checkin[]>(
             ["checkins", placeId],
-            (oldCheckins = []) => {
+            (old = []) => {
               try {
-                if (payload.eventType === "INSERT") {
-                  if (!payload.new) {
-                    console.warn("⚠️ INSERT event without new data");
-                    return oldCheckins;
-                  }
-
-                  const newCheckin = validateApiCheckin(payload.new);
-
-                  if (oldCheckins.some((c) => c.id === newCheckin.id)) {
-                    console.log(
-                      "⚠️ Duplicate checkin, skipping:",
-                      newCheckin.id,
-                    );
-                    return oldCheckins;
-                  }
-
-                  console.log("✅ Adding validated checkin:", newCheckin.id);
-                  return [...oldCheckins, newCheckin];
-                } else if (payload.eventType === "UPDATE") {
-                  if (!payload.new) {
-                    console.warn("⚠️ UPDATE event without new data");
-                    return oldCheckins;
-                  }
-
-                  const updatedCheckin = validateApiCheckin(payload.new);
-
-                  console.log(
-                    "✅ Updating validated checkin:",
-                    updatedCheckin.id,
+                if (payload.eventType === "INSERT" && payload.new) {
+                  const newCheckin = mapCheckinToCamel(
+                    payload.new as DatabaseCheckin,
                   );
-                  return oldCheckins.map((c) =>
-                    c.id === updatedCheckin.id ? updatedCheckin : c,
-                  );
-                } else if (payload.eventType === "DELETE") {
-                  if (!payload.old) {
-                    console.warn("⚠️ DELETE event without old data");
-                    return oldCheckins;
-                  }
-
-                  const deletedId = checkinIdSchema.parse(
-                    (payload.old as DatabaseCheckinPayload).id,
-                  );
-
-                  console.log("✅ Removing checkin:", deletedId);
-                  return oldCheckins.filter((c) => c.id !== deletedId);
+                  if (old.some((c) => c.id === newCheckin.id)) return old;
+                  return [...old, newCheckin];
                 }
 
-                return oldCheckins;
+                if (payload.eventType === "UPDATE" && payload.new) {
+                  const updated = mapCheckinToCamel(
+                    payload.new as DatabaseCheckin,
+                  );
+                  return old.map((c) => (c.id === updated.id ? updated : c));
+                }
+
+                if (payload.eventType === "DELETE" && payload.old) {
+                  const deletedId = checkinIdSchema.parse(
+                    (payload.old as DatabaseCheckin).id,
+                  );
+                  return old.filter((c) => c.id !== deletedId);
+                }
+
+                return old;
               } catch (error) {
-                console.error("❌ Error processing real-time update:", error);
-                console.error("❌ Payload:", payload);
-                return oldCheckins;
+                console.error("Real-time update error:", error);
+                return old;
               }
             },
           );
         },
       )
-      .subscribe((status) => {
-        if (status === "SUBSCRIBED") {
-          console.log("📡 Subscription status:", status);
-          console.log(`✅ Subscribed to checkins real-time for ${placeId}`);
-        } else if (status === "CHANNEL_ERROR") {
-          console.error("❌ Checkins subscription error");
-        } else if (status === "TIMED_OUT") {
-          console.warn("⏱️ Checkins subscription timed out");
-        }
-      });
+      .subscribe();
 
     channelRef.current = channel;
 
     return () => {
-      console.log(`🔌 Unsubscribing from checkins for place ${placeId}`);
       if (channelRef.current) {
         supabase.removeChannel(channelRef.current);
         channelRef.current = null;
@@ -273,11 +117,12 @@ export function useRealtimeCheckins(placeId: PlaceId | null) {
 // ============================================
 // HELPER FUNCTIONS
 // ============================================
+
 export function extractCheckinId(checkin: Checkin): CheckinId {
   return checkin.id;
 }
 
-export function extractUserId(checkin: Checkin): UserId {
+export function extractUserId(checkin: Checkin) {
   return checkin.userId;
 }
 

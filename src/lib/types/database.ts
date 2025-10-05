@@ -152,6 +152,37 @@ export type MessageSession = z.infer<typeof messageSessionSchema>;
 export type Message = z.infer<typeof messageSchema>;
 export type FailedRequest = z.infer<typeof failedRequestSchema>;
 
+export type DatabaseCheckin = {
+  id: string;
+  user_id: string;
+  place_id: string;
+  place_name: string;
+  place_address: string;
+  latitude: number | null;
+  longitude: number | null;
+  checkin_status: "available" | "busy";
+  topic: string | null;
+  is_active: boolean;
+  created_at: string;
+  checked_out_at: string | null;
+};
+
+// REST API response (camelCase from /api/checkins)
+export type ApiCheckin = {
+  id: string;
+  userId: string;
+  placeId: string;
+  placeName: string;
+  placeAddress: string;
+  latitude: number | null;
+  longitude: number | null;
+  checkinStatus: "available" | "busy";
+  topic: string | null;
+  isActive: boolean;
+  createdAt: string;
+  checkedOutAt: string | null;
+};
+
 // ============================================
 // FORM INPUT SCHEMAS (for server actions)
 // ============================================

@@ -44,7 +44,7 @@ export function useRealtimeMessages(sessionId: string) {
     if (!sessionId) return;
 
     console.log(
-      `🔌 Setting up real-time for messages in session: ${sessionId}`,
+      `ðŸ”Œ Setting up real-time for messages in session: ${sessionId}`,
     );
 
     const channel = supabase
@@ -66,7 +66,7 @@ export function useRealtimeMessages(sessionId: string) {
             createdAt: rawMessage.created_at,
           };
 
-          console.log("📥 Real-time message received:", formattedMessage);
+          console.log("ðŸ“¥ Real-time message received:", formattedMessage);
 
           // Update React Query cache
           queryClient.setQueryData(
@@ -83,14 +83,14 @@ export function useRealtimeMessages(sessionId: string) {
       )
       .subscribe((status) => {
         if (status === "SUBSCRIBED") {
-          console.log("✅ Subscribed to messages real-time");
+          console.log("âœ… Subscribed to messages real-time");
         } else if (status === "CHANNEL_ERROR") {
-          console.error("❌ Messages subscription error");
+          console.error("âŒ Messages subscription error");
         }
       });
 
     return () => {
-      console.log(`🔌 Unsubscribing from messages for session ${sessionId}`);
+      console.log(`ðŸ”Œ Unsubscribing from messages for session ${sessionId}`);
       supabase.removeChannel(channel);
     };
   }, [sessionId, queryClient, supabase]);
