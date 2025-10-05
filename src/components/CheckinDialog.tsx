@@ -14,6 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { checkIn } from "@/app/_actions/checkinActions";
+import { useRouter } from "next/navigation";
 
 interface CheckinDialogProps {
   open: boolean;
@@ -32,6 +33,7 @@ export default function CheckinDialog({
 }: CheckinDialogProps) {
   const { userLocation } = usePlaceFinder();
   const [isPending, startTransition] = useTransition();
+  const router = useRouter();
 
   const [topic, setTopic] = useState("");
   const [checkinStatus, setCheckinStatus] = useState<"available" | "busy">(
@@ -50,7 +52,16 @@ export default function CheckinDialog({
     formData.append("topic", topic);
     formData.append("checkinStatus", checkinStatus);
 
-    startTransition(() => checkIn(formData));
+    startTransition(async () => {
+      try {
+        await checkIn(formData);
+        // ✅ Navigate on success (Server Action won't redirect)
+        router.push(`/places/${place.place_id}`);
+      } catch (error) {
+        console.error("Check-in failed:", error);
+        // TODO: Show error toast
+      }
+    });
   };
 
   return (

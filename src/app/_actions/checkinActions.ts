@@ -1,26 +1,24 @@
-// src/app/_actions/checkinActions.ts
 "use server";
 
 import { db } from "@/lib/db";
 import { placesTable } from "@/lib/schema";
-import { SelectPlace } from "@/lib/db/types";
 
-import { redirect } from "next/navigation";
 import { eq, sql } from "drizzle-orm";
 
-// ✅ Import canonical types and schemas
 import {
   // Branded types
   type UserId,
   type PlaceId,
   type CheckinId,
-
-  // Validation schemas
-  createCheckinSchema,
+  // Domain entities
+  type Place,
+  placeSchema,
   placeIdSchema,
   userIdSchema,
   checkinIdSchema,
-} from "@/lib/types/core";
+  // Form/Input schemas
+} from "@/lib/types/database";
+import { createCheckinSchema } from "@/lib/types/core";
 
 import { ensureUserInDb } from "@/utils/supabase/ensureUserInDb";
 import { createClient } from "@/utils/supabase/server";
@@ -52,7 +50,8 @@ interface GooglePlaceDetailsNewResult {
 
 export async function fetchAndCacheGooglePlaceDetails(
   placeId: PlaceId, // ✅ Branded type
-): Promise<SelectPlace | null> {
+): Promise<Place | null> {
+  // ✅ Updated return type to canonical 'Place'
   try {
     // Check cache first
     const cachedPlace = await db.query.placesTable?.findFirst({
@@ -65,7 +64,27 @@ export async function fetchAndCacheGooglePlaceDetails(
         CACHE_STALE_MS;
       if (!isStale) {
         console.log("✅ Using cached place data for:", placeId);
-        return cachedPlace;
+
+        // ⚠️ CRITICAL STEP: Map Drizzle result to canonical domain type
+        // The raw 'cachedPlace' from Drizzle might have different type structures
+        // (e.g., date objects, non-branded ID strings) than your canonical 'Place'.
+        // You MUST parse it with Zod to apply branding and consistent types (like
+        // converting DB dates to your desired 'ValidatedTimestamp' or 'Date').
+        try {
+          return placeSchema.parse({
+            id: cachedPlace.id,
+            name: cachedPlace.name, // Assuming a column name change
+            address: cachedPlace.address, // Assuming a column name change
+            latitude: cachedPlace.latitude,
+            longitude: cachedPlace.longitude,
+            lastFetchedAt: cachedPlace.lastFetchedAt, // Ensure this matches timestamp type
+            isVerified: cachedPlace.isVerified,
+            primaryType: cachedPlace.primaryType,
+          }) as Place;
+        } catch (parseError) {
+          console.error("❌ Failed to parse cached Place data:", parseError);
+          // Fall through to re-fetch if cached data is malformed
+        }
       }
       console.log("⚠️ Cached place data is stale, refreshing...");
     }
@@ -121,6 +140,7 @@ export async function fetchAndCacheGooglePlaceDetails(
   }
 
   // Prepare data for caching
+  // NOTE: When inserting, the structure needs to match the DB/Drizzle schema
   const placeToCache = {
     id: googlePlaceData.id,
     name: googlePlaceData.displayName.text,
@@ -154,7 +174,18 @@ export async function fetchAndCacheGooglePlaceDetails(
 
     if (finalPlace) {
       console.log("✅ Place data cached successfully:", placeId);
-      return finalPlace;
+
+      // ⚠️ CRITICAL STEP: Map Drizzle result to canonical domain type
+      return placeSchema.parse({
+        id: finalPlace.id,
+        name: finalPlace.name, // Assuming a column name change
+        address: finalPlace.address, // Assuming a column name change
+        latitude: finalPlace.latitude,
+        longitude: finalPlace.longitude,
+        lastFetchedAt: finalPlace.lastFetchedAt,
+        isVerified: finalPlace.isVerified,
+        primaryType: finalPlace.primaryType,
+      }) as Place;
     }
 
     throw new Error(
@@ -166,12 +197,23 @@ export async function fetchAndCacheGooglePlaceDetails(
       dbError,
     );
 
-    // Return fallback data even if caching fails
-    const fallbackData: SelectPlace = {
-      ...placeToCache,
-      isVerified: false,
-    };
-    return fallbackData;
+    // Return fallback data, parsed to ensure it's a canonical Place object
+    // Note: The fields here must match what placeSchema expects for a Place object
+    try {
+      return placeSchema.parse({
+        id: placeToCache.id,
+        name: placeToCache.name,
+        address: placeToCache.address,
+        latitude: placeToCache.latitude,
+        longitude: placeToCache.longitude,
+        lastFetchedAt: placeToCache.lastFetchedAt,
+        primaryType: placeToCache.primaryType,
+        isVerified: false, // Default fallback value
+      }) as Place;
+    } catch (e) {
+      console.error("❌ Fallback data failed canonical validation:", e);
+      return null;
+    }
   }
 }
 
@@ -190,7 +232,9 @@ type CheckInInput = {
   checkinStatus: "available" | "busy";
 };
 
-export async function checkIn(formData: FormData): Promise<void> {
+export async function checkIn(
+  formData: FormData,
+): Promise<{ placeId: PlaceId }> {
   // Rate limiting check FIRST
   const rateLimitResult = await checkServerActionRateLimit(
     RATE_LIMIT_CONFIGS.checkin,
@@ -320,7 +364,7 @@ export async function checkIn(formData: FormData): Promise<void> {
     console.log("✅ Check-in created:", checkinId);
 
     // Redirect to place page
-    redirect(`/places/${validated.placeId}`);
+    return { placeId: validated.placeId };
   } catch (error) {
     console.error("❌ Check-in validation or processing error:", error);
     throw error;
