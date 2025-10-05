@@ -211,7 +211,7 @@ export const messageRequestFormSchema = z.object({
 // Send message form input
 export const sendMessageFormSchema = z.object({
   sessionId: z.string(),
-  senderCheckinId: z.coerce.number(),
+  senderCheckinId: z.string(),
   content: z.string(),
 });
 

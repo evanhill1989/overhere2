@@ -7,13 +7,6 @@ import type { MessageInputProps } from "@/components/MessageInput";
 import type { UserId, PlaceId, SessionId } from "@/lib/types/database";
 import { useRealtimeMessages } from "@/hooks/realtime-hooks/useRealtimeMessages";
 
-export type Message = {
-  id: number;
-  content: string;
-  senderCheckinId: number;
-  createdAt: string;
-};
-
 type EphemeralSessionWindowProps = {
   session: {
     id: SessionId; // ✅ Branded type
@@ -22,7 +15,7 @@ type EphemeralSessionWindowProps = {
     initiateeId: UserId; // ✅ Branded type
   };
   currentUserId: UserId; // ✅ Branded type
-  checkinId?: number;
+  checkinId?: string;
   children?: ReactElement<MessageInputProps>;
   onBack?: () => void;
   place: { name: string; address: string };

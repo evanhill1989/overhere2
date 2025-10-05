@@ -12,7 +12,7 @@ import { Message } from "../app/places/[placeId]/_components/EphemeralSessonWind
 
 export type MessageInputProps = {
   sessionId: string;
-  senderCheckinId?: number;
+  senderCheckinId?: string;
 };
 
 export function MessageInput({
