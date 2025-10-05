@@ -7,12 +7,7 @@ import { createClient } from "@/utils/supabase/client";
 import type { RealtimeChannel } from "@supabase/supabase-js";
 import { subHours } from "date-fns";
 
-import type {
-  MessageSession,
-  UserId,
-  PlaceId,
-  SessionId,
-} from "@/lib/types/database";
+import type { MessageSession, UserId, PlaceId } from "@/lib/types/database";
 import {
   sessionIdSchema,
   userIdSchema,
@@ -109,13 +104,14 @@ export function useRealtimeMessageSession(
   const queryClient = useQueryClient();
   const channelRef = useRef<RealtimeChannel | null>(null);
 
-  // 1. React Query for data fetching
   const query = useQuery<MessageSession | null, Error>({
     queryKey: ["messageSession", userId, placeId],
     queryFn: () => fetchMessageSession(userId!, placeId!),
     enabled: !!userId && !!placeId,
-    staleTime: 10000, // 10 seconds
-    refetchOnWindowFocus: true, // Check for sessions when user returns to tab
+    staleTime: 30000, // 30 seconds
+    refetchInterval: false, // ✅ DISABLE POLLING
+    refetchOnWindowFocus: false, // ✅ DISABLE
+    refetchOnMount: false, // ✅ Only fetch once
   });
 
   // 2. Real-time subscription
@@ -254,6 +250,7 @@ export function useHasActiveSession(userId: UserId | null) {
         .limit(1)
         .maybeSingle();
 
+      console.error(error);
       return !!data;
     },
     enabled: !!userId,

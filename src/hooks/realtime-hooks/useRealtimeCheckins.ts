@@ -38,7 +38,10 @@ export function useRealtimeCheckins(placeId: PlaceId | null) {
     queryKey: ["checkins", placeId],
     queryFn: () => fetchCheckins(placeId!),
     enabled: !!placeId,
-    staleTime: 10000,
+    staleTime: 30000, // 30 seconds
+    refetchInterval: false, // ✅ DISABLE POLLING
+    refetchOnWindowFocus: false, // ✅ DISABLE
+    refetchOnMount: false, // ✅ Only fetch once
   });
 
   // Real-time subscription
