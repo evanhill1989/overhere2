@@ -67,6 +67,10 @@ function validateApiCheckin(raw: unknown): Checkin {
   }
 
   const payload = raw as ApiCheckinPayload;
+  console.log(
+    "🔍 Full ApiCheckinPayload payload:",
+    JSON.stringify(payload, null, 2),
+  );
 
   if (
     typeof payload.id !== "string" ||
@@ -99,50 +103,6 @@ function validateApiCheckin(raw: unknown): Checkin {
     return validated;
   } catch (error) {
     console.error("❌ Failed to validate API checkin:", error);
-    console.error("❌ Raw payload:", JSON.stringify(payload, null, 2));
-    throw new Error(`Invalid checkin data: ${error}`);
-  }
-}
-
-// ✅ For realtime database payloads (snake_case)
-function validateDatabaseCheckin(raw: unknown): Checkin {
-  if (!raw || typeof raw !== "object") {
-    throw new Error("Invalid checkin data: not an object");
-  }
-
-  const payload = raw as DatabaseCheckinPayload;
-
-  if (
-    typeof payload.id !== "number" ||
-    typeof payload.user_id !== "string" ||
-    typeof payload.place_id !== "string"
-  ) {
-    console.error("❌ Missing required fields in database payload:", payload);
-    throw new Error("Invalid checkin data: missing required fields");
-  }
-
-  try {
-    const validated: Checkin = {
-      id: checkinIdSchema.parse(payload.id),
-      userId: userIdSchema.parse(payload.user_id), // ✅ snake_case
-      placeId: placeIdSchema.parse(payload.place_id), // ✅ snake_case
-      placeName: placeNameSchema.parse(payload.place_name),
-      placeAddress: placeAddressSchema.parse(payload.place_address),
-      latitude: payload.latitude,
-      longitude: payload.longitude,
-      checkinStatus: checkinStatusSchema.parse(payload.checkin_status),
-      topic: payload.topic ? validatedTopicSchema.parse(payload.topic) : null,
-      isActive: payload.is_active,
-      createdAt: timestampSchema.parse(payload.created_at),
-      checkedOutAt: payload.checked_out_at
-        ? timestampSchema.parse(payload.checked_out_at)
-        : null,
-    };
-
-    console.log("✅ Successfully validated database checkin:", validated.id);
-    return validated;
-  } catch (error) {
-    console.error("❌ Failed to validate database checkin:", error);
     console.error("❌ Raw payload:", JSON.stringify(payload, null, 2));
     throw new Error(`Invalid checkin data: ${error}`);
   }
@@ -234,8 +194,7 @@ export function useRealtimeCheckins(placeId: PlaceId | null) {
                     return oldCheckins;
                   }
 
-                  // ✅ Use validateDatabaseCheckin for realtime (snake_case)
-                  const newCheckin = validateDatabaseCheckin(payload.new);
+                  const newCheckin = validateApiCheckin(payload.new);
 
                   if (oldCheckins.some((c) => c.id === newCheckin.id)) {
                     console.log(
@@ -253,8 +212,7 @@ export function useRealtimeCheckins(placeId: PlaceId | null) {
                     return oldCheckins;
                   }
 
-                  // ✅ Use validateDatabaseCheckin for realtime (snake_case)
-                  const updatedCheckin = validateDatabaseCheckin(payload.new);
+                  const updatedCheckin = validateApiCheckin(payload.new);
 
                   console.log(
                     "✅ Updating validated checkin:",
@@ -289,6 +247,7 @@ export function useRealtimeCheckins(placeId: PlaceId | null) {
       )
       .subscribe((status) => {
         if (status === "SUBSCRIBED") {
+          console.log("📡 Subscription status:", status);
           console.log(`✅ Subscribed to checkins real-time for ${placeId}`);
         } else if (status === "CHANNEL_ERROR") {
           console.error("❌ Checkins subscription error");
