@@ -2,7 +2,7 @@
 import { useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { createClient } from "@/utils/supabase/client";
-import { Message } from "@/app/places/[placeId]/_components/EphemeralSessonWindow";
+import { Message } from "@/lib/types/database";
 
 // Fetch messages function
 async function fetchMessages(sessionId: string): Promise<Message[]> {
@@ -20,9 +20,12 @@ async function fetchMessages(sessionId: string): Promise<Message[]> {
 
   return (data || []).map((msg) => ({
     id: msg.id,
+    sessionId: msg.session_id,
     content: msg.content,
     senderCheckinId: msg.sender_checkin_id,
     createdAt: msg.created_at,
+    deliveredAt: msg.delivered_at,
+    readAt: msg.read_at,
   }));
 }
 
@@ -61,6 +64,7 @@ export function useRealtimeMessages(sessionId: string) {
           const rawMessage = payload.new;
           const formattedMessage: Message = {
             id: rawMessage.id,
+            sessionId: rawMessage.session_id,
             content: rawMessage.content,
             senderCheckinId: rawMessage.sender_checkin_id,
             createdAt: rawMessage.created_at,

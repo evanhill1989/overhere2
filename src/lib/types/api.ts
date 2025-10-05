@@ -31,13 +31,13 @@ import {
   updateMessageSessionSchema,
   userIdSchema,
   placeIdSchema,
-  coordinatesSchema,
 
   // Constants
   CHECKIN_STATUS,
   MESSAGE_REQUEST_STATUS,
   MESSAGE_SESSION_STATUS,
 } from "./database";
+import { coordinatesSchema } from "./core";
 
 // ============================================
 // CORE API RESPONSE TYPES
@@ -482,7 +482,7 @@ export interface TypedApiClient {
   // Authentication
   auth: {
     login: (req: LoginRequest) => Promise<LoginResponse>;
-    logout: () => Promise<ApiResponse<{}>>;
+    logout: () => Promise<ApiResponse<object>>;
     getProfile: () => Promise<GetUserProfileResponse>;
     updateProfile: (
       req: UpdateUserProfileRequest,

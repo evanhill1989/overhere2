@@ -4,12 +4,12 @@
 import { useState, useEffect } from "react";
 import { useRealtimeCheckins } from "@/hooks/realtime-hooks/useRealtimeCheckins";
 import { useRealtimeMessageSession } from "@/hooks/realtime-hooks/useRealtimeMessageSession";
-import { useRealtimeMessageRequests } from "@/hooks/realtime-hooks/useRealtimeMessageRequests";
+
 import { EphemeralSessionWindow } from "@/app/places/[placeId]/_components/EphemeralSessonWindow";
 import { MessageInput } from "@/components/MessageInput";
 import { PlaceDetails } from "@/app/places/[placeId]/_components/PlaceDetails";
 import { LoadingState, ErrorState } from "@/components/ui/data-states";
-import type { UserId, PlaceId, MessageSession } from "@/lib/types/database";
+import type { UserId, PlaceId } from "@/lib/types/database";
 
 type PlacePageClientProps = {
   placeId: PlaceId;
@@ -47,11 +47,6 @@ export function PlacePageClient({
     error: sessionError,
   } = useRealtimeMessageSession(userId, placeId);
 
-  const { requests, isLoading: requestsLoading } = useRealtimeMessageRequests(
-    userId,
-    placeId,
-  );
-
   // ============================================
   // DERIVED STATE
   // ============================================
@@ -71,9 +66,6 @@ export function PlacePageClient({
     }
   }, [session, showMessaging]);
 
-  // ============================================
-  // LOADING STATE
-  // ============================================
   if (isLoading) {
     return (
       <div className="flex min-h-[50vh] items-center justify-center">
@@ -82,9 +74,6 @@ export function PlacePageClient({
     );
   }
 
-  // ============================================
-  // ERROR STATE
-  // ============================================
   if (hasError) {
     const errorMessage =
       checkinsError?.message ||
@@ -104,9 +93,6 @@ export function PlacePageClient({
     );
   }
 
-  // ============================================
-  // MESSAGING VIEW (When active session exists)
-  // ============================================
   if (session && showMessaging) {
     return (
       <EphemeralSessionWindow
