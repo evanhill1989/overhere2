@@ -21,6 +21,12 @@ type EphemeralSessionWindowProps = {
   place: { name: string; address: string };
 };
 
+export type Message = {
+  id: number;
+  content: string;
+  senderCheckinId: string;
+  createdAt: string;
+};
 export function EphemeralSessionWindow({
   session,
   checkinId,

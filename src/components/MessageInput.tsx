@@ -8,7 +8,9 @@ import { Loader2 } from "lucide-react";
 import { submitMessage } from "@/app/_actions/messageActions";
 import { useFormStatus } from "react-dom";
 import { useQueryClient } from "@tanstack/react-query";
-import { Message } from "../app/places/[placeId]/_components/EphemeralSessonWindow";
+
+import { SendMessageResponse } from "@/lib/types/api";
+import { Message } from "@/app/places/[placeId]/_components/EphemeralSessonWindow";
 
 export type MessageInputProps = {
   sessionId: string;
@@ -21,15 +23,14 @@ export function MessageInput({
 }: MessageInputProps) {
   const queryClient = useQueryClient();
   const { pending: isPending } = useFormStatus();
-
-  const initial = {
-    ok: false,
-    newMessage: null,
-    error: "",
+  // ✅ Initial state must match SendMessageResponse type
+  const initialState: SendMessageResponse = {
+    success: false,
+    error: "Not submitted yet",
   };
 
   const [state, formAction] = useActionState(
-    async (prevState: any, formData: FormData) => {
+    async (prevState: SendMessageResponse, formData: FormData) => {
       // Optimistic update - add message immediately
       console.log(state);
       const content = formData.get("content") as string;
@@ -49,7 +50,7 @@ export function MessageInput({
       try {
         const result = await submitMessage(prevState, formData);
 
-        if (result.ok) {
+        if (result.success) {
           // Success - real-time will add the real message, remove temp one
           queryClient.setQueryData(
             ["messages", sessionId],
@@ -76,7 +77,7 @@ export function MessageInput({
         throw error;
       }
     },
-    initial,
+    initialState,
   );
 
   return (
