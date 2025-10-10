@@ -99,6 +99,14 @@ export const coordinatesSchema = z
   })
   .brand<"ValidatedCoordinates">();
 
+export const coordsSchema = z.object({
+  latitude: latitudeSchema,
+  longitude: longitudeSchema,
+  // These are often provided by the browser's Geolocation API
+  accuracy: z.number().positive().optional(),
+  timestamp: z.number().optional(), // Represents pos.timestamp
+});
+
 // Content schemas (match your exact varchar/text limits)
 export const sanitizedContentSchema = z
   .string()
@@ -219,6 +227,8 @@ export type FailedRequestId = z.infer<typeof failedRequestIdSchema>;
 export type Latitude = z.infer<typeof latitudeSchema>;
 export type Longitude = z.infer<typeof longitudeSchema>;
 export type ValidatedCoordinates = z.infer<typeof coordinatesSchema>;
+
+export type Coords = z.infer<typeof coordsSchema>;
 
 export type SanitizedContent = z.infer<typeof sanitizedContentSchema>;
 export type ValidatedTopic = z.infer<typeof validatedTopicSchema>;

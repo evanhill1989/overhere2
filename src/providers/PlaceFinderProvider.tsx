@@ -7,9 +7,10 @@ import { createClient } from "@/utils/supabase/client";
 import { Place } from "@/lib/types/places";
 import { useNearbyPlaces } from "@/hooks/useNearbyPlaces";
 import { useSearchPlacesMutation } from "@/hooks/useSearchPlacesMutation";
+import { Coords, coordsSchema } from "@/lib/types/core";
 
 type PlaceFinderContextType = {
-  userLocation: GeolocationCoordinates | null;
+  userLocation: Coords | null;
   derivedDisplayedPlaces: Place[];
   isLoadingOverall: boolean;
   searchQuery: string;
@@ -33,12 +34,7 @@ export function PlaceFinderProvider({
   const supabase = useRef(createClient());
   const router = useRouter();
 
-  const [userLocation, setUserLocation] = useState<{
-    latitude: number;
-    longitude: number;
-    accuracy?: number;
-    timestamp?: number;
-  } | null>(null);
+  const [userLocation, setUserLocation] = useState<Coords | null>(null);
 
   const [ready, setReady] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -73,21 +69,33 @@ export function PlaceFinderProvider({
       if (session?.user) {
         navigator.geolocation.getCurrentPosition(
           (pos) => {
-            const locationData = {
+            const rawLocationData = {
               latitude: pos.coords.latitude,
               longitude: pos.coords.longitude,
               accuracy: pos.coords.accuracy,
               timestamp: pos.timestamp,
             };
-            setUserLocation(locationData);
-            console.log(
-              "📍 Real location:",
-              pos.coords.latitude,
-              pos.coords.longitude,
-            );
-            console.log("📊 Accuracy:", pos.coords.accuracy, "meters");
-            setLocationError(null);
-            setReady(true);
+
+            try {
+              // ✅ CRITICAL FIX: Validate and brand the raw data
+              const brandedLocationData: Coords =
+                coordsSchema.parse(rawLocationData);
+
+              setUserLocation(brandedLocationData);
+
+              console.log(
+                "📍 Real location:",
+                pos.coords.latitude,
+                pos.coords.longitude,
+              );
+              // ... rest of the success block
+              setLocationError(null);
+              setReady(true);
+            } catch (e) {
+              console.error("❌ Failed to parse/brand location data:", e);
+              setLocationError("Failed to validate location coordinates.");
+              setReady(false);
+            }
           },
           (error) => {
             console.error("❌ Location error:", error);
