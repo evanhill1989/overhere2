@@ -4,10 +4,11 @@
 import { useState, useEffect, useRef, useContext, createContext } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/utils/supabase/client";
-import { Place } from "@/lib/types/places";
+
 import { useNearbyPlaces } from "@/hooks/useNearbyPlaces";
 import { useSearchPlacesMutation } from "@/hooks/useSearchPlacesMutation";
 import { Coords, coordsSchema } from "@/lib/types/core";
+import { Place } from "@/lib/types/database";
 
 type PlaceFinderContextType = {
   userLocation: Coords | null;
@@ -20,8 +21,8 @@ type PlaceFinderContextType = {
   locationError: string | null;
   nearbyError: string | null;
   isNearbyLoading: boolean;
-  searchError: string | null; // ✅ Add search-specific error
-  clearSearch: () => void; // ✅ Add clear function
+  searchError: string | null; //
+  clearSearch: () => void; //
 };
 
 const PlaceFinderContext = createContext<PlaceFinderContextType | null>(null);
