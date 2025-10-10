@@ -48,8 +48,10 @@ export function useRealtimeMessages(sessionId: string) {
     queryKey: ["messages", sessionId],
     queryFn: () => fetchMessages(sessionId),
     enabled: !!sessionId,
-    staleTime: 5000, // Consider fresh for 5 seconds
-    refetchOnWindowFocus: false, // Real-time handles updates
+    staleTime: Infinity, // ✅ Never auto-refetch - real-time handles updates
+    refetchOnWindowFocus: false,
+    refetchInterval: false,
+    refetchOnMount: false, // ✅ Only fetch once
   });
 
   // 2. Real-time subscription for live updates
@@ -119,13 +121,6 @@ export function useRealtimeMessages(sessionId: string) {
       .subscribe((status) => {
         if (status === "SUBSCRIBED") {
           console.log("✅ Successfully subscribed to messages real-time");
-          subscriptionReadyRef.current = true;
-          setTimeout(() => {
-            console.log("🔄 Refetching messages after subscription ready");
-            queryClient.invalidateQueries({
-              queryKey: ["messages", sessionId],
-            });
-          }, 500);
         } else if (status === "CHANNEL_ERROR") {
           console.error("❌ Messages subscription error");
           subscriptionReadyRef.current = false;
