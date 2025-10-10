@@ -10,6 +10,8 @@ import { SessionProvider } from "@/components/SessionProvider";
 import { Header } from "@/components/Header";
 import { QueryProvider } from "@/providers/QueryProvider";
 
+import { type UserId } from "@/lib/types/database";
+
 const fontSans = Nunito_Sans({
   subsets: ["latin"],
   variable: "--font-nunito-sans",
@@ -37,13 +39,15 @@ export default async function RootLayout({
     data: { user },
   } = await supabase.auth.getUser();
 
+  const canonicalUserId = (user?.id ?? null) as UserId | null;
+
   return (
     <html lang="en">
       <body
         className={`${fontHeading.variable} ${fontSans.variable} grid min-h-[100dvh] grid-rows-[auto_1fr_auto] antialiased`}
       >
         <QueryProvider>
-          <SessionProvider userId={user?.id ?? null}>
+          <SessionProvider userId={canonicalUserId}>
             <Header />
             <main className="w-full">{children}</main>
             <Footer />
