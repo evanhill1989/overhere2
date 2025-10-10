@@ -6,27 +6,15 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { createClient } from "@/utils/supabase/client";
 import type { RealtimeChannel } from "@supabase/supabase-js";
 
-import type {
-  Checkin,
-  DatabaseCheckin,
-  ApiCheckin,
-} from "@/lib/types/database";
+import type { Checkin, DatabaseCheckin } from "@/lib/types/database";
 import type { PlaceId, CheckinId } from "@/lib/types/core";
 import { checkinIdSchema } from "@/lib/types/core";
 
-import { mapApiToCheckin, mapCheckinToCamel } from "@/lib/caseConverter";
+import { mapCheckinToCamel } from "@/lib/caseConverter";
+import { getCheckinsAtPlace } from "@/app/_actions/checkinQueries";
 
 async function fetchCheckins(placeId: PlaceId): Promise<Checkin[]> {
-  const res = await fetch(`/api/checkins?placeId=${placeId}`, {
-    cache: "no-store",
-  });
-
-  if (!res.ok) {
-    throw new Error(`Failed to fetch checkins: ${res.status}`);
-  }
-
-  const rawCheckins: ApiCheckin[] = await res.json();
-  return rawCheckins.map(mapApiToCheckin);
+  return await getCheckinsAtPlace(placeId);
 }
 
 export function useRealtimeCheckins(placeId: PlaceId | null) {
