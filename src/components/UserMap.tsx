@@ -9,24 +9,26 @@ import {
   Popup,
   Tooltip,
   useMap,
-} from "react-leaflet"; // Added Tooltip
+} from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import L, { type LatLngExpression } from "leaflet";
 import ReactDOMServer from "react-dom/server";
 import { UserCircle, MapPin } from "@phosphor-icons/react/dist/ssr";
-import type { Place } from "@/lib/types/places";
 
+// ✅ Import canonical types
+import type { Place } from "@/lib/types/database";
 import { usePlaceFinder } from "@/providers/PlaceFinderProvider";
-import { LocationData } from "@/lib/types/location";
+import { type Coords } from "@/lib/types/core";
 
 export interface UserMapProps {
-  places: Place[];
-  selectedPlace?: Place | null; // For visual feedback on map (e.g., different icon)
-  onPlaceMarkerClick?: (place: Place) => void; // Callback for marker click
-  center?: LocationData;
+  places: Place[]; // ✅ Use canonical Place type
+  selectedPlace?: Place | null; // ✅ Use canonical Place type
+  onPlaceMarkerClick?: (place: Place) => void; // ✅ Use canonical Place type
+  center?: Coords; // ✅ Use branded Coords type
   zoom?: number;
 }
 
+// Icon definitions (unchanged)
 const userIconHTML = ReactDOMServer.renderToStaticMarkup(
   <UserCircle size={28} weight="fill" className="text-blue-600" />,
 );
@@ -78,7 +80,6 @@ function ChangeView({
 
 export default function UserMap({
   places,
-
   selectedPlace,
   onPlaceMarkerClick,
   center: initialCenter,
@@ -89,17 +90,24 @@ export default function UserMap({
   let mapCenter: LatLngExpression;
   let mapZoom = initialZoom;
 
-  if (selectedPlace?.lat != null && selectedPlace?.lng != null) {
-    mapCenter = [selectedPlace.lat, selectedPlace.lng];
+  // ✅ Updated to use canonical Place structure
+  if (selectedPlace?.latitude != null && selectedPlace?.longitude != null) {
+    mapCenter = [selectedPlace.latitude, selectedPlace.longitude];
     mapZoom = 17;
   } else if (userLocation) {
     mapCenter = [userLocation.latitude, userLocation.longitude];
   } else if (initialCenter) {
     mapCenter = [initialCenter.latitude, initialCenter.longitude];
   } else {
+    // Default to St. Petersburg, Florida (your user location from search_instructions)
     mapCenter = [27.7677, -82.6427];
     mapZoom = 13;
   }
+
+  // ✅ DEBUG: Log the places being passed to the map
+  console.log("🗺️ UserMap received places:", places.length);
+  console.log("🗺️ First place:", places[0]);
+  console.log("🗺️ Selected place:", selectedPlace);
 
   return (
     <MapContainer
@@ -115,6 +123,8 @@ export default function UserMap({
         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
       />
+
+      {/* User location marker */}
       {userLocation && (
         <Marker
           position={[userLocation.latitude, userLocation.longitude]}
@@ -124,13 +134,31 @@ export default function UserMap({
           <Popup>Your Location</Popup>
         </Marker>
       )}
+
+      {/* Place markers */}
       {places.map((place) => {
-        if (place.lat == null || place.lng == null) return null;
-        const isCurrentlySelected = selectedPlace?.place_id === place.place_id;
+        // ✅ Updated to use canonical Place structure
+        if (place.latitude == null || place.longitude == null) {
+          console.warn("⚠️ Skipping place without coordinates:", place.name);
+          return null;
+        }
+
+        // ✅ Updated comparison to use canonical id
+        const isCurrentlySelected = selectedPlace?.id === place.id;
+
+        // ✅ DEBUG: Log each place being rendered
+        console.log(`🗺️ Rendering place marker:`, {
+          id: place.id,
+          name: place.name,
+          lat: place.latitude,
+          lng: place.longitude,
+          selected: isCurrentlySelected,
+        });
+
         return (
           <Marker
-            key={place.place_id}
-            position={[place.lat, place.lng]}
+            key={place.id} // ✅ Use canonical id
+            position={[place.latitude, place.longitude]} // ✅ Use canonical coordinates
             icon={
               isCurrentlySelected ? selectedPlaceMarkerIcon : placeMarkerIcon
             }
@@ -146,11 +174,12 @@ export default function UserMap({
           >
             <Tooltip sticky>
               <div className="font-semibold">{place.name}</div>
-              <div>{place.address}</div>
+              <div>{place.address}</div> {/* ✅ Use canonical address */}
             </Tooltip>
           </Marker>
         );
       })}
+
       <ChangeView center={mapCenter} zoom={mapZoom} />
     </MapContainer>
   );
