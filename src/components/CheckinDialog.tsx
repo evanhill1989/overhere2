@@ -15,15 +15,12 @@ import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { checkIn } from "@/app/_actions/checkinActions";
 import { useRouter } from "next/navigation";
+import { Place } from "@/lib/types/database";
 
 interface CheckinDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  place: {
-    place_id: string;
-    name: string;
-    address: string;
-  };
+  place: Place;
 }
 
 export default function CheckinDialog({
@@ -44,7 +41,7 @@ export default function CheckinDialog({
     if (!userLocation) return;
 
     const formData = new FormData();
-    formData.append("placeId", place.place_id);
+    formData.append("placeId", place.id);
     formData.append("placeName", place.name);
     formData.append("placeAddress", place.address);
     formData.append("latitude", userLocation.latitude.toString());
@@ -55,8 +52,8 @@ export default function CheckinDialog({
     startTransition(async () => {
       try {
         await checkIn(formData);
-        // ✅ Navigate on success (Server Action won't redirect)
-        router.push(`/places/${place.place_id}`);
+
+        router.push(`/places/${place.id}`);
       } catch (error) {
         console.error("Check-in failed:", error);
         // TODO: Show error toast

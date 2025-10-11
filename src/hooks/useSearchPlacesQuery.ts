@@ -3,45 +3,44 @@
 
 import { useQuery } from "@tanstack/react-query"; // ✅ CHANGE: Use useQuery
 import { searchPlaces } from "@/app/_actions/searchPlaces";
+import { Place } from "@/lib/types/database";
+import { Coords } from "@/lib/types/core";
 
 type SearchPlacesInput = {
   query: string;
-  coords: { latitude: number; longitude: number };
+  coords: Coords | null;
 };
 
 // 1. Define the Query Key
-const PLACE_SEARCH_QUERY_KEY = "placeSearch";
 
 export function useSearchPlacesQuery({
   query,
   coords,
-  enabled, // 👈 New prop to control fetching
+  enabled,
 }: SearchPlacesInput & { enabled: boolean }) {
-  // 2. Define the Query Function
-  const queryFn = async (): Promise<PlaceSearchResult[]> => {
-    // This still calls the Server Action for security/rate-limiting,
-    // but its results are now cached by React Query.
-    console.log("🔍 Running search query via Server Action:", {
-      query,
-      coords,
-    });
-    return searchPlaces(query, coords);
-  };
-
-  // 3. Use useQuery
   return useQuery({
-    // The query key is what enables caching and de-duplication
     queryKey: [
-      PLACE_SEARCH_QUERY_KEY,
+      "placeSearch",
       query,
-      coords.latitude,
-      coords.longitude,
+      coords?.latitude, // ✅ Safe access with optional chaining
+      coords?.longitude,
     ],
-    queryFn,
-    // Only run the query if 'enabled' is true (i.e., when in search mode)
-    enabled: enabled && query.trim().length > 0,
-    // Standard caching options
-    staleTime: 5 * 60 * 1000, // 5 minutes of cache
-    gcTime: 10 * 60 * 1000, // Garbage collect after 10 minutes
+    queryFn: async (): Promise<Place[]> => {
+      // ✅ Guard clause - this should never run if coords is null due to enabled check
+      if (!coords) {
+        throw new Error("Coordinates are required for search");
+      }
+
+      console.log("🔍 Running search query via Server Action:", {
+        query,
+        coords,
+      });
+
+      return searchPlaces(query, coords);
+    },
+    // ✅ Only run if enabled AND coords exist AND query is not empty
+    enabled: enabled && !!coords && query.trim().length > 0,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 10 * 60 * 1000, // 10 minutes
   });
 }

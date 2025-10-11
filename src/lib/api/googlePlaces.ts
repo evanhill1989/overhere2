@@ -1,5 +1,11 @@
-// lib/api/googlePlaces.ts
-import { Place } from "@/lib/types/places";
+// src/lib/api/googlePlaces.ts - Updated to match canonical Place type
+import { Place } from "@/lib/types/database";
+import {
+  placeIdSchema,
+  placeNameSchema,
+  placeAddressSchema,
+  timestampSchema,
+} from "@/lib/types/core";
 
 type RawGooglePlace = {
   id: string;
@@ -8,10 +14,6 @@ type RawGooglePlace = {
   location?: { latitude: number; longitude: number };
   primaryTypeDisplayName?: { text?: string };
 };
-
-// ---------- Search by Text (client-side or manual search) ----------
-
-// lib/api/googlePlaces.ts
 
 export async function getNearbyPlaces(coords: {
   latitude: number;
@@ -24,7 +26,6 @@ export async function getNearbyPlaces(coords: {
     throw new Error("Missing Google Places API key");
   }
 
-  console.log("✅ API key found, length:", PLACES_API_KEY.length);
   const requestBody = {
     includedTypes: ["cafe"],
     maxResultCount: 20,
@@ -40,7 +41,6 @@ export async function getNearbyPlaces(coords: {
     rankPreference: "POPULARITY",
   };
 
-  console.time("⏱️ Google Places API HTTP request");
   const res = await fetch(
     "https://places.googleapis.com/v1/places:searchNearby",
     {
@@ -54,31 +54,43 @@ export async function getNearbyPlaces(coords: {
       body: JSON.stringify(requestBody),
     },
   );
-  console.timeEnd("⏱️ Google Places API HTTP request");
 
   if (!res.ok) {
     console.error("Nearby Places API failed:", await res.text());
     throw new Error(`Google API error: ${res.status}`);
   }
 
-  console.time("⏱️ Parse Google API response");
   const data = await res.json();
-  console.timeEnd("⏱️ Parse Google API response");
 
-  console.time("⏱️ Map places data");
-  const mappedPlaces = (data.places || []).map(
-    (p: RawGooglePlace): Place => ({
-      place_id: p.id,
-      name: p.displayName?.text || "Unknown",
-      address: p.formattedAddress || "No address",
-      lat: p.location?.latitude,
-      lng: p.location?.longitude,
-      primaryType: p.primaryTypeDisplayName?.text,
-      isVerified: false,
-    }),
-  );
-  console.timeEnd("⏱️ Map places data");
+  // ✅ Transform to canonical Place structure with proper validation
+  const mappedPlaces: Place[] = (data.places || []).map((p: RawGooglePlace) => {
+    try {
+      const place: Place = {
+        // ✅ Use 'id' not 'place_id' for canonical structure
+        id: placeIdSchema.parse(p.id),
+        name: placeNameSchema.parse(p.displayName?.text || "Unknown"),
+        address: placeAddressSchema.parse(p.formattedAddress || "No address"),
+        latitude: p.location?.latitude ?? null,
+        longitude: p.location?.longitude ?? null,
+        lastFetchedAt: timestampSchema.parse(new Date()),
+        isVerified: false,
+        primaryType: p.primaryTypeDisplayName?.text ?? null,
+      };
 
+      // ✅ DEBUG: Log each place being created
+      console.log("✅ Created place:", {
+        id: place.id,
+        name: place.name,
+        idType: typeof place.id,
+      });
+
+      return place;
+    } catch (error) {
+      console.error("❌ Failed to transform place:", p, error);
+      throw error;
+    }
+  });
+
+  console.log(`✅ Mapped ${mappedPlaces.length} places successfully`);
   return mappedPlaces;
 }
-// ---------- Shared Mapping ----------

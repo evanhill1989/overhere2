@@ -1,28 +1,33 @@
+// src/components/PlacesList.tsx
 "use client";
 
 import { useRouter } from "next/navigation";
 import { usePlaceFinder } from "@/providers/PlaceFinderProvider";
 import CheckinDialog from "@/components/CheckinDialog";
 import { useState } from "react";
-// ✅ Import the canonical Place entity type
 import { type Place } from "@/lib/types/database";
 import { useSession } from "./SessionProvider";
 import { usePlaceDataPrefetch } from "@/hooks/usePlaceDataPrefetch";
-// ✅ Import all necessary branded types from core
 import { type PlaceId, type UserId } from "@/lib/types/core";
 
 export default function PlacesList() {
   const session = useSession();
-  // ✅ FIX 1: Use nullish coalescing to ensure the result is UserId or null
   const userId: UserId | null = session?.userId ?? null;
 
   const { derivedDisplayedPlaces } = usePlaceFinder();
-
-  // The state now uses the canonical Place type
   const [activePlace, setActivePlace] = useState<Place | null>(null);
 
   const router = useRouter();
   const { prefetchPlaceData } = usePlaceDataPrefetch();
+
+  // ✅ DEBUG: Let's see what the data actually looks like
+  console.log("🔍 derivedDisplayedPlaces:", derivedDisplayedPlaces);
+  console.log("🔍 First place:", derivedDisplayedPlaces[0]);
+  console.log("🔍 First place.id:", derivedDisplayedPlaces[0]?.id);
+  console.log(
+    "🔍 typeof first place.id:",
+    typeof derivedDisplayedPlaces[0]?.id,
+  );
 
   const handlePlaceClick = async (place: Place) => {
     if (!userId) {
@@ -30,14 +35,10 @@ export default function PlacesList() {
       return;
     }
 
-    // ✅ FIX 2: Use the canonical property name 'id' instead of 'place_id'
     const placeId = place.id;
 
     try {
-      // ✅ FIX 2: Update router prefetch path to use the 'id' property
       router.prefetch(`/places/${placeId}`);
-
-      // ✅ FIX 2: Pass the 'id' property and the branded userId
       await prefetchPlaceData(placeId, userId);
     } catch (error) {
       console.error("Prefetch error:", error);
@@ -50,17 +51,28 @@ export default function PlacesList() {
     <div className="flex h-full flex-col">
       {/* Scrollable list */}
       <ul className="grow space-y-2 overflow-y-auto p-4">
-        {derivedDisplayedPlaces.map((place) => (
-          <li
-            // ✅ FIX 3a: Use place.id for the key
-            key={place.id}
-            onClick={() => handlePlaceClick(place)}
-            className="border-muted hover:bg-accent hover:text-secondary-foreground cursor-pointer rounded border p-3 shadow-sm transition"
-          >
-            <h3 className="text-base font-medium">{place.name}</h3>
-            <p className="text-muted-foreground text-sm">{place.address}</p>
-          </li>
-        ))}
+        {derivedDisplayedPlaces.map((place, index) => {
+          // ✅ DEBUG: Log each place's key
+          console.log(`🔍 Place ${index}:`, {
+            id: place.id,
+            hasId: !!place.id,
+            idType: typeof place.id,
+            idValue: place.id,
+            name: place.name,
+          });
+
+          return (
+            <li
+              // ✅ TEMPORARY FIX: Use index as fallback if place.id is problematic
+              key={place.id || `place-${index}`}
+              onClick={() => handlePlaceClick(place)}
+              className="border-muted hover:bg-accent hover:text-secondary-foreground cursor-pointer rounded border p-3 shadow-sm transition"
+            >
+              <h3 className="text-base font-medium">{place.name}</h3>
+              <p className="text-muted-foreground text-sm">{place.address}</p>
+            </li>
+          );
+        })}
       </ul>
 
       {/* Dialog */}
@@ -68,7 +80,6 @@ export default function PlacesList() {
         <CheckinDialog
           open={!!activePlace}
           onOpenChange={(open) => !open && setActivePlace(null)}
-          // ✅ FIX 3b: Pass the canonical Place entity (requires CheckinDialog to be updated)
           place={activePlace}
         />
       )}

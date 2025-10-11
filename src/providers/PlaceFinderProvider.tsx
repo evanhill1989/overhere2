@@ -57,7 +57,7 @@ export function PlaceFinderProvider({
     error: searchErrorObject,
   } = useSearchPlacesQuery({
     query: searchQuery,
-    coords: userLocation!, // UserLocation is checked later
+    coords: userLocation, // UserLocation is checked later
     enabled: isInSearchMode && !!userLocation, // Only run when in search mode AND location is known
   });
 
@@ -146,33 +146,23 @@ export function PlaceFinderProvider({
     };
   }, [router]);
 
-  // ✅ Updated search form action using mutation
-  const searchFormAction = async (formData: FormData) => {
+  const searchFormAction = (formData: FormData) => {
     const query = formData.get("searchQuery") as string;
-    if (!query?.trim() || !userLocation) return;
+
+    if (!query?.trim()) {
+      clearSearch();
+      return;
+    }
 
     setIsInSearchMode(true);
-
-    try {
-      const results = await searchMutation.mutateAsync({
-        query: query.trim(),
-        coords: userLocation,
-      });
-
-      setSearchResults(results);
-    } catch (error) {
-      console.error("❌ Search mutation failed:", error);
-      setSearchResults([]);
-      // Error is automatically handled by the mutation's onError
-    }
+    setSearchQuery(query.trim());
   };
 
   // ✅ Clear search function
   const clearSearch = () => {
     setIsInSearchMode(false);
-    setSearchResults([]);
+
     setSearchQuery("");
-    searchMutation.reset(); // Clear mutation state
   };
 
   // ✅ Overall loading combines location readiness + nearby loading + search pending
