@@ -3,7 +3,7 @@
 
 import { useMutation } from "@tanstack/react-query";
 import { searchPlaces } from "@/app/_actions/searchPlaces";
-import { Place } from "@/lib/types/places";
+import { Place } from "@/lib/types/database";
 
 type SearchPlacesInput = {
   query: string;

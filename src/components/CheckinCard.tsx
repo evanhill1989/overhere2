@@ -4,12 +4,12 @@
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { HandWaving } from "@phosphor-icons/react";
-import type { SelectCheckin } from "@/lib/db/types";
+import { Checkin, MessageRequest } from "@/lib/types/database";
 
 interface CheckinCardProps {
-  checkin: SelectCheckin;
+  checkin: Checkin;
   currentUserId: string;
-  requests: any[]; // We'll type this better later
+  requests: MessageRequest[]; // We'll type this better later
   placeId: string;
   activeSession?: { initiatorId: string; initiateeId: string };
   onResumeSession?: () => void;

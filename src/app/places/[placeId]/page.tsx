@@ -2,16 +2,20 @@
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/utils/supabase/server";
 import { placeIdSchema, userIdSchema } from "@/lib/types/core";
-
 import type { PageProps } from "@/lib/types/pageProps";
 import { PlacePageClient } from "./_components/PlacePageClient";
+
+import { getCheckinsAtPlace } from "@/app/_actions/checkinQueries";
+import {
+  QueryClient,
+  dehydrate,
+  HydrationBoundary,
+} from "@tanstack/react-query";
 
 export default async function PlacePage(props: PageProps) {
   const { placeId: rawPlaceId } = await props.params;
 
-  // ============================================
-  // 1. AUTHENTICATION CHECK
-  // ============================================
+  // 1️⃣  AUTH CHECK
   const supabase = await createClient();
   const {
     data: { user },
@@ -23,12 +27,9 @@ export default async function PlacePage(props: PageProps) {
     redirect("/");
   }
 
-  // ============================================
-  // 2. VALIDATE IDS WITH BRANDED TYPES
-  // ============================================
+  // 2️⃣  VALIDATE IDS
   let placeId;
   let userId;
-
   try {
     placeId = placeIdSchema.parse(rawPlaceId);
     userId = userIdSchema.parse(user.id);
@@ -38,11 +39,7 @@ export default async function PlacePage(props: PageProps) {
     return notFound();
   }
 
-  // ============================================
-  // 3. VERIFY PLACE EXISTS (Minimal Check)
-  // ============================================
-  // We just need to verify this is a valid place
-  // The client component will handle fetching full data
+  // 3️⃣  VERIFY PLACE EXISTS (minimal)
   const { data: checkins } = await supabase
     .from("checkins")
     .select("place_name, place_address")
@@ -61,19 +58,26 @@ export default async function PlacePage(props: PageProps) {
     name: checkins.place_name,
     address: checkins.place_address,
   };
-
   console.log("✅ Place found:", placeInfo.name);
 
-  // ============================================
-  // 4. RENDER CLIENT COMPONENT
-  // ============================================
+  // 4️⃣  SERVER PREFETCH OF CHECKINS
+  const queryClient = new QueryClient();
+  await queryClient.prefetchQuery({
+    queryKey: ["checkins", placeId],
+    queryFn: () => getCheckinsAtPlace(placeId),
+  });
+  const dehydratedState = dehydrate(queryClient);
+
+  // 5️⃣  RENDER CLIENT COMPONENT + HYDRATION
   return (
     <main className="mx-auto max-w-md space-y-6 p-4">
-      <PlacePageClient
-        placeId={placeId}
-        userId={userId}
-        placeInfo={placeInfo}
-      />
+      <HydrationBoundary state={dehydratedState}>
+        <PlacePageClient
+          placeId={placeId}
+          userId={userId}
+          placeInfo={placeInfo}
+        />
+      </HydrationBoundary>
     </main>
   );
 }

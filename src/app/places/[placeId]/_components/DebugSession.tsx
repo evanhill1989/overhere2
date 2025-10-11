@@ -2,7 +2,7 @@
 "use client";
 
 import { useRealtimeMessageSession } from "@/hooks/realtime-hooks/useRealtimeMessageSession";
-import { useMessageSession } from "@/hooks/useMessageSession";
+
 import type { UserId, PlaceId } from "@/lib/types/database";
 
 export function DebugSession({

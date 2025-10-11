@@ -1,7 +1,7 @@
-// src/app/places/[placeId]/_components/PlacePageClient.tsx
 "use client";
 
 import { useState, useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { useRealtimeCheckins } from "@/hooks/realtime-hooks/useRealtimeCheckins";
 import { useRealtimeMessageSession } from "@/hooks/realtime-hooks/useRealtimeMessageSession";
 
@@ -9,6 +9,8 @@ import { EphemeralSessionWindow } from "@/app/places/[placeId]/_components/Ephem
 import { MessageInput } from "@/components/MessageInput";
 import { PlaceDetails } from "@/app/places/[placeId]/_components/PlaceDetails";
 import { LoadingState, ErrorState } from "@/components/ui/data-states";
+
+import { getCheckinsAtPlace } from "@/app/_actions/checkinQueries";
 import type { UserId, PlaceId } from "@/lib/types/database";
 
 type PlacePageClientProps = {
@@ -32,15 +34,26 @@ export function PlacePageClient({
   const [showMessaging, setShowMessaging] = useState(false);
 
   // ============================================
-  // DATA FETCHING HOOKS
+  // BASE QUERY (Hydrated from server)
   // ============================================
   const {
-    data: checkins = [],
-    isLoading: checkinsLoading,
-    error: checkinsError,
-    refetch: refetchCheckins,
-  } = useRealtimeCheckins(placeId);
+    data: hydratedCheckins = [],
+    isLoading: hydratedLoading,
+    error: hydratedError,
+  } = useQuery({
+    queryKey: ["checkins", placeId],
+    queryFn: () => getCheckinsAtPlace(placeId),
+  });
 
+  // ============================================
+  // REALTIME SUBSCRIPTION (extends hydrated cache)
+  // ============================================
+  const { data: checkins = hydratedCheckins, refetch: refetchCheckins } =
+    useRealtimeCheckins(placeId);
+
+  // ============================================
+  // MESSAGE SESSION HOOK
+  // ============================================
   const {
     data: session,
     isLoading: sessionLoading,
@@ -53,8 +66,8 @@ export function PlacePageClient({
   const currentUserCheckin = checkins.find((c) => c.userId === userId);
   const currentCheckinId = currentUserCheckin?.id;
 
-  const isLoading = checkinsLoading || sessionLoading;
-  const hasError = checkinsError || sessionError;
+  const isLoading = hydratedLoading || sessionLoading;
+  const hasError = hydratedError || sessionError;
 
   // ============================================
   // AUTO-SHOW MESSAGING WHEN SESSION EXISTS
@@ -66,6 +79,9 @@ export function PlacePageClient({
     }
   }, [session, showMessaging]);
 
+  // ============================================
+  // RENDER STATES
+  // ============================================
   if (isLoading) {
     return (
       <div className="flex min-h-[50vh] items-center justify-center">
@@ -76,7 +92,7 @@ export function PlacePageClient({
 
   if (hasError) {
     const errorMessage =
-      checkinsError?.message ||
+      hydratedError?.message ||
       sessionError?.message ||
       "Failed to load place data";
 
@@ -93,6 +109,9 @@ export function PlacePageClient({
     );
   }
 
+  // ============================================
+  // SESSION ACTIVE → MESSAGING VIEW
+  // ============================================
   if (session && showMessaging) {
     return (
       <EphemeralSessionWindow
@@ -116,7 +135,7 @@ export function PlacePageClient({
   }
 
   // ============================================
-  // PLACE DETAILS VIEW (Default view)
+  // DEFAULT VIEW → PLACE DETAILS
   // ============================================
   return (
     <PlaceDetails

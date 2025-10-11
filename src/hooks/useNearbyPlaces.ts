@@ -1,7 +1,6 @@
 // src/hooks/useNearbyPlaces.ts
 import { useQuery } from "@tanstack/react-query";
-// ❌ REMOVE: import { Place } from "@/lib/types/places";
-// ✅ NEW: Import the canonical Place entity type
+
 import { type Place } from "@/lib/types/database";
 // ✅ NEW: Import the canonical Coords types
 import { type Coords } from "@/lib/types/core";

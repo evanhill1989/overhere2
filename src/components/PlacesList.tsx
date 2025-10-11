@@ -8,7 +8,7 @@ import { useState } from "react";
 import { type Place } from "@/lib/types/database";
 import { useSession } from "./SessionProvider";
 import { usePlaceDataPrefetch } from "@/hooks/usePlaceDataPrefetch";
-import { type PlaceId, type UserId } from "@/lib/types/core";
+import { type UserId } from "@/lib/types/core";
 
 export default function PlacesList() {
   const session = useSession();

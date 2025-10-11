@@ -9,14 +9,16 @@ import { useMessageSendRequest } from "@/hooks/useMessageSendRequest";
 import { useRealtimeMessageRequests } from "@/hooks/realtime-hooks/useRealtimeMessageRequests";
 import { useRealtimeCheckins } from "@/hooks/realtime-hooks/useRealtimeCheckins";
 
+import type { PlaceId, UserId } from "@/lib/types/database";
+
 export function CheckinList({
   placeId,
   currentUserId,
   activeSession,
   onResumeSession,
 }: {
-  placeId: string;
-  currentUserId: string;
+  placeId: PlaceId;
+  currentUserId: UserId;
   activeSession?: { initiatorId: string; initiateeId: string };
   onResumeSession?: () => void;
 }) {

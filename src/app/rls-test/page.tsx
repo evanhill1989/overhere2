@@ -5,9 +5,16 @@ import { useEffect, useState } from "react";
 import { createClient } from "@/utils/supabase/client";
 import { Button } from "@/components/ui/button";
 
+interface TestResult {
+  test: string;
+  success: boolean;
+  data: unknown;
+  error?: string;
+}
+
 export default function RLSTestPage() {
-  const [results, setResults] = useState<any[]>([]);
-  const [user, setUser] = useState<any>(null);
+  const [results, setResults] = useState<TestResult[]>([]);
+  const [user, setUser] = useState<{ id: string; email?: string } | null>(null);
   const [testPlace, setTestPlace] = useState<string>(""); // ✅ Start empty
   const supabase = createClient();
 

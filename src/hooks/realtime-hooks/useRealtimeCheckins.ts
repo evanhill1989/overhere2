@@ -23,6 +23,12 @@ async function fetchCheckins(placeId: PlaceId): Promise<Checkin[]> {
 }
 
 export function useRealtimeCheckins(placeId: PlaceId | null) {
+  if (typeof window === "undefined") {
+    console.log("❌ This code is running on the server (unexpected!)");
+  } else {
+    console.log("✅ This code is running on the client");
+  }
+
   const queryClient = useQueryClient();
   const channelRef = useRef<RealtimeChannel | null>(null);
 
@@ -59,6 +65,11 @@ export function useRealtimeCheckins(placeId: PlaceId | null) {
       console.log(
         "⚠️ [useRealtimeCheckins] No placeId, skipping real-time setup",
       );
+      return;
+    }
+
+    if (channelRef.current) {
+      console.log("⚠️ Channel already exists, skipping subscription setup");
       return;
     }
 

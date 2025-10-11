@@ -4,15 +4,16 @@
 
 import { useQueryClient } from "@tanstack/react-query";
 import { useCallback } from "react";
+import { MessageSession, Checkin, PlaceId, UserId } from "@/lib/types/database";
 
 type PlaceData = {
-  checkins: any[];
-  session: any;
+  checkins: Checkin[];
+  session: MessageSession;
 };
 
 async function fetchPlaceData(
-  placeId: string,
-  userId: string,
+  placeId: PlaceId,
+  userId: UserId,
 ): Promise<PlaceData> {
   const res = await fetch(
     `/api/prefetch/place-data?placeId=${placeId}&userId=${userId}`,
@@ -27,7 +28,7 @@ export function usePlaceDataPrefetch() {
   const queryClient = useQueryClient();
 
   const prefetchPlaceData = useCallback(
-    async (placeId: string, userId: string) => {
+    async (placeId: PlaceId, userId: UserId) => {
       await queryClient.prefetchQuery({
         queryKey: ["placeData", placeId, userId],
         queryFn: () => fetchPlaceData(placeId, userId),
