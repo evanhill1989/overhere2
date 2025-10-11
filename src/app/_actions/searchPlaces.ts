@@ -9,11 +9,13 @@ import { z } from "zod";
 
 // ✅ Import canonical types and schemas
 import {
-  type PlaceId,
   placeIdSchema,
   placeNameSchema,
   placeAddressSchema,
 } from "@/lib/types/core";
+
+// 🚀 IMPORT THE CANONICAL PLACE TYPE
+import { Place } from "@/lib/types/database"; // 👈 ASSUMING THIS IS THE CANONICAL TYPE
 
 // ============================================
 // SEARCH INPUT VALIDATION
@@ -53,7 +55,7 @@ const simplePrimaryTypeSchema = z
   .transform((str) => str.trim());
 
 // ============================================
-// API RESPONSE TYPES
+// API RESPONSE TYPES (Internal)
 // ============================================
 
 // Raw response from Google Places API
@@ -65,18 +67,7 @@ type RawGooglePlaceResult = {
   primaryTypeDisplayName?: { text?: string };
 };
 
-// ✅ Search result type (matches what frontend expects)
-// This is distinct from the database Place entity
-// Uses PlaceId for the ID but plain strings for other fields
-export type PlaceSearchResult = {
-  place_id: PlaceId;
-  name: string;
-  address: string;
-  lat?: number;
-  lng?: number;
-  primaryType?: string; // ✅ Plain string, not branded
-  isVerified: boolean;
-};
+// ❌ REMOVED: PlaceSearchResult type is now redundant since we transform directly to Place
 
 // ============================================
 // MAIN SEARCH FUNCTION
@@ -89,7 +80,8 @@ export async function searchPlaces(
     maxResults?: number;
     radiusMeters?: number;
   },
-): Promise<PlaceSearchResult[]> {
+): Promise<Place[]> {
+  // 🚀 RETURN TYPE IS NOW THE CANONICAL PLACE[]
   // ✅ Step 1: Validate all inputs
   let validated: SearchPlacesInput;
   try {
@@ -140,7 +132,7 @@ export async function searchPlaces(
     throw new Error("Server configuration error: Missing API key");
   }
 
-  // ✅ Step 4: Build API request
+  // ✅ Step 4: Build API request (UNCHANGED)
   const requestBody = {
     textQuery: validated.query,
     maxResultCount: validated.maxResults,
@@ -155,7 +147,7 @@ export async function searchPlaces(
     },
   };
 
-  // ✅ Step 5: Make API request with proper error handling
+  // ✅ Step 5: Make API request (UNCHANGED)
   let response: Response;
   try {
     response = await fetch(
@@ -178,14 +170,13 @@ export async function searchPlaces(
     );
   }
 
-  // ✅ Step 6: Handle API errors
+  // ✅ Step 6: Handle API errors (UNCHANGED)
   if (!response.ok) {
     let errorMessage = `Google Places API error: ${response.status}`;
     try {
       const errorData = await response.json();
       errorMessage = errorData.error?.message || errorMessage;
     } catch {
-      // If error response isn't JSON, use status text
       errorMessage = `${errorMessage} - ${response.statusText}`;
     }
 
@@ -193,7 +184,7 @@ export async function searchPlaces(
     throw new Error(errorMessage);
   }
 
-  // ✅ Step 7: Parse and validate API response
+  // ✅ Step 7: Parse and validate API response (UNCHANGED)
   let data: { places?: RawGooglePlaceResult[] };
   try {
     data = await response.json();
@@ -207,18 +198,22 @@ export async function searchPlaces(
     return [];
   }
 
-  // ✅ Step 8: Transform and validate results
-  const results: PlaceSearchResult[] = [];
+  // ✅ Step 8: Transform and validate results to CANONICAL Place type
+  const results: Place[] = []; // 🚀 Array now holds the canonical Place type
+
+  // We need a branded date for the lastFetchedAt field
+  const validatedTimestampSchema = z.date().brand<"ValidatedTimestamp">();
+  const now = validatedTimestampSchema.parse(new Date());
 
   for (const place of data.places) {
     try {
-      // Validate critical fields
+      // Validate critical fields (UNCHANGED)
       if (!place.id || !place.displayName?.text) {
         console.warn("⚠️ Skipping place with missing required fields:", place);
         continue;
       }
 
-      // Parse with branded types where appropriate
+      // Parse with branded types where appropriate (UNCHANGED)
       const placeId = placeIdSchema.parse(place.id);
       const name = placeNameSchema.parse(
         place.displayName.text || "Unknown Place",
@@ -227,19 +222,27 @@ export async function searchPlaces(
         place.formattedAddress || "Address not available",
       );
 
-      // ✅ Parse primaryType as plain string (no branding for API results)
+      // Parse primaryType as plain string (UNCHANGED)
       const primaryType = place.primaryTypeDisplayName?.text
         ? simplePrimaryTypeSchema.parse(place.primaryTypeDisplayName.text)
         : undefined;
 
-      const result: PlaceSearchResult = {
-        place_id: placeId,
+      // 🚀 CONVERSION TO CANONICAL PLACE TYPE
+      const latitude = place.location?.latitude ?? null;
+      const longitude = place.location?.longitude ?? null;
+
+      const result: Place = {
+        // Map: place_id to id
+        id: placeId,
+        // Map: lat/lng to latitude/longitude
+        latitude: latitude,
+        longitude: longitude,
         name,
         address,
-        lat: place.location?.latitude,
-        lng: place.location?.longitude,
-        primaryType, // ✅ Now a plain string
-        isVerified: false, // Search results are not verified by default
+        // Supply missing fields
+        lastFetchedAt: now,
+        isVerified: false,
+        primaryType: primaryType as Place["primaryType"], // Type assertion might be needed if your canonical primaryType is branded
       };
 
       results.push(result);
@@ -255,7 +258,7 @@ export async function searchPlaces(
 }
 
 // ============================================
-// HELPER FUNCTIONS
+// HELPER FUNCTIONS (UNCHANGED)
 // ============================================
 
 /**
