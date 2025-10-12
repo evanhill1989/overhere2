@@ -1,22 +1,22 @@
-// src/app/places/[placeId]/_components/PlacePageClient.tsx (CORRECTED)
+// src/app/places/[placeId]/_components/PlacePageClient.tsx
 "use client";
 
-import { useState, useEffect, useRef } from "react";
-
-import { useRealtimeCheckins } from "@/hooks/realtime-hooks/useRealtimeCheckins";
-import { useRealtimeMessageSession } from "@/hooks/realtime-hooks/useRealtimeMessageSession";
-
-import { EphemeralSessionWindow } from "@/app/places/[placeId]/_components/EphemeralSessonWindow";
-import { MessageInput } from "@/components/MessageInput";
-import { PlaceDetails } from "@/app/places/[placeId]/_components/PlaceDetails";
-import { LoadingState, ErrorState } from "@/components/ui/data-states";
-
+import { useRef, useState } from "react";
 import type { UserId, PlaceId } from "@/lib/types/database";
+
+// import { CheckedInUsers } from "./CheckedInUsers";
+// import { IncomingRequestsSection } from "./IncomingRequestsSection";
+// import { ActiveSessionWindow } from "./ActiveSessionWindow";
+import { useRealtimeCheckins } from "@/hooks/realtime-hooks/useRealtimeCheckins";
+import { useRealtimeMessageRequests } from "@/hooks/realtime-hooks/useRealtimeMessageRequests";
+import { useRealtimeMessageSession } from "@/hooks/realtime-hooks/useRealtimeMessageSession";
+import { LoadingState, ErrorState } from "@/components/ui/data-states";
+import PlaceHeader from "./PlaceHeader";
 
 type PlacePageClientProps = {
   placeId: PlaceId;
   userId: UserId;
-  placeInfo: {
+  initialPlaceInfo: {
     id: PlaceId;
     name: string;
     address: string;
@@ -26,148 +26,131 @@ type PlacePageClientProps = {
 export function PlacePageClient({
   placeId,
   userId,
-  placeInfo,
+  initialPlaceInfo,
 }: PlacePageClientProps) {
-  // ✅ ADD: Track what's causing re-renders
   const renderCount = useRef(0);
-  renderCount.current++;
-
-  console.log(`🎨 PlacePageClient render #${renderCount.current}`, {
+  renderCount.current += 1;
+  console.log(`🔄 PlacePageClient render #${renderCount.current}`, {
     placeId,
     userId,
-    placeInfoName: placeInfo.name,
-    timestamp: Date.now(),
   });
-
-  // ✅ ADD: Track prop changes
-  const prevProps = useRef({ placeId, userId, placeInfo });
-  if (
-    prevProps.current.placeId !== placeId ||
-    prevProps.current.userId !== userId ||
-    prevProps.current.placeInfo.name !== placeInfo.name
-  ) {
-    console.log("🔄 PlacePageClient props changed:", {
-      from: prevProps.current,
-      to: { placeId, userId, placeInfo },
-    });
-  }
-  prevProps.current = { placeId, userId, placeInfo };
 
   const [showMessaging, setShowMessaging] = useState(false);
 
   // ============================================
-
-  // ============================================
-  // REALTIME SUBSCRIPTION (extends hydrated cache) - KEEP THIS
+  // DATA FETCHING - Single source of truth
   // ============================================
   const {
     data: checkins = [],
-
-    isLoading: realtimeLoading,
-    error: realtimeError,
+    isLoading: checkinsLoading,
+    error: checkinsError,
+    refetch: refetchCheckins,
   } = useRealtimeCheckins(placeId);
 
-  // ============================================
-  // MESSAGE SESSION HOOK - KEEP THIS
-  // ============================================
-  const {
-    data: session,
-    isLoading: sessionLoading,
-    error: sessionError,
-  } = useRealtimeMessageSession(userId, placeId);
+  // const {
+  //   requests,
+  //   isLoading: requestsLoading,
+  //   error: requestsError,
+  // } = useRealtimeMessageRequests(userId, placeId);
+
+  // const {
+  //   data: activeSession,
+  //   isLoading: sessionLoading,
+  //   error: sessionError,
+  // } = useRealtimeMessageSession(userId, placeId);
 
   // ============================================
-  // DERIVED STATE - FIX THE LOGIC
+  // DERIVED STATE
   // ============================================
+  // const currentUserCheckin = checkins.find((c) => c.userId === userId);
+  // const otherUsersCheckins = checkins.filter((c) => c.userId !== userId);
+  // const incomingRequests = requests.filter(
+  //   (r) => r.initiateeId === userId && r.status === "pending",
+  // );
 
-  const currentUserCheckin = checkins.find((c) => c.userId === userId);
-  const currentCheckinId = currentUserCheckin?.id;
-
-  // Combined loading/error states
-  const isLoading = sessionLoading;
-  const hasError = realtimeError || sessionError;
-  const errorMessage =
-    realtimeError?.message ||
-    sessionError?.message ||
-    "Failed to load place data";
-
-  // Combined refetch function
-
-  useEffect(() => {
-    console.log("🎬 PlacePageClient mounted/remounted for place:", placeId);
-    return () => {
-      console.log("🔌 PlacePageClient unmounting for place:", placeId);
-    };
-  }, [placeId]);
-
-  useEffect(() => {
-    if (session && !showMessaging) {
-      console.log("✅ Session detected, showing messaging interface");
-      setShowMessaging(true);
-    }
-  }, [session, showMessaging]);
+  // const isLoading = checkinsLoading || requestsLoading || sessionLoading;
+  // const hasError = checkinsError || requestsError || sessionError;
 
   // ============================================
-  // RENDER STATES
+  // AUTO-SHOW MESSAGING IF SESSION EXISTS
   // ============================================
-  if (isLoading) {
-    return (
-      <div className="flex min-h-[50vh] items-center justify-center">
-        <LoadingState message="Loading place details..." />
-      </div>
-    );
-  }
-
-  if (hasError) {
-    return (
-      <div className="flex min-h-[50vh] items-center justify-center">
-        <ErrorState title="Unable to load place" message={errorMessage} />
-      </div>
-    );
-  }
-
-  if (session && showMessaging) {
-    return (
-      <EphemeralSessionWindow
-        session={{
-          id: session.id,
-          placeId: session.placeId,
-          initiatorId: session.initiatorId,
-          initiateeId: session.initiateeId,
-        }}
-        currentUserId={userId}
-        checkinId={currentCheckinId}
-        onBack={() => setShowMessaging(false)}
-        place={{ name: placeInfo.name, address: placeInfo.address }}
-      >
-        <MessageInput
-          sessionId={session.id}
-          senderCheckinId={currentCheckinId}
-        />
-      </EphemeralSessionWindow>
-    );
-  }
+  // if (activeSession && !showMessaging) {
+  //   return (
+  //     <ActiveSessionWindow
+  //       session={activeSession}
+  //       currentUserId={userId}
+  //       currentUserCheckinId={currentUserCheckin?.id}
+  //       placeInfo={initialPlaceInfo}
+  //       onBack={() => setShowMessaging(false)}
+  //     />
+  //   );
+  // }
 
   // ============================================
-  // PASS ALL REQUIRED PROPS TO PlaceDetails
+  // LOADING & ERROR STATES
+  // ============================================
+  // if (isLoading) {
+  //   return (
+  //     <div className="flex min-h-[50vh] items-center justify-center">
+  //       <LoadingState message="Loading place details..." />
+  //     </div>
+  //   );
+  // }
+
+  // if (hasError) {
+  //   const errorMessage =
+  //     checkinsError?.message ||
+  //     requestsError?.message ||
+  //     sessionError?.message ||
+  //     "Failed to load place data";
+
+  //   return (
+  //     <div className="flex min-h-[50vh] items-center justify-center">
+  //       <ErrorState
+  //         title="Unable to load place"
+  //         message={errorMessage}
+  //         onRetry={() => {
+  //           refetchCheckins();
+  //         }}
+  //       />
+  //     </div>
+  //   );
+  // }
+
+  // ============================================
+  // MAIN UI
   // ============================================
   return (
-    <PlaceDetails
-      place={placeInfo}
-      checkins={checkins}
-      currentUserId={userId}
-      activeSession={
-        session
-          ? {
-              initiatorId: session.initiatorId,
-              initiateeId: session.initiateeId,
-            }
-          : undefined
-      }
-      onResumeSession={() => setShowMessaging(true)}
-      // ✅ ADD: Pass the missing props
-      isCheckinsLoading={realtimeLoading}
-      checkinsError={realtimeError}
-    />
+    <div className="space-y-6">
+      <PlaceHeader place={initialPlaceInfo} />
+
+      {/* Only show incoming requests if user is checked in
+      {currentUserCheckin && incomingRequests.length > 0 && (
+        <IncomingRequestsSection
+          requests={incomingRequests}
+          currentUserId={userId}
+        />
+      )}
+
+      <CheckedInUsers
+        checkins={otherUsersCheckins}
+        currentUserId={userId}
+        requests={requests}
+        placeId={placeId}
+        hasActiveSession={!!activeSession}
+        onResumeSession={() => setShowMessaging(true)}
+      />
+
+      {activeSession && (
+        <div className="text-center">
+          <button
+            onClick={() => setShowMessaging(true)}
+            className="text-primary underline"
+          >
+            💬 Resume messaging
+          </button>
+        </div>
+      )} */}
+    </div>
   );
 }
