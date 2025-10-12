@@ -1,7 +1,8 @@
+// src/app/places/[placeId]/_components/PlacePageClient.tsx (CORRECTED)
 "use client";
 
-import { useState, useEffect } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useState, useEffect, useRef } from "react";
+
 import { useRealtimeCheckins } from "@/hooks/realtime-hooks/useRealtimeCheckins";
 import { useRealtimeMessageSession } from "@/hooks/realtime-hooks/useRealtimeMessageSession";
 
@@ -10,7 +11,6 @@ import { MessageInput } from "@/components/MessageInput";
 import { PlaceDetails } from "@/app/places/[placeId]/_components/PlaceDetails";
 import { LoadingState, ErrorState } from "@/components/ui/data-states";
 
-import { getCheckinsAtPlace } from "@/app/_actions/checkinQueries";
 import type { UserId, PlaceId } from "@/lib/types/database";
 
 type PlacePageClientProps = {
@@ -28,31 +28,47 @@ export function PlacePageClient({
   userId,
   placeInfo,
 }: PlacePageClientProps) {
-  // ============================================
-  // STATE MANAGEMENT
-  // ============================================
+  // ✅ ADD: Track what's causing re-renders
+  const renderCount = useRef(0);
+  renderCount.current++;
+
+  console.log(`🎨 PlacePageClient render #${renderCount.current}`, {
+    placeId,
+    userId,
+    placeInfoName: placeInfo.name,
+    timestamp: Date.now(),
+  });
+
+  // ✅ ADD: Track prop changes
+  const prevProps = useRef({ placeId, userId, placeInfo });
+  if (
+    prevProps.current.placeId !== placeId ||
+    prevProps.current.userId !== userId ||
+    prevProps.current.placeInfo.name !== placeInfo.name
+  ) {
+    console.log("🔄 PlacePageClient props changed:", {
+      from: prevProps.current,
+      to: { placeId, userId, placeInfo },
+    });
+  }
+  prevProps.current = { placeId, userId, placeInfo };
+
   const [showMessaging, setShowMessaging] = useState(false);
 
   // ============================================
-  // BASE QUERY (Hydrated from server)
+
+  // ============================================
+  // REALTIME SUBSCRIPTION (extends hydrated cache) - KEEP THIS
   // ============================================
   const {
-    data: hydratedCheckins = [],
-    isLoading: hydratedLoading,
-    error: hydratedError,
-  } = useQuery({
-    queryKey: ["checkins", placeId],
-    queryFn: () => getCheckinsAtPlace(placeId),
-  });
+    data: checkins = [],
+    refetch: refetchRealtime,
+    isLoading: realtimeLoading,
+    error: realtimeError,
+  } = useRealtimeCheckins(placeId);
 
   // ============================================
-  // REALTIME SUBSCRIPTION (extends hydrated cache)
-  // ============================================
-  const { data: checkins = hydratedCheckins, refetch: refetchCheckins } =
-    useRealtimeCheckins(placeId);
-
-  // ============================================
-  // MESSAGE SESSION HOOK
+  // MESSAGE SESSION HOOK - KEEP THIS
   // ============================================
   const {
     data: session,
@@ -61,13 +77,25 @@ export function PlacePageClient({
   } = useRealtimeMessageSession(userId, placeId);
 
   // ============================================
-  // DERIVED STATE
+  // DERIVED STATE - FIX THE LOGIC
   // ============================================
+
   const currentUserCheckin = checkins.find((c) => c.userId === userId);
   const currentCheckinId = currentUserCheckin?.id;
 
-  const isLoading = hydratedLoading || sessionLoading;
-  const hasError = hydratedError || sessionError;
+  // Combined loading/error states
+  const isLoading = sessionLoading;
+  const hasError = realtimeError || sessionError;
+  const errorMessage =
+    realtimeError?.message ||
+    sessionError?.message ||
+    "Failed to load place data";
+
+  // Combined refetch function
+  const refetchCheckins = () => {
+    refetchRealtime();
+  };
+
   useEffect(() => {
     console.log("🎬 PlacePageClient mounted/remounted for place:", placeId);
     return () => {
@@ -75,9 +103,6 @@ export function PlacePageClient({
     };
   }, [placeId]);
 
-  // ============================================
-  // AUTO-SHOW MESSAGING WHEN SESSION EXISTS
-  // ============================================
   useEffect(() => {
     if (session && !showMessaging) {
       console.log("✅ Session detected, showing messaging interface");
@@ -97,27 +122,17 @@ export function PlacePageClient({
   }
 
   if (hasError) {
-    const errorMessage =
-      hydratedError?.message ||
-      sessionError?.message ||
-      "Failed to load place data";
-
     return (
       <div className="flex min-h-[50vh] items-center justify-center">
         <ErrorState
           title="Unable to load place"
           message={errorMessage}
-          onRetry={() => {
-            refetchCheckins();
-          }}
+          onRetry={refetchCheckins}
         />
       </div>
     );
   }
 
-  // ============================================
-  // SESSION ACTIVE → MESSAGING VIEW
-  // ============================================
   if (session && showMessaging) {
     return (
       <EphemeralSessionWindow
@@ -141,7 +156,7 @@ export function PlacePageClient({
   }
 
   // ============================================
-  // DEFAULT VIEW → PLACE DETAILS
+  // PASS ALL REQUIRED PROPS TO PlaceDetails
   // ============================================
   return (
     <PlaceDetails
@@ -157,6 +172,10 @@ export function PlacePageClient({
           : undefined
       }
       onResumeSession={() => setShowMessaging(true)}
+      // ✅ ADD: Pass the missing props
+      isCheckinsLoading={realtimeLoading}
+      checkinsError={realtimeError}
+      onCheckinsRetry={refetchCheckins}
     />
   );
 }

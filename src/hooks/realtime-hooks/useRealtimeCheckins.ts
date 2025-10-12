@@ -13,16 +13,22 @@ import { mapCheckinToCamel } from "@/lib/caseConverter";
 import { getCheckinsAtPlace } from "@/app/_actions/checkinQueries";
 
 async function fetchCheckins(placeId: PlaceId): Promise<Checkin[]> {
-  console.log(
-    "📞 [useRealtimeCheckins] Calling getCheckinsAtPlace for:",
+  console.log("🔍 useRealtimeCheckins called with:", {
     placeId,
-  );
+    placeIdType: typeof placeId,
+    callStack: new Error().stack?.split("\n")[1], // Show where it's called from
+  });
   const result = await getCheckinsAtPlace(placeId);
   console.log("📬 [useRealtimeCheckins] Received", result.length, "checkins");
   return result;
 }
 
 export function useRealtimeCheckins(placeId: PlaceId | null) {
+  const callStack = new Error().stack;
+  const caller = callStack?.split("\n")[2]?.trim(); // Get the calling component
+
+  console.log("🔍 useRealtimeCheckins called from:", caller);
+
   if (typeof window === "undefined") {
     console.log("❌ This code is running on the server (unexpected!)");
   } else {
@@ -30,6 +36,11 @@ export function useRealtimeCheckins(placeId: PlaceId | null) {
   }
 
   const queryClient = useQueryClient();
+
+  // ✅ DEBUG: Check if query already exists
+  const existingQuery = queryClient.getQueryData(["checkins", placeId]);
+  console.log("🔍 🔍🔍🔍 Existing query data:", existingQuery);
+
   const channelRef = useRef<RealtimeChannel | null>(null);
   const isSubscribingRef = useRef<boolean>(false);
 
@@ -46,7 +57,7 @@ export function useRealtimeCheckins(placeId: PlaceId | null) {
       return fetchCheckins(placeId!);
     },
     enabled: !!placeId,
-    staleTime: 30000,
+    staleTime: 3000,
     refetchInterval: false,
     refetchOnWindowFocus: false,
     refetchOnMount: false,

@@ -1,4 +1,4 @@
-// src/components/CheckinList.tsx (UPDATE - Add debugging)
+// src/app/places/[placeId]/_components/CheckinList.tsx (UPDATED)
 "use client";
 
 import { DataSection, EmptyState } from "@/components/ui/data-states";
@@ -7,27 +7,38 @@ import { Users } from "lucide-react";
 
 import { useMessageSendRequest } from "@/hooks/useMessageSendRequest";
 import { useRealtimeMessageRequests } from "@/hooks/realtime-hooks/useRealtimeMessageRequests";
-import { useRealtimeCheckins } from "@/hooks/realtime-hooks/useRealtimeCheckins";
+// ✅ REMOVED: import { useRealtimeCheckins } from "@/hooks/realtime-hooks/useRealtimeCheckins";
 
-import type { PlaceId, UserId } from "@/lib/types/database";
+import type { PlaceId, UserId, Checkin } from "@/lib/types/database";
 
 export function CheckinList({
   placeId,
   currentUserId,
   activeSession,
   onResumeSession,
+  // ✅ ADD: Receive data as props instead of fetching
+  checkins,
+  isCheckinsLoading,
+  checkinsError,
+  onCheckinsRetry,
 }: {
   placeId: PlaceId;
   currentUserId: UserId;
   activeSession?: { initiatorId: string; initiateeId: string };
   onResumeSession?: () => void;
+  // ✅ ADD: Props for checkins data
+  checkins: Checkin[];
+  isCheckinsLoading: boolean;
+  checkinsError: Error | null;
+  onCheckinsRetry: () => void;
 }) {
-  const {
-    data: checkins = [],
-    isLoading,
-    error,
-    refetch,
-  } = useRealtimeCheckins(placeId);
+  // ✅ REMOVED: This was the duplicate hook call causing the issue
+  // const {
+  //   data: checkins = [],
+  //   isLoading,
+  //   error,
+  //   refetch,
+  // } = useRealtimeCheckins(placeId);
 
   const { requests } = useRealtimeMessageRequests(currentUserId, placeId);
   const sendRequest = useMessageSendRequest();
@@ -39,9 +50,9 @@ export function CheckinList({
   return (
     <DataSection
       title="People Here"
-      isLoading={isLoading}
-      error={error}
-      onRetry={refetch}
+      isLoading={isCheckinsLoading} // ✅ Use prop
+      error={checkinsError} // ✅ Use prop
+      onRetry={onCheckinsRetry} // ✅ Use prop
       isEmpty={otherCheckins.length === 0}
       emptyState={
         <EmptyState
@@ -53,7 +64,6 @@ export function CheckinList({
     >
       <div className="space-y-3">
         {otherCheckins.map((checkin) => {
-          // ✅ ADD: Debug logging
           console.log("🔍 Checkin data:", checkin);
           console.log("🔍 User ID from checkin:", checkin.userId);
 
@@ -67,7 +77,6 @@ export function CheckinList({
               activeSession={activeSession}
               onResumeSession={onResumeSession}
               onRequest={() => {
-                // ✅ ADD: Debug logging before sending request
                 console.log("🚀 Sending request:", {
                   initiatorId: currentUserId,
                   initiateeId: checkin.userId,

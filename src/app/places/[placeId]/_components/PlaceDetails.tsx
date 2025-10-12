@@ -1,5 +1,4 @@
-// src/components/PlaceDetails.tsx (UPDATE)
-
+// src/app/places/[placeId]/_components/PlaceDetails.tsx (ADD MISSING PROPS)
 import { CheckinList } from "./CheckinList";
 import type { Checkin, UserId, PlaceId } from "@/lib/types/database";
 import IncomingRequests from "./IncomingRequests";
@@ -13,6 +12,10 @@ type PlaceDetailsProps = {
     initiateeId: UserId;
   };
   onResumeSession?: () => void;
+  // ✅ ADD: Missing props that CheckinList needs
+  isCheckinsLoading: boolean;
+  checkinsError: Error | null;
+  onCheckinsRetry: () => void;
 };
 
 export function PlaceDetails({
@@ -21,6 +24,9 @@ export function PlaceDetails({
   currentUserId,
   activeSession,
   onResumeSession,
+  isCheckinsLoading,
+  checkinsError,
+  onCheckinsRetry,
 }: PlaceDetailsProps) {
   const currentUserCheckin = checkins.find((c) => c.userId === currentUserId);
 
@@ -43,9 +49,12 @@ export function PlaceDetails({
         placeId={place.id}
         activeSession={activeSession}
         onResumeSession={onResumeSession}
+        // ✅ PASS: The props CheckinList expects
+        checkins={checkins}
+        isCheckinsLoading={isCheckinsLoading}
+        checkinsError={checkinsError}
+        onCheckinsRetry={onCheckinsRetry}
       />
     </section>
   );
 }
-
-export type { PlaceDetailsProps };
