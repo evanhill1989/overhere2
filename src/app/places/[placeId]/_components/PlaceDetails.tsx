@@ -1,7 +1,10 @@
-// src/app/places/[placeId]/_components/PlaceDetails.tsx (ADD MISSING PROPS)
+// PlaceDetails.tsx - Memoize the props to prevent unnecessary re-renders
 import { CheckinList } from "./CheckinList";
 import type { Checkin, UserId, PlaceId } from "@/lib/types/database";
 import IncomingRequests from "./IncomingRequests";
+import { memo } from "react";
+// ✅ MEMOIZE: IncomingRequests to prevent re-renders when props haven't changed
+const MemoizedIncomingRequests = memo(IncomingRequests);
 
 type PlaceDetailsProps = {
   place: { id: PlaceId; name: string; address: string };
@@ -12,7 +15,6 @@ type PlaceDetailsProps = {
     initiateeId: UserId;
   };
   onResumeSession?: () => void;
-  // ✅ ADD: Missing props that CheckinList needs
   isCheckinsLoading: boolean;
   checkinsError: Error | null;
   onCheckinsRetry: () => void;
@@ -26,7 +28,6 @@ export function PlaceDetails({
   onResumeSession,
   isCheckinsLoading,
   checkinsError,
-  onCheckinsRetry,
 }: PlaceDetailsProps) {
   const currentUserCheckin = checkins.find((c) => c.userId === currentUserId);
 
@@ -40,7 +41,11 @@ export function PlaceDetails({
       {currentUserCheckin && (
         <section className="space-y-2">
           <h2 className="text-lg font-semibold">Incoming Requests</h2>
-          <IncomingRequests currentUserId={currentUserId} placeId={place.id} />
+          {/* ✅ USE MEMOIZED VERSION */}
+          <MemoizedIncomingRequests
+            currentUserId={currentUserId}
+            placeId={place.id}
+          />
         </section>
       )}
 
@@ -49,11 +54,9 @@ export function PlaceDetails({
         placeId={place.id}
         activeSession={activeSession}
         onResumeSession={onResumeSession}
-        // ✅ PASS: The props CheckinList expects
         checkins={checkins}
         isCheckinsLoading={isCheckinsLoading}
         checkinsError={checkinsError}
-        onCheckinsRetry={onCheckinsRetry}
       />
     </section>
   );

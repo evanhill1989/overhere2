@@ -20,7 +20,6 @@ export function CheckinList({
   checkins,
   isCheckinsLoading,
   checkinsError,
-  onCheckinsRetry,
 }: {
   placeId: PlaceId;
   currentUserId: UserId;
@@ -30,16 +29,7 @@ export function CheckinList({
   checkins: Checkin[];
   isCheckinsLoading: boolean;
   checkinsError: Error | null;
-  onCheckinsRetry: () => void;
 }) {
-  // ✅ REMOVED: This was the duplicate hook call causing the issue
-  // const {
-  //   data: checkins = [],
-  //   isLoading,
-  //   error,
-  //   refetch,
-  // } = useRealtimeCheckins(placeId);
-
   const { requests } = useRealtimeMessageRequests(currentUserId, placeId);
   const sendRequest = useMessageSendRequest();
 
@@ -52,7 +42,6 @@ export function CheckinList({
       title="People Here"
       isLoading={isCheckinsLoading} // ✅ Use prop
       error={checkinsError} // ✅ Use prop
-      onRetry={onCheckinsRetry} // ✅ Use prop
       isEmpty={otherCheckins.length === 0}
       emptyState={
         <EmptyState

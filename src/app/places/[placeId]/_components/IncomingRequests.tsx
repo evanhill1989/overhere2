@@ -1,7 +1,7 @@
 // src/components/IncomingRequests.tsx
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useActionState } from "react";
 import { useFormStatus } from "react-dom";
 
@@ -24,11 +24,24 @@ export default function IncomingRequests({
   currentUserId,
   placeId,
 }: IncomingRequestsProps) {
+  const renderCount = useRef(0);
+  renderCount.current++;
+  console.log(`🎨 IncomingRequests render #${renderCount.current}`, {
+    currentUserId,
+    placeId,
+  });
+
   const { requests, isLoading } = useRealtimeMessageRequests(
-    // ✅ Changed
     currentUserId,
     placeId,
   );
+
+  console.log("📨 IncomingRequests data:", {
+    requestsCount: requests.length,
+    isLoading,
+    requestIds: requests.map((r) => r.id),
+  });
+
   const [optimisticState, setOptimisticState] = useState<OptimisticState>({});
   const [state, formAction] = useActionState(respondToMessageRequest, {
     message: "",

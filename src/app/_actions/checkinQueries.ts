@@ -30,6 +30,7 @@ export async function getCheckinsAtPlace(placeId: PlaceId): Promise<Checkin[]> {
     .where(
       and(
         eq(checkinsTable.placeId, validatedPlaceId),
+        eq(checkinsTable.isActive, true),
         gt(checkinsTable.createdAt, twoHoursAgo),
       ),
     );

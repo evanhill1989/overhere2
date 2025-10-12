@@ -62,7 +62,7 @@ export function PlacePageClient({
   // ============================================
   const {
     data: checkins = [],
-    refetch: refetchRealtime,
+
     isLoading: realtimeLoading,
     error: realtimeError,
   } = useRealtimeCheckins(placeId);
@@ -92,9 +92,6 @@ export function PlacePageClient({
     "Failed to load place data";
 
   // Combined refetch function
-  const refetchCheckins = () => {
-    refetchRealtime();
-  };
 
   useEffect(() => {
     console.log("🎬 PlacePageClient mounted/remounted for place:", placeId);
@@ -124,11 +121,7 @@ export function PlacePageClient({
   if (hasError) {
     return (
       <div className="flex min-h-[50vh] items-center justify-center">
-        <ErrorState
-          title="Unable to load place"
-          message={errorMessage}
-          onRetry={refetchCheckins}
-        />
+        <ErrorState title="Unable to load place" message={errorMessage} />
       </div>
     );
   }
@@ -175,7 +168,6 @@ export function PlacePageClient({
       // ✅ ADD: Pass the missing props
       isCheckinsLoading={realtimeLoading}
       checkinsError={realtimeError}
-      onCheckinsRetry={refetchCheckins}
     />
   );
 }
