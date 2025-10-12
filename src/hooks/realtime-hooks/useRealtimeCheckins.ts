@@ -31,6 +31,7 @@ export function useRealtimeCheckins(placeId: PlaceId | null) {
 
   const queryClient = useQueryClient();
   const channelRef = useRef<RealtimeChannel | null>(null);
+  const isSubscribingRef = useRef<boolean>(false);
 
   console.log(
     "🎬 [useRealtimeCheckins] Hook initialized with placeId:",
@@ -81,156 +82,144 @@ export function useRealtimeCheckins(placeId: PlaceId | null) {
 
     if (channelRef.current) {
       console.log("🧹 [useRealtimeCheckins] Cleaning up existing channel");
-      supabase.removeChannel(channelRef.current);
+      try {
+        supabase.removeChannel(channelRef.current);
+      } catch (error) {
+        console.warn("⚠️ [useRealtimeCheckins] Error removing channel:", error);
+      }
       channelRef.current = null;
     }
-
     const channelName = `checkins-${placeId}-${Date.now()}`;
     console.log("📺 [useRealtimeCheckins] Creating channel:", channelName);
+    isSubscribingRef.current = true;
 
-    const channel = supabase
-      .channel(channelName)
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "checkins",
-          filter: `place_id=eq.${placeId}`,
-        },
-        (payload) => {
-          console.log("🔔 [useRealtimeCheckins] Real-time event received:", {
-            eventType: payload.eventType,
-            table: payload.table,
-            schema: payload.schema,
-          });
-          console.log("📦 [useRealtimeCheckins] Payload data:", payload);
+    try {
+      const channel = supabase
+        .channel(channelName)
+        .on(
+          "postgres_changes",
+          {
+            event: "*",
+            schema: "public",
+            table: "checkins",
+            filter: `place_id=eq.${placeId}`,
+          },
+          (payload) => {
+            console.log("🔔 [useRealtimeCheckins] Real-time event received:", {
+              eventType: payload.eventType,
+              table: payload.table,
+              schema: payload.schema,
+            });
 
-          queryClient.setQueryData<Checkin[]>(
-            ["checkins", placeId],
-            (old = []) => {
-              console.log(
-                "📝 [useRealtimeCheckins] Current cache state:",
-                old.length,
-                "checkins",
-              );
-
-              try {
-                if (payload.eventType === "INSERT" && payload.new) {
-                  console.log("➕ [useRealtimeCheckins] Processing INSERT");
-                  console.log(
-                    "📦 [useRealtimeCheckins] Raw new data:",
-                    payload.new,
-                  );
-
-                  const newCheckin = mapCheckinToCamel(
-                    payload.new as DatabaseCheckin,
-                  );
-                  console.log(
-                    "✅ [useRealtimeCheckins] Mapped new checkin:",
-                    newCheckin.id,
-                  );
-
-                  if (old.some((c) => c.id === newCheckin.id)) {
-                    console.log(
-                      "⚠️ [useRealtimeCheckins] Duplicate checkin detected, skipping",
+            queryClient.setQueryData<Checkin[]>(
+              ["checkins", placeId],
+              (old = []) => {
+                try {
+                  if (payload.eventType === "INSERT" && payload.new) {
+                    const newCheckin = mapCheckinToCamel(
+                      payload.new as DatabaseCheckin,
                     );
-                    return old;
+
+                    if (old.some((c) => c.id === newCheckin.id)) {
+                      console.log(
+                        "⚠️ [useRealtimeCheckins] Duplicate checkin detected, skipping",
+                      );
+                      return old;
+                    }
+
+                    const newState = [...old, newCheckin];
+                    console.log(
+                      "✅ [useRealtimeCheckins] Added checkin. New count:",
+                      newState.length,
+                    );
+                    return newState;
                   }
 
-                  const newState = [...old, newCheckin];
-                  console.log(
-                    "✅ [useRealtimeCheckins] Added checkin. New count:",
-                    newState.length,
+                  if (payload.eventType === "UPDATE" && payload.new) {
+                    const updated = mapCheckinToCamel(
+                      payload.new as DatabaseCheckin,
+                    );
+
+                    const newState = old.map((c) =>
+                      c.id === updated.id ? updated : c,
+                    );
+                    return newState;
+                  }
+
+                  if (payload.eventType === "DELETE" && payload.old) {
+                    const deletedId = checkinIdSchema.parse(
+                      (payload.old as DatabaseCheckin).id,
+                    );
+
+                    const newState = old.filter((c) => c.id !== deletedId);
+                    console.log(
+                      "✅ [useRealtimeCheckins] Removed checkin. New count:",
+                      newState.length,
+                    );
+                    return newState;
+                  }
+
+                  return old;
+                } catch (error) {
+                  console.error(
+                    "❌ [useRealtimeCheckins] Real-time update error:",
+                    error,
                   );
-                  return newState;
+                  return old;
                 }
+              },
+            );
+          },
+        )
+        .subscribe((status) => {
+          console.log("📡 [useRealtimeCheckins] Subscription status:", status);
 
-                if (payload.eventType === "UPDATE" && payload.new) {
-                  console.log("🔄 [useRealtimeCheckins] Processing UPDATE");
-                  const updated = mapCheckinToCamel(
-                    payload.new as DatabaseCheckin,
-                  );
-                  console.log(
-                    "✅ [useRealtimeCheckins] Mapped updated checkin:",
-                    updated.id,
-                  );
+          if (status === "SUBSCRIBED") {
+            console.log(
+              "✅ [useRealtimeCheckins] Successfully subscribed to real-time",
+            );
+            // ✅ RESET SUBSCRIBING FLAG ON SUCCESS
+            isSubscribingRef.current = false;
+          } else if (status === "CHANNEL_ERROR") {
+            console.error("❌ [useRealtimeCheckins] Channel error");
+            // ✅ RESET SUBSCRIBING FLAG ON ERROR
+            isSubscribingRef.current = false;
+          } else if (status === "TIMED_OUT") {
+            console.warn("⏱️ [useRealtimeCheckins] Subscription timed out");
+            // ✅ RESET SUBSCRIBING FLAG ON TIMEOUT
+            isSubscribingRef.current = false;
+          } else if (status === "CLOSED") {
+            console.log("🔌 [useRealtimeCheckins] Subscription closed");
+            // ✅ RESET SUBSCRIBING FLAG ON CLOSE
+            isSubscribingRef.current = false;
+          }
+        });
 
-                  const newState = old.map((c) => {
-                    if (c.id === updated.id) {
-                      console.log(
-                        "🔄 [useRealtimeCheckins] Replacing checkin:",
-                        c.id,
-                      );
-                      return updated;
-                    }
-                    return c;
-                  });
-                  return newState;
-                }
-
-                if (payload.eventType === "DELETE" && payload.old) {
-                  console.log("➖ [useRealtimeCheckins] Processing DELETE");
-                  const deletedId = checkinIdSchema.parse(
-                    (payload.old as DatabaseCheckin).id,
-                  );
-                  console.log(
-                    "✅ [useRealtimeCheckins] Deleting checkin:",
-                    deletedId,
-                  );
-
-                  const newState = old.filter((c) => c.id !== deletedId);
-                  console.log(
-                    "✅ [useRealtimeCheckins] Removed checkin. New count:",
-                    newState.length,
-                  );
-                  return newState;
-                }
-
-                console.log(
-                  "⚠️ [useRealtimeCheckins] Unknown event type or missing data",
-                );
-                return old;
-              } catch (error) {
-                console.error(
-                  "❌ [useRealtimeCheckins] Real-time update error:",
-                  error,
-                );
-                console.error(
-                  "❌ [useRealtimeCheckins] Error details:",
-                  error instanceof Error ? error.stack : error,
-                );
-                return old;
-              }
-            },
-          );
-        },
-      )
-      .subscribe((status) => {
-        console.log("📡 [useRealtimeCheckins] Subscription status:", status);
-
-        if (status === "SUBSCRIBED") {
-          console.log(
-            "✅ [useRealtimeCheckins] Successfully subscribed to real-time",
-          );
-        } else if (status === "CHANNEL_ERROR") {
-          console.error("❌ [useRealtimeCheckins] Channel error");
-        } else if (status === "TIMED_OUT") {
-          console.warn("⏱️ [useRealtimeCheckins] Subscription timed out");
-        } else if (status === "CLOSED") {
-          console.log("🔌 [useRealtimeCheckins] Subscription closed");
-        }
-      });
-
-    channelRef.current = channel;
-    console.log("📺 [useRealtimeCheckins] Channel stored in ref");
+      channelRef.current = channel;
+      console.log("📺 [useRealtimeCheckins] Channel stored in ref");
+    } catch (error) {
+      console.error(
+        "❌ [useRealtimeCheckins] Error creating subscription:",
+        error,
+      );
+      isSubscribingRef.current = false; // ✅ RESET FLAG ON ERROR
+    }
 
     return () => {
+      console.log("🔌 [useRealtimeCheckins] Cleanup: Starting cleanup");
+
+      // Reset subscribing flag
+      isSubscribingRef.current = false;
+
       if (channelRef.current) {
         console.log(
           "🔌 [useRealtimeCheckins] Cleanup: Unsubscribing from channel",
         );
-        supabase.removeChannel(channelRef.current);
+        try {
+          supabase.removeChannel(channelRef.current);
+        } catch (error) {
+          console.warn("⚠️ [useRealtimeCheckins] Cleanup error:", error);
+        }
         channelRef.current = null;
       }
     };

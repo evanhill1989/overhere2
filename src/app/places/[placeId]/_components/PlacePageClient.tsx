@@ -68,6 +68,12 @@ export function PlacePageClient({
 
   const isLoading = hydratedLoading || sessionLoading;
   const hasError = hydratedError || sessionError;
+  useEffect(() => {
+    console.log("🎬 PlacePageClient mounted/remounted for place:", placeId);
+    return () => {
+      console.log("🔌 PlacePageClient unmounting for place:", placeId);
+    };
+  }, [placeId]);
 
   // ============================================
   // AUTO-SHOW MESSAGING WHEN SESSION EXISTS
