@@ -1,46 +1,8 @@
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
-import type { Tables } from "@/lib/types/supabase";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
-}
-
-type CheckinRow = Tables<"checkins">;
-type ChatSessionRow = Tables<"chat_sessions">;
-
-export function isValidChatSessionData(data: unknown): data is ChatSessionRow {
-  if (typeof data !== "object" || data === null) {
-    return false;
-  }
-
-  const obj = data as Record<string, unknown>;
-
-  return (
-    typeof obj.id === "string" &&
-    typeof obj.status === "string" && // This is an enum, but will be a string at runtime
-    typeof obj.initiator_checkin_id === "number" &&
-    typeof obj.receiver_checkin_id === "number" &&
-    typeof obj.place_id === "string" && // Added based on your schema
-    typeof obj.created_at === "string"
-  );
-}
-
-export function isValidCheckinData(data: unknown): data is CheckinRow {
-  if (typeof data !== "object" || data === null) {
-    return false;
-  }
-  const obj = data as Record<string, unknown>;
-
-  return (
-    typeof obj.id === "number" &&
-    typeof obj.user_id === "string" &&
-    typeof obj.place_id === "string" &&
-    typeof obj.place_name === "string" &&
-    typeof obj.place_address === "string" &&
-    typeof obj.status === "string" &&
-    typeof obj.created_at === "string"
-  );
 }
 
 // --- NEW: Haversine Distance Calculation ---

@@ -9,12 +9,30 @@ import { NextRequest, NextResponse } from "next/server";
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const userId = searchParams.get("userId");
+  const placeId = searchParams.get("placeId");
 
   if (!userId) {
     return NextResponse.json({ error: "Missing userId" }, { status: 400 });
   }
 
   const twoHoursAgo = subHours(new Date(), 2);
+
+  // Build the base query
+  let whereConditions = and(
+    or(
+      eq(messageSessionRequestsTable.initiatorId, userId),
+      eq(messageSessionRequestsTable.initiateeId, userId),
+    ),
+    gt(messageSessionRequestsTable.createdAt, twoHoursAgo),
+  );
+
+  // Add placeId filter if provided
+  if (placeId) {
+    whereConditions = and(
+      whereConditions,
+      eq(messageSessionRequestsTable.placeId, placeId),
+    );
+  }
 
   const requests = await db
     .select({
@@ -24,7 +42,7 @@ export async function GET(req: NextRequest) {
       placeId: messageSessionRequestsTable.placeId,
       status: messageSessionRequestsTable.status,
       createdAt: messageSessionRequestsTable.createdAt,
-      topic: checkinsTable.topic, // ← pull topic from checkins
+      topic: checkinsTable.topic, // ← This join gets you the topic
     })
     .from(messageSessionRequestsTable)
     .leftJoin(
@@ -32,18 +50,10 @@ export async function GET(req: NextRequest) {
       and(
         eq(checkinsTable.userId, messageSessionRequestsTable.initiatorId),
         eq(checkinsTable.placeId, messageSessionRequestsTable.placeId),
-        eq(checkinsTable.isActive, true), // ensure it's the current check-in
+        eq(checkinsTable.isActive, true),
       ),
     )
-    .where(
-      and(
-        or(
-          eq(messageSessionRequestsTable.initiatorId, userId),
-          eq(messageSessionRequestsTable.initiateeId, userId),
-        ),
-        gt(messageSessionRequestsTable.createdAt, twoHoursAgo),
-      ),
-    );
+    .where(whereConditions);
 
   return NextResponse.json(requests);
 }

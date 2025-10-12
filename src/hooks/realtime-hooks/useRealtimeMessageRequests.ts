@@ -1,66 +1,28 @@
-// src/hooks/useRealtimeMessageRequests.ts (SIMPLIFIED)
+// src/hooks/realtime-hooks/useRealtimeMessageRequests.ts (UPDATED)
 "use client";
 
 import { useEffect, useRef } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { createClient } from "@/utils/supabase/client";
 import type { RealtimeChannel } from "@supabase/supabase-js";
-import { subHours } from "date-fns";
 
 import type { MessageRequest, UserId, PlaceId } from "@/lib/types/database";
-import {
-  requestIdSchema,
-  userIdSchema,
-  placeIdSchema,
-  messageRequestStatusSchema,
-  timestampSchema,
-} from "@/lib/types/database";
 
-type DatabaseMessageRequest = {
-  id: string;
-  initiator_id: string;
-  initiatee_id: string;
-  place_id: string;
-  status: "pending" | "accepted" | "rejected" | "canceled" | "expired";
-  created_at: string;
-  responded_at: string | null;
-};
+type MessageRequestWithTopic = MessageRequest & { topic: string | null };
 
-function mapRequestToCamel(raw: DatabaseMessageRequest): MessageRequest {
-  return {
-    id: requestIdSchema.parse(raw.id),
-    initiatorId: userIdSchema.parse(raw.initiator_id),
-    initiateeId: userIdSchema.parse(raw.initiatee_id),
-    placeId: placeIdSchema.parse(raw.place_id),
-    status: messageRequestStatusSchema.parse(raw.status),
-    createdAt: timestampSchema.parse(new Date(raw.created_at)),
-    respondedAt: raw.responded_at
-      ? timestampSchema.parse(new Date(raw.responded_at))
-      : undefined,
-  };
-}
-
+// ✅ Use your existing API route
 async function fetchMessageRequests(
   userId: UserId,
   placeId: PlaceId,
-): Promise<MessageRequest[]> {
-  const supabase = createClient();
-  const twoHoursAgo = subHours(new Date(), 2);
+): Promise<MessageRequestWithTopic[]> {
+  const url = `/api/requests?userId=${userId}&placeId=${placeId}`;
+  const res = await fetch(url);
 
-  const { data, error } = await supabase
-    .from("message_session_requests")
-    .select("*")
-    .eq("place_id", placeId) // ✅ Filter by place first
-    .or(`initiator_id.eq.${userId},initiatee_id.eq.${userId}`)
-    .gte("created_at", twoHoursAgo.toISOString())
-    .order("created_at", { ascending: false });
-
-  if (error) {
-    console.error("❌ Error fetching message requests:", error);
-    throw new Error(`Failed to fetch requests: ${error.message}`);
+  if (!res.ok) {
+    throw new Error(`Failed to fetch requests: ${res.status}`);
   }
 
-  return (data || []).map(mapRequestToCamel);
+  return res.json();
 }
 
 export function useRealtimeMessageRequests(
@@ -70,35 +32,28 @@ export function useRealtimeMessageRequests(
   const queryClient = useQueryClient();
   const channelRef = useRef<RealtimeChannel | null>(null);
 
-  // ============================================
-  // 1. FETCH WITH REACT QUERY (No polling!)
-  // ============================================
-  const query = useQuery<MessageRequest[], Error>({
+  // 1. Use API route for initial fetch
+  const query = useQuery<MessageRequestWithTopic[], Error>({
     queryKey: ["messageRequests", userId, placeId],
     queryFn: () => fetchMessageRequests(userId!, placeId!),
     enabled: !!userId && !!placeId,
-    staleTime: 30000, // 30 seconds
-    refetchInterval: false, // ✅ DISABLE POLLING - real-time handles updates
-    refetchOnWindowFocus: false, // ✅ DISABLE - real-time handles updates
-    refetchOnMount: false, // ✅ DISABLE - only fetch once on mount
+    staleTime: 30000,
+    refetchInterval: false,
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
   });
 
-  // ============================================
-  // 2. REAL-TIME SUBSCRIPTION
-  // ============================================
+  // 2. Real-time updates trigger API refetch
   useEffect(() => {
     if (!userId || !placeId) return;
 
     const supabase = createClient();
 
-    // Clean up existing channel
     if (channelRef.current) {
       console.log("🧹 Cleaning up existing requests channel");
       supabase.removeChannel(channelRef.current);
       channelRef.current = null;
     }
-
-    console.log("📡 Setting up real-time for message requests");
 
     const channel = supabase
       .channel(`message-requests-${placeId}-${userId}-${Date.now()}`)
@@ -116,63 +71,10 @@ export function useRealtimeMessageRequests(
             payload.eventType,
           );
 
-          queryClient.setQueryData<MessageRequest[]>(
-            ["messageRequests", userId, placeId],
-            (oldData = []) => {
-              try {
-                if (payload.eventType === "INSERT") {
-                  const newReq = payload.new as DatabaseMessageRequest;
-
-                  // Only process if user is involved
-                  if (
-                    newReq.initiator_id !== userId &&
-                    newReq.initiatee_id !== userId
-                  ) {
-                    return oldData;
-                  }
-
-                  const formattedReq = mapRequestToCamel(newReq);
-
-                  // Prevent duplicates
-                  if (oldData.some((r) => r.id === formattedReq.id)) {
-                    return oldData;
-                  }
-
-                  return [formattedReq, ...oldData];
-                }
-
-                if (payload.eventType === "UPDATE") {
-                  const updated = payload.new as DatabaseMessageRequest;
-
-                  // Only process if user is involved
-                  if (
-                    updated.initiator_id !== userId &&
-                    updated.initiatee_id !== userId
-                  ) {
-                    return oldData;
-                  }
-
-                  const formattedReq = mapRequestToCamel(updated);
-
-                  return oldData.map((r) =>
-                    r.id === formattedReq.id ? formattedReq : r,
-                  );
-                }
-
-                if (payload.eventType === "DELETE") {
-                  const deleted = payload.old as DatabaseMessageRequest;
-                  const deletedId = requestIdSchema.parse(deleted.id);
-
-                  return oldData.filter((r) => r.id !== deletedId);
-                }
-
-                return oldData;
-              } catch (error) {
-                console.error("❌ Error processing real-time update:", error);
-                return oldData;
-              }
-            },
-          );
+          // Simple approach: refetch through API route
+          queryClient.invalidateQueries({
+            queryKey: ["messageRequests", userId, placeId],
+          });
         },
       )
       .subscribe((status) => {
@@ -180,8 +82,6 @@ export function useRealtimeMessageRequests(
           console.log("✅ Subscribed to message requests real-time");
         } else if (status === "CHANNEL_ERROR") {
           console.error("❌ Message requests subscription error");
-        } else if (status === "TIMED_OUT") {
-          console.warn("⏱️ Message requests subscription timed out");
         }
       });
 
@@ -189,7 +89,6 @@ export function useRealtimeMessageRequests(
 
     return () => {
       if (channelRef.current) {
-        console.log("🔌 Unsubscribing from message requests");
         supabase.removeChannel(channelRef.current);
         channelRef.current = null;
       }

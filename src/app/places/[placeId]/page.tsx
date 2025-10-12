@@ -2,7 +2,7 @@
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/utils/supabase/server";
 import { placeIdSchema, userIdSchema } from "@/lib/types/core";
-import type { PageProps } from "@/lib/types/pageProps";
+
 import { PlacePageClient } from "./_components/PlacePageClient";
 
 import { getCheckinsAtPlace } from "@/app/_actions/checkinQueries";
@@ -11,6 +11,10 @@ import {
   dehydrate,
   HydrationBoundary,
 } from "@tanstack/react-query";
+
+type PageProps = {
+  params: Promise<{ placeId: string }>;
+};
 
 export default async function PlacePage(props: PageProps) {
   const { placeId: rawPlaceId } = await props.params;

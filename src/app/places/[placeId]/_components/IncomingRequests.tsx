@@ -11,10 +11,11 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Loader2 } from "lucide-react";
 import { respondToMessageRequest } from "@/app/_actions/messageActions";
+import type { PlaceId, UserId } from "@/lib/types/database";
 
 type IncomingRequestsProps = {
-  currentUserId: string;
-  placeId: string;
+  currentUserId: UserId;
+  placeId: PlaceId;
 };
 
 type OptimisticState = Record<string, "accepted" | "rejected">;

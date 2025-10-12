@@ -19,7 +19,7 @@ export async function POST(request: Request) {
     .where(
       and(
         lte(messageSessionsTable.createdAt, expiryThreshold),
-        eq(messageSessionsTable.status, "accepted"),
+        eq(messageSessionsTable.status, "active"),
       ),
     )
     .returning();

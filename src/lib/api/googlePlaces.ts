@@ -5,6 +5,7 @@ import {
   placeNameSchema,
   placeAddressSchema,
   timestampSchema,
+  primaryTypeSchema,
 } from "@/lib/types/core";
 
 type RawGooglePlace = {
@@ -74,7 +75,9 @@ export async function getNearbyPlaces(coords: {
         longitude: p.location?.longitude ?? null,
         lastFetchedAt: timestampSchema.parse(new Date()),
         isVerified: false,
-        primaryType: p.primaryTypeDisplayName?.text ?? null,
+        primaryType: primaryTypeSchema.parse(
+          p.primaryTypeDisplayName?.text ?? null,
+        ),
       };
 
       // ✅ DEBUG: Log each place being created
