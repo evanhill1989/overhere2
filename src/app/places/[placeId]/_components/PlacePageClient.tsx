@@ -1,47 +1,221 @@
 // src/app/places/[placeId]/_components/PlacePageClient.tsx
 "use client";
 
-import { useState } from "react";
-import type { UserId, PlaceId } from "@/lib/types/database";
-import PlaceHeader from "./PlaceHeader";
-import { CheckedInUsers } from "./CheckedInUsers";
+import { useState, useEffect, useRef, useCallback } from "react";
+
 import { useRealtimeCheckins } from "@/hooks/realtime-hooks/useRealtimeCheckins";
 import { useRealtimeMessageSession } from "@/hooks/realtime-hooks/useRealtimeMessageSession";
+
+import { EphemeralSessionWindow } from "@/app/places/[placeId]/_components/EphemeralSessonWindow";
+import { MessageInput } from "@/components/MessageInput";
+import { PlaceDetails } from "@/app/places/[placeId]/_components/PlaceDetails";
 import { LoadingState, ErrorState } from "@/components/ui/data-states";
+import { MessageErrorBoundary } from "@/components/error_boundaries/MessageErrorBoundary";
+
+import type { UserId, PlaceId } from "@/lib/types/database";
 
 type PlacePageClientProps = {
   placeId: PlaceId;
   userId: UserId;
-  initialPlaceInfo: {
+  placeInfo: {
     id: PlaceId;
     name: string;
     address: string;
   };
 };
 
+// Enhanced messaging window states
+type MessagingState =
+  | "hidden" // Not showing messaging interface
+  | "opening" // Transitioning to messaging interface
+  | "active" // Messaging interface is active
+  | "minimized" // Messaging interface is minimized but session active
+  | "closing"; // Transitioning away from messaging interface
+
 export function PlacePageClient({
   placeId,
   userId,
-  initialPlaceInfo,
+  placeInfo,
 }: PlacePageClientProps) {
-  const [showMessaging, setShowMessaging] = useState(false);
+  // ============================================
+  // RENDER TRACKING & DEBUGGING
+  // ============================================
+  const renderCount = useRef(0);
+  renderCount.current++;
 
-  // Data fetching
+  console.log(`🎨 PlacePageClient render #${renderCount.current}`, {
+    placeId,
+    userId,
+    placeInfoName: placeInfo.name,
+    timestamp: Date.now(),
+  });
+
+  // Track prop changes
+  const prevProps = useRef({ placeId, userId, placeInfo });
+  if (
+    prevProps.current.placeId !== placeId ||
+    prevProps.current.userId !== userId ||
+    prevProps.current.placeInfo.name !== placeInfo.name
+  ) {
+    console.log("🔄 PlacePageClient props changed:", {
+      from: prevProps.current,
+      to: { placeId, userId, placeInfo },
+    });
+  }
+  prevProps.current = { placeId, userId, placeInfo };
+
+  // ============================================
+  // ENHANCED MESSAGING STATE MANAGEMENT
+  // ============================================
+  const [messagingState, setMessagingState] =
+    useState<MessagingState>("hidden");
+  const [lastSessionId, setLastSessionId] = useState<string | null>(null);
+  const [messagingError, setMessagingError] = useState<string | null>(null);
+  const [shouldAutoOpen, setShouldAutoOpen] = useState(false);
+
+  // ============================================
+  // REALTIME SUBSCRIPTIONS
+  // ============================================
   const {
     data: checkins = [],
-    isLoading: checkinsLoading,
-    error: checkinsError,
-    refetch: refetchCheckins,
+    isLoading: realtimeLoading,
+    error: realtimeError,
   } = useRealtimeCheckins(placeId);
 
   const {
-    data: activeSession,
+    data: session,
     isLoading: sessionLoading,
     error: sessionError,
   } = useRealtimeMessageSession(userId, placeId);
 
-  // Loading & Error states
-  if (checkinsLoading || sessionLoading) {
+  // ============================================
+  // DERIVED STATE
+  // ============================================
+  const currentUserCheckin = checkins.find((c) => c.userId === userId);
+  const currentCheckinId = currentUserCheckin?.id;
+
+  // Combined loading/error states
+  const isLoading = sessionLoading;
+  const hasError = realtimeError || sessionError;
+  const errorMessage =
+    realtimeError?.message ||
+    sessionError?.message ||
+    "Failed to load place data";
+
+  // ============================================
+  // MESSAGING WINDOW MANAGEMENT FUNCTIONS
+  // ============================================
+
+  const openMessagingWindow = useCallback(
+    (sessionId?: string) => {
+      console.log("🪟 Opening messaging window", { sessionId, messagingState });
+      setMessagingError(null);
+      setMessagingState("opening");
+
+      // Smooth transition to active state
+      setTimeout(() => {
+        setMessagingState("active");
+      }, 100);
+    },
+    [messagingState],
+  );
+
+  const closeMessagingWindow = useCallback(() => {
+    console.log("🚪 Closing messaging window", { messagingState });
+    setMessagingState("closing");
+
+    // Smooth transition back to hidden
+    setTimeout(() => {
+      setMessagingState("hidden");
+      setShouldAutoOpen(false);
+    }, 200);
+  }, [messagingState]);
+
+  const minimizeMessagingWindow = useCallback(() => {
+    console.log("📱 Minimizing messaging window");
+    setMessagingState("minimized");
+  }, []);
+
+  const restoreMessagingWindow = useCallback(() => {
+    console.log("📱 Restoring messaging window");
+    setMessagingState("active");
+  }, []);
+
+  const handleMessagingError = useCallback((error: string) => {
+    console.error("❌ Messaging error:", error);
+    setMessagingError(error);
+    setMessagingState("hidden");
+  }, []);
+
+  const resetMessagingError = useCallback(() => {
+    setMessagingError(null);
+    if (session) {
+      setMessagingState("active");
+    }
+  }, [session]);
+
+  // ============================================
+  // SESSION CHANGE DETECTION & AUTO-MANAGEMENT
+  // ============================================
+  useEffect(() => {
+    // Track session changes for intelligent window management
+    if (session?.id && session.id !== lastSessionId) {
+      console.log("🔄 New session detected:", session.id);
+      setLastSessionId(session.id);
+
+      // Auto-open messaging window for new sessions
+      if (shouldAutoOpen || messagingState === "hidden") {
+        openMessagingWindow(session.id);
+      }
+    } else if (!session && lastSessionId) {
+      console.log("🔚 Session ended:", lastSessionId);
+      setLastSessionId(null);
+      closeMessagingWindow();
+    }
+  }, [
+    session,
+    lastSessionId,
+    shouldAutoOpen,
+    messagingState,
+    openMessagingWindow,
+    closeMessagingWindow,
+  ]);
+
+  // Auto-open messaging when session becomes available
+  useEffect(() => {
+    if (session && !sessionLoading && messagingState === "hidden") {
+      console.log("✅ Session available, auto-opening messaging interface");
+      setShouldAutoOpen(true);
+      openMessagingWindow(session.id);
+    }
+  }, [session, sessionLoading, messagingState, openMessagingWindow]);
+
+  // ============================================
+  // WINDOW STATE MANAGEMENT
+  // ============================================
+  const shouldShowMessagingWindow =
+    session &&
+    (messagingState === "opening" ||
+      messagingState === "active" ||
+      messagingState === "closing");
+
+  const shouldShowMinimizedIndicator =
+    session && messagingState === "minimized";
+
+  // ============================================
+  // LIFECYCLE LOGGING
+  // ============================================
+  useEffect(() => {
+    console.log("🎬 PlacePageClient mounted/remounted for place:", placeId);
+    return () => {
+      console.log("🔌 PlacePageClient unmounting for place:", placeId);
+    };
+  }, [placeId]);
+
+  // ============================================
+  // RENDER STATES
+  // ============================================
+  if (isLoading) {
     return (
       <div className="flex min-h-[50vh] items-center justify-center">
         <LoadingState message="Loading place details..." />
@@ -49,33 +223,91 @@ export function PlacePageClient({
     );
   }
 
-  if (checkinsError || sessionError) {
-    const errorMessage =
-      checkinsError?.message ||
-      sessionError?.message ||
-      "Failed to load place data";
+  if (hasError) {
     return (
       <div className="flex min-h-[50vh] items-center justify-center">
-        <ErrorState
-          title="Unable to load place"
-          message={errorMessage}
-          onRetry={refetchCheckins}
-        />
+        <ErrorState title="Unable to load place" message={errorMessage} />
       </div>
     );
   }
 
-  // Main UI
-  return (
-    <div className="space-y-6">
-      <PlaceHeader place={initialPlaceInfo} />
+  // ============================================
+  // MESSAGING WINDOW RENDER
+  // ============================================
+  if (shouldShowMessagingWindow && session) {
+    return (
+      <MessageErrorBoundary onReset={resetMessagingError}>
+        <div
+          className={`messaging-window-container ${
+            messagingState === "opening" ? "animate-slide-in" : ""
+          } ${messagingState === "closing" ? "animate-slide-out" : ""}`}
+        >
+          <EphemeralSessionWindow
+            session={{
+              id: session.id,
+              placeId: session.placeId,
+              initiatorId: session.initiatorId,
+              initiateeId: session.initiateeId,
+            }}
+            currentUserId={userId}
+            checkinId={currentCheckinId}
+            onBack={closeMessagingWindow}
+            onMinimize={minimizeMessagingWindow}
+            place={{ name: placeInfo.name, address: placeInfo.address }}
+            windowState={messagingState}
+            error={messagingError}
+          >
+            <MessageInput
+              sessionId={session.id}
+              senderCheckinId={currentCheckinId}
+              onError={handleMessagingError}
+            />
+          </EphemeralSessionWindow>
+        </div>
+      </MessageErrorBoundary>
+    );
+  }
 
-      <CheckedInUsers
+  // ============================================
+  // MAIN PLACE DETAILS RENDER
+  // ============================================
+  return (
+    <div className="relative">
+      {/* Minimized messaging indicator */}
+      {shouldShowMinimizedIndicator && (
+        <div className="fixed right-4 bottom-4 z-50">
+          <button
+            onClick={restoreMessagingWindow}
+            className="bg-primary text-primary-foreground rounded-full p-3 shadow-lg transition-shadow hover:shadow-xl"
+            aria-label="Restore messaging window"
+          >
+            💬
+            <span className="absolute -top-1 -right-1 h-3 w-3 rounded-full bg-green-500"></span>
+          </button>
+        </div>
+      )}
+
+      <PlaceDetails
+        place={placeInfo}
         checkins={checkins}
         currentUserId={userId}
-        placeId={placeId}
-        hasActiveSession={!!activeSession}
-        onResumeSession={() => setShowMessaging(true)}
+        activeSession={
+          session
+            ? {
+                initiatorId: session.initiatorId,
+                initiateeId: session.initiateeId,
+              }
+            : undefined
+        }
+        onResumeSession={() => {
+          setShouldAutoOpen(true);
+          openMessagingWindow(session?.id);
+        }}
+        onOpenMessaging={openMessagingWindow}
+        isCheckinsLoading={realtimeLoading}
+        checkinsError={realtimeError}
+        messagingState={messagingState}
+        hasActiveSession={!!session}
       />
     </div>
   );

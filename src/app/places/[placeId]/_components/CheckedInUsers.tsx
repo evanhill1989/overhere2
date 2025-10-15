@@ -17,7 +17,7 @@ type CheckedInUsersProps = {
   onResumeSession?: () => void;
 };
 
-export function CheckedInUsers({
+export default function CheckedInUsers({
   checkins,
   currentUserId,
   placeId,

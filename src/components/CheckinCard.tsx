@@ -1,4 +1,4 @@
-// src/components/CheckinCard.tsx (NEW)
+// src/components/CheckinCard.tsx (OLD)
 "use client";
 
 import { Card } from "@/components/ui/card";

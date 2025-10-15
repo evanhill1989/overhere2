@@ -22,12 +22,12 @@ export default function UserCheckInCard(props: UserCheckInCardProps) {
   return (
     <Card className="flex items-center justify-between p-4">
       <div className="flex-1">
-        <p className="flex items-center gap-2 font-medium">
+        <div className="flex items-center gap-2 font-medium">
           {props.checkin.topic || "Open to chat"}
           <StatusIcon
             type={cardState.icon === "message" ? null : cardState.icon}
           />
-        </p>
+        </div>
         <p className="text-muted-foreground text-sm capitalize">
           {props.checkin.checkinStatus}
         </p>
