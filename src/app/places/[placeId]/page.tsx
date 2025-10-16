@@ -59,7 +59,7 @@ export default async function PlacePage(props: PageProps) {
       <PlacePageClient
         placeId={placeId}
         userId={userId}
-        initialPlaceInfo={{
+        placeInfo={{
           id: placeId,
           name: placeInfo.place_name,
           address: placeInfo.place_address,

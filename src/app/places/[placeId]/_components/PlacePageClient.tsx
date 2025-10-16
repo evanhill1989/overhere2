@@ -8,11 +8,12 @@ import { useRealtimeMessageSession } from "@/hooks/realtime-hooks/useRealtimeMes
 
 import { EphemeralSessionWindow } from "@/app/places/[placeId]/_components/EphemeralSessonWindow";
 import { MessageInput } from "@/components/MessageInput";
-import { PlaceDetails } from "@/app/places/[placeId]/_components/PlaceDetails";
+
 import { LoadingState, ErrorState } from "@/components/ui/data-states";
 import { MessageErrorBoundary } from "@/components/error_boundaries/MessageErrorBoundary";
 
 import type { UserId, PlaceId } from "@/lib/types/database";
+import { PlaceDetails } from "./PlaceDetails";
 
 type PlacePageClientProps = {
   placeId: PlaceId;
@@ -37,19 +38,6 @@ export function PlacePageClient({
   userId,
   placeInfo,
 }: PlacePageClientProps) {
-  // ============================================
-  // RENDER TRACKING & DEBUGGING
-  // ============================================
-  const renderCount = useRef(0);
-  renderCount.current++;
-
-  console.log(`🎨 PlacePageClient render #${renderCount.current}`, {
-    placeId,
-    userId,
-    placeInfoName: placeInfo.name,
-    timestamp: Date.now(),
-  });
-
   // Track prop changes
   const prevProps = useRef({ placeId, userId, placeInfo });
   if (
@@ -92,7 +80,14 @@ export function PlacePageClient({
   // DERIVED STATE
   // ============================================
   const currentUserCheckin = checkins.find((c) => c.userId === userId);
-  const currentCheckinId = currentUserCheckin?.id;
+
+  // Express our confidence in the system - this should never happen
+  if (!currentUserCheckin) {
+    throw new Error(
+      `Invariant violation: User ${userId} in messaging flow without active checkin`,
+    );
+  }
+  const currentCheckinId = currentUserCheckin.id;
 
   // Combined loading/error states
   const isLoading = sessionLoading;
@@ -291,14 +286,7 @@ export function PlacePageClient({
         place={placeInfo}
         checkins={checkins}
         currentUserId={userId}
-        activeSession={
-          session
-            ? {
-                initiatorId: session.initiatorId,
-                initiateeId: session.initiateeId,
-              }
-            : undefined
-        }
+        activeSession={session ?? undefined}
         onResumeSession={() => {
           setShouldAutoOpen(true);
           openMessagingWindow(session?.id);

@@ -1,136 +1,188 @@
-// src/components/MessageInput.tsx (UPDATE)
+// src/components/MessageInput.tsx (REFACTORED WITH useMessageMutation)
 "use client";
 
-import { useActionState, useRef } from "react";
+import { useRef, useCallback } from "react";
+
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2 } from "lucide-react";
-import { submitMessage } from "@/app/_actions/messageActions";
-import { useFormStatus } from "react-dom";
-import { useQueryClient } from "@tanstack/react-query";
+import { Loader2, Send, AlertCircle } from "lucide-react";
+import { cn } from "@/lib/utils";
 
-import { SendMessageResponse } from "@/lib/types/api";
-import { Message } from "@/app/places/[placeId]/_components/EphemeralSessonWindow";
+// ✅ Use canonical types from type system
+import type { SessionId, CheckinId, Message } from "@/lib/types/database";
+import { useMessageMutation } from "@/app/places/[placeId]/_components/useMessageMutation";
 
-export type MessageInputProps = {
-  sessionId: string;
-  senderCheckinId?: string;
-};
+// ============================================
+// COMPONENT TYPES
+// ============================================
+
+export interface MessageInputProps {
+  sessionId: SessionId;
+
+  senderCheckinId: CheckinId;
+
+  placeholder?: string;
+
+  maxLength?: number;
+
+  onMessageSent?: (message: Message) => void;
+
+  className?: string;
+
+  disabled?: boolean;
+
+  onError?: (error: string) => void;
+}
+
+// ============================================
+// MAIN COMPONENT
+// ============================================
 
 export function MessageInput({
   sessionId,
   senderCheckinId,
+  placeholder = "Say something friendly…",
+  maxLength = 1000,
+  onMessageSent,
+  className,
+  disabled = false,
 }: MessageInputProps) {
-  const queryClient = useQueryClient();
   const formRef = useRef<HTMLFormElement>(null);
-  const { pending: isPending } = useFormStatus();
-  // ✅ Initial state must match SendMessageResponse type
-  const initialState: SendMessageResponse = {
-    success: false,
-    error: "Not submitted yet",
-  };
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  const [state, formAction] = useActionState(
-    async (
-      prevState: SendMessageResponse,
-      formData: FormData,
-    ): Promise<SendMessageResponse> => {
+  const sendMessageMutation = useMessageMutation({
+    onSuccess: (data) => {
+      formRef.current?.reset();
+      textareaRef.current?.focus();
+
+      onMessageSent?.(data.message);
+    },
+  });
+
+  const handleSubmit = useCallback(
+    (e: React.FormEvent<HTMLFormElement>) => {
+      e.preventDefault();
+
+      const formData = new FormData(e.currentTarget);
       const content = formData.get("content") as string;
 
-      if (!content?.trim()) {
-        return { success: false, error: "Message cannot be empty" };
+      const trimmedContent = content?.trim();
+      if (!trimmedContent) return;
+
+      if (trimmedContent.length > maxLength) {
+        return;
       }
 
-      console.log("📤 Sending message:", content.substring(0, 30) + "...");
-
-      const tempMessage: Message = {
-        id: Date.now(),
-        content: content.trim(),
-        senderCheckinId: senderCheckinId!,
-        createdAt: new Date().toISOString(),
-      };
-
-      // Optimistic update
-      queryClient.setQueryData(
-        ["messages", sessionId],
-        (oldMessages: Message[] = []) => {
-          console.log("✨ Adding optimistic message");
-          return [...oldMessages, tempMessage];
-        },
-      );
-
-      try {
-        const result = await submitMessage(prevState, formData);
-
-        if (result.success) {
-          console.log("✅ Message sent successfully");
-
-          formRef.current?.reset();
-
-          // ✅ WAIT for real-time event to add real message
-          // Remove optimistic after a short delay to allow real-time to catch up
-          setTimeout(() => {
-            queryClient.setQueryData(
-              ["messages", sessionId],
-              (oldMessages: Message[] = []) => {
-                console.log("🧹 Removing optimistic message");
-                return oldMessages.filter((msg) => msg.id !== tempMessage.id);
-              },
-            );
-          }, 1000); // ✅ Give real-time 1 second to deliver the real message
-
-          return { success: true, data: result.data };
-        } else {
-          console.error("❌ Message send failed:", result.error);
-
-          // Remove optimistic message immediately on error
-          queryClient.setQueryData(
-            ["messages", sessionId],
-            (oldMessages: Message[] = []) =>
-              oldMessages.filter((msg) => msg.id !== tempMessage.id),
-          );
-
-          return { success: false, error: result.error };
-        }
-      } catch (error) {
-        console.error("❌ Message send exception:", error);
-
-        queryClient.setQueryData(
-          ["messages", sessionId],
-          (oldMessages: Message[] = []) =>
-            oldMessages.filter((msg) => msg.id !== tempMessage.id),
-        );
-
-        return {
-          success: false,
-          error:
-            error instanceof Error ? error.message : "Failed to send message",
-        };
-      }
+      sendMessageMutation.mutate({
+        sessionId,
+        senderCheckinId,
+        content: trimmedContent,
+      });
     },
-    initialState,
+    [sendMessageMutation, sessionId, senderCheckinId, maxLength],
   );
 
+  // ✅ Auto-resize textarea
+  const handleTextareaChange = useCallback(
+    (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+      const textarea = e.target;
+      textarea.style.height = "auto";
+      textarea.style.height = `${textarea.scrollHeight}px`;
+    },
+    [],
+  );
+
+  // ✅ Keyboard shortcuts
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+      if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+        e.preventDefault();
+        handleSubmit(e as unknown as React.FormEvent<HTMLFormElement>);
+      }
+    },
+    [handleSubmit],
+  );
+
+  const isPending = sendMessageMutation.isPending;
+  const error = sendMessageMutation.error;
+
   return (
-    <form ref={formRef} action={formAction} className="flex gap-2">
-      <input type="hidden" name="sessionId" value={sessionId} />
-      <input type="hidden" name="senderCheckinId" value={senderCheckinId} />
+    <form
+      ref={formRef}
+      onSubmit={handleSubmit}
+      className={cn("flex flex-col gap-2", className)}
+      noValidate
+    >
+      <div className="flex items-end gap-2">
+        <div className="relative flex-1">
+          <Textarea
+            ref={textareaRef}
+            name="content"
+            placeholder={placeholder}
+            className={cn(
+              "max-h-32 min-h-[44px] resize-none transition-all",
+              error && "border-destructive focus-visible:ring-destructive",
+              "pr-12", // Space for character count
+            )}
+            disabled={disabled || isPending}
+            maxLength={maxLength}
+            onChange={handleTextareaChange}
+            onKeyDown={handleKeyDown}
+            aria-describedby={error ? "message-error" : undefined}
+            required
+          />
 
-      <Textarea
-        name="content"
-        placeholder="Say something friendly…"
-        className="flex-1"
-        rows={1}
-        disabled={isPending}
-        required
-      />
+          {/* Character count */}
+          <div className="text-muted-foreground pointer-events-none absolute right-2 bottom-2 text-xs">
+            <span
+              className={cn(
+                "transition-colors",
+                (textareaRef.current?.value?.length ?? 0) > maxLength * 0.9 &&
+                  "text-warning",
+                (textareaRef.current?.value?.length ?? 0) >= maxLength &&
+                  "text-destructive",
+              )}
+            >
+              {textareaRef.current?.value.length || 0}/{maxLength}
+            </span>
+          </div>
+        </div>
 
-      <Button type="submit" disabled={isPending}>
-        {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Send"}
-      </Button>
+        <Button
+          type="submit"
+          size="icon"
+          disabled={disabled || isPending}
+          className="shrink-0"
+          aria-label="Send message"
+        >
+          {isPending ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <Send className="h-4 w-4" />
+          )}
+        </Button>
+      </div>
 
-      {!state.success && state.error && state.error !== "Not submitted yet" && (
-        <p className="text-destructive text-xs">{state.error}</p>
+      {/* ✅ Typed error display */}
+      {error && (
+        <div
+          id="message-error"
+          className="text-destructive flex items-center gap-2 text-sm"
+          role="alert"
+        >
+          <AlertCircle className="h-4 w-4 shrink-0" />
+          <span>{error.message}</span>
+        </div>
+      )}
+
+      {/* Success feedback */}
+      {sendMessageMutation.isSuccess && (
+        <div className="flex items-center gap-2 text-sm text-green-600">
+          <div className="flex h-4 w-4 items-center justify-center rounded-full bg-green-600">
+            <div className="h-2 w-2 rounded-full bg-white" />
+          </div>
+          Message sent
+        </div>
       )}
     </form>
   );
