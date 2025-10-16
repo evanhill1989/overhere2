@@ -42,14 +42,6 @@ export function useRealtimeCheckins(placeId: PlaceId | null) {
     refetchOnMount: false,
   });
 
-  console.log("🔍 [useRealtimeCheckins] Query state:", {
-    isLoading: query.isLoading,
-    isError: query.isError,
-    error: query.error?.message,
-    data: query.data,
-    enabled: !!placeId,
-  });
-
   // 2. Real-time subscription
   useEffect(() => {
     if (!placeId) return;

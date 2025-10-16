@@ -1,149 +1,126 @@
-// src/hooks/useRealtimeMessages.ts (UPDATE)
-import { useEffect, useRef } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+// src/hooks/realtime-hooks/useRealtimeMessages.ts
+import { useState, useEffect, useRef } from "react";
 import { createClient } from "@/utils/supabase/client";
-import { Message } from "@/lib/types/database";
-import type { RealtimeChannel } from "@supabase/supabase-js";
-// Fetch messages function
-async function fetchMessages(sessionId: string): Promise<Message[]> {
-  console.log(`📥 Fetching messages for session: ${sessionId}`);
-  const supabase = createClient();
-
-  const { data, error } = await supabase
-    .from("messages")
-    .select("*")
-    .eq("session_id", sessionId)
-    .order("created_at", { ascending: true });
-
-  if (error) {
-    throw new Error(`Failed to fetch messages: ${error.message}`);
-  }
-
-  const messages = (data || []).map((msg) => ({
-    id: msg.id,
-    sessionId: msg.session_id,
-    content: msg.content,
-    senderCheckinId: msg.sender_checkin_id,
-    createdAt: msg.created_at,
-    deliveredAt: msg.delivered_at,
-    readAt: msg.read_at,
-  }));
-
-  console.log(`✅ Fetched ${messages.length} messages`);
-  return messages;
-}
+import type { Message } from "@/lib/types/database";
 
 export function useRealtimeMessages(sessionId: string) {
-  const queryClient = useQueryClient();
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const supabase = createClient();
-  const channelRef = useRef<RealtimeChannel | null>(null);
-  const subscriptionReadyRef = useRef(false);
+  const channelRef = useRef<any>(null);
 
-  console.log(
-    `🎬 useRealtimeMessages hook initialized for session: ${sessionId}`,
-  );
-
-  // 1. React Query for initial fetch + caching
-  const query = useQuery({
-    queryKey: ["messages", sessionId],
-    queryFn: () => fetchMessages(sessionId),
-    enabled: !!sessionId,
-    staleTime: Infinity, // ✅ Never auto-refetch - real-time handles updates
-    refetchOnWindowFocus: false,
-    refetchInterval: false,
-    refetchOnMount: false, // ✅ Only fetch once
-  });
-
-  // 2. Real-time subscription for live updates
   useEffect(() => {
     if (!sessionId) {
-      console.log("⚠️ No sessionId, skipping real-time setup");
+      setMessages([]);
+      setIsLoading(false);
       return;
     }
 
-    // Clean up existing channel
-    if (channelRef.current) {
-      console.log("🧹 Cleaning up existing message channel");
-      supabase.removeChannel(channelRef.current);
-      channelRef.current = null;
-      subscriptionReadyRef.current = false;
-    }
+    console.log("🎬 Setting up messages for session:", sessionId);
 
-    console.log(
-      `📡 Setting up real-time for messages in session: ${sessionId}`,
-    );
-    const channel = supabase
-      .channel(`messages-${sessionId}-${Date.now()}`) // Unique channel
-      .on(
-        "postgres_changes",
-        {
-          event: "INSERT",
-          schema: "public",
-          table: "messages",
-          filter: `session_id=eq.${sessionId}`,
-        },
-        (payload) => {
-          console.log("🔔 Real-time INSERT event received:", payload);
+    // 1. Fetch initial messages
+    const fetchInitialMessages = async () => {
+      try {
+        setIsLoading(true);
+        setError(null);
 
-          if (!subscriptionReadyRef.current) {
-            console.warn("⚠️ Subscription not ready, buffering message");
-            return;
-          }
+        const { data, error: fetchError } = await supabase
+          .from("messages")
+          .select("*")
+          .eq("session_id", sessionId)
+          .order("created_at", { ascending: true });
 
-          const rawMessage = payload.new;
-          const formattedMessage: Message = {
-            id: rawMessage.id,
-            sessionId: rawMessage.session_id,
-            content: rawMessage.content,
-            senderCheckinId: rawMessage.sender_checkin_id,
-            createdAt: rawMessage.created_at,
-          };
+        if (fetchError) throw fetchError;
 
-          console.log("💬 Processing message:", {
-            id: formattedMessage.id,
-            sender: formattedMessage.senderCheckinId,
-            preview: formattedMessage.content.substring(0, 30),
-          });
+        // Convert to domain types
+        const formattedMessages: Message[] = (data || []).map((msg) => ({
+          id: msg.id,
+          sessionId: msg.session_id,
+          content: msg.content,
+          senderCheckinId: msg.sender_checkin_id,
+          createdAt: new Date(msg.created_at),
+          deliveredAt: msg.delivered_at
+            ? new Date(msg.delivered_at)
+            : undefined,
+          readAt: msg.read_at ? new Date(msg.read_at) : undefined,
+        }));
 
-          queryClient.setQueryData(
-            ["messages", sessionId],
-            (oldMessages: Message[] = []) => {
-              if (oldMessages.some((msg) => msg.id === formattedMessage.id)) {
-                console.log("⚠️ Duplicate message detected, skipping");
-                return oldMessages;
-              }
-              console.log("✅ Adding message to cache");
-              return [...oldMessages, formattedMessage];
-            },
-          );
-        },
-      )
-      .subscribe((status) => {
-        if (status === "SUBSCRIBED") {
-          console.log("✅ Successfully subscribed to messages real-time");
-        } else if (status === "CHANNEL_ERROR") {
-          console.error("❌ Messages subscription error");
-          subscriptionReadyRef.current = false;
-        } else if (status === "TIMED_OUT") {
-          console.warn("⏱️ Messages subscription timed out");
-          subscriptionReadyRef.current = false;
-        } else if (status === "CLOSED") {
-          console.log("🔌 Messages subscription closed");
-          subscriptionReadyRef.current = false;
-        }
-      });
-
-    channelRef.current = channel;
-
-    return () => {
-      if (channelRef.current) {
-        console.log(`🔌 Unsubscribing from messages for session ${sessionId}`);
-        supabase.removeChannel(channelRef.current);
-        channelRef.current = null;
-        subscriptionReadyRef.current = false;
+        setMessages(formattedMessages);
+        console.log("✅ Loaded", formattedMessages.length, "messages");
+      } catch (err) {
+        console.error("❌ Failed to fetch messages:", err);
+        setError(
+          err instanceof Error ? err.message : "Failed to load messages",
+        );
+      } finally {
+        setIsLoading(false);
       }
     };
-  }, [sessionId, queryClient, supabase]);
-  console.log(`📊 Current message count: ${query.data?.length || 0}`);
-  return query.data || [];
+
+    // 2. Set up real-time subscription
+    const setupRealtimeSubscription = () => {
+      // Clean up existing channel
+      if (channelRef.current) {
+        supabase.removeChannel(channelRef.current);
+      }
+
+      const channel = supabase
+        .channel(`messages-${sessionId}`)
+        .on(
+          "postgres_changes",
+          {
+            event: "INSERT",
+            schema: "public",
+            table: "messages",
+            filter: `session_id=eq.${sessionId}`,
+          },
+          (payload) => {
+            console.log("🔔 New message received:", payload.new);
+
+            const newMessage: Message = {
+              id: payload.new.id,
+              sessionId: payload.new.session_id,
+              content: payload.new.content,
+              senderCheckinId: payload.new.sender_checkin_id,
+              createdAt: new Date(payload.new.created_at),
+              deliveredAt: payload.new.delivered_at
+                ? new Date(payload.new.delivered_at)
+                : undefined,
+              readAt: payload.new.read_at
+                ? new Date(payload.new.read_at)
+                : undefined,
+            };
+
+            setMessages((prev) => {
+              // Avoid duplicates
+              if (prev.some((msg) => msg.id === newMessage.id)) {
+                return prev;
+              }
+              return [...prev, newMessage];
+            });
+          },
+        )
+        .subscribe((status) => {
+          console.log("📡 Subscription status:", status);
+        });
+
+      channelRef.current = channel;
+    };
+
+    // Execute setup
+    fetchInitialMessages();
+    setupRealtimeSubscription();
+
+    // Cleanup
+    return () => {
+      if (channelRef.current) {
+        console.log("🔌 Cleaning up message subscription");
+        supabase.removeChannel(channelRef.current);
+        channelRef.current = null;
+      }
+    };
+  }, [sessionId, supabase]);
+
+  return { messages, isLoading, error };
 }
