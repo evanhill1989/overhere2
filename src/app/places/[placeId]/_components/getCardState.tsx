@@ -6,6 +6,7 @@ import type {
   MessageSession, // ✅ Import MessageSession
   UserId,
   PlaceId,
+  RequestId,
 } from "@/lib/types/database";
 
 type IconType = "pulse" | "wave" | "message" | null;
@@ -25,11 +26,13 @@ export type CardStateProps = {
   checkin: Checkin;
   placeId: PlaceId;
   requests: MessageRequest[];
-  // ✅ Changed from boolean 'hasActiveSession' to the optional object 'activeSession'
   activeSession?: MessageSession;
   isRequestPending: boolean;
   onSendRequest: () => void;
   onResumeSession?: () => void;
+  // ✅ Add these with proper types
+  onAcceptRequest?: (requestId: RequestId) => void;
+  onRejectRequest?: (requestId: RequestId) => void;
 };
 
 export function getCardState({
@@ -41,9 +44,11 @@ export function getCardState({
   isRequestPending,
   onSendRequest,
   onResumeSession,
+  onAcceptRequest,
+  onRejectRequest,
 }: CardStateProps): CardState {
   const checkinUserId = checkin.userId;
-
+  console.log(onRejectRequest);
   // Find incoming request from the other user to the current user
   const theirRequestToMe = requests.find(
     (r) =>
@@ -82,10 +87,11 @@ export function getCardState({
   // ## Incoming Request State
   if (theirRequestToMe?.status === "pending") {
     return {
-      text: "Wants to chat",
+      text: "Accept Chat",
       variant: "secondary",
-      disabled: true,
+      disabled: false,
       icon: "pulse",
+      onClick: () => onAcceptRequest?.(theirRequestToMe.id),
       className: "border-green-200 bg-green-50",
     };
   }

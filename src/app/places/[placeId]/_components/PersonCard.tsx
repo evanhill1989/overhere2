@@ -11,6 +11,7 @@ import type {
   MessageSession, // ✅ Proper MessageSession type
   UserId,
   PlaceId,
+  RequestId,
 } from "@/lib/types/database";
 import { getCardState, CardStateProps } from "./getCardState"; // ✅ Import CardStateProps and getCardState
 
@@ -32,6 +33,9 @@ type PersonCardProps = {
   onSendRequest: () => void;
   onResumeSession?: () => void;
   isRequestPending: boolean;
+  // ✅ Properly typed handlers
+  onAcceptRequest: (requestId: RequestId) => void;
+  onRejectRequest: (requestId: RequestId) => void;
 };
 
 export default function PersonCard({
@@ -43,6 +47,8 @@ export default function PersonCard({
   onSendRequest,
   onResumeSession,
   isRequestPending,
+  onAcceptRequest,
+  onRejectRequest,
 }: PersonCardProps) {
   // Determine if the current card's user is a participant in the active session
   const isInActiveSession =
@@ -60,6 +66,8 @@ export default function PersonCard({
     onSendRequest,
     onResumeSession,
     isRequestPending,
+    onAcceptRequest,
+    onRejectRequest,
   };
 
   const cardState = getCardState(getCardStatePropsObj);

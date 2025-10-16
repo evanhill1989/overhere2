@@ -14,6 +14,7 @@ import type {
   PlaceId,
 } from "@/lib/types/database";
 import PersonCard from "./PersonCard";
+import { useMessageRequestResponse } from "@/hooks/useMessageRequestResponse";
 
 type PlaceDetailsProps = {
   place: { id: PlaceId; name: string; address: string };
@@ -39,6 +40,19 @@ export function PlaceDetails({
   const { requests } = useRealtimeMessageRequests(currentUserId, place.id);
   const sendRequestMutation = useMessageRequestMutation();
 
+  const {
+    acceptRequest,
+    rejectRequest,
+    isPending: isResponsePending,
+  } = useMessageRequestResponse({
+    onSuccess: (message) => {
+      console.log("Request response successful:", message);
+      console.log(isResponsePending);
+    },
+    onError: (error) => {
+      console.error("Request response failed:", error);
+    },
+  });
   // Handle sending requests (this stays in PlaceDetails per current pattern)
   const handleSendRequest = async (targetUserId: UserId) => {
     try {
@@ -132,6 +146,8 @@ export function PlaceDetails({
             onSendRequest={() => handleSendRequest(checkin.userId)}
             onResumeSession={onResumeSession}
             isRequestPending={sendRequestMutation.isPending}
+            onAcceptRequest={acceptRequest}
+            onRejectRequest={rejectRequest}
           />
         ))}
       </div>

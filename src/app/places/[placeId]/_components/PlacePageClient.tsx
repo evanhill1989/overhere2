@@ -71,6 +71,11 @@ export function PlacePageClient({
     error: realtimeError,
   } = useRealtimeCheckins(placeId);
 
+  // Add this debug effect
+  useEffect(() => {
+    console.log("🔄 Checkins data updated in PlacePageClient:", checkins);
+  }, [checkins]);
+
   const {
     data: session,
     isLoading: sessionLoading,

@@ -112,6 +112,10 @@ export function useRealtimeCheckins(placeId: PlaceId | null) {
               }
             },
           );
+
+          queryClient.invalidateQueries({
+            queryKey: ["checkins", placeId],
+          });
         },
       )
       .subscribe();
