@@ -1,7 +1,7 @@
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { getCardState } from "./getCardState";
-import { StatusIcon } from "./StatusIcon";
+import { getCardState } from "../getCardState";
+import { StatusIcon } from "../StatusIcon";
 import { Checkin, MessageRequest, PlaceId, UserId } from "@/lib/types/database";
 
 // type only used here
