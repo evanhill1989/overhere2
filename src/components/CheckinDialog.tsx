@@ -53,6 +53,14 @@ export default function CheckinDialog({
       try {
         await checkIn(formData);
 
+        console.log(
+          "✅ Check-in completed, waiting for database consistency...",
+        );
+        await new Promise((resolve) => setTimeout(resolve, 2000)); // 2 second delay
+
+        console.log("🚀 Navigating to place page...");
+        router.push(`/places/${place.id}`);
+
         router.push(`/places/${place.id}`);
       } catch (error) {
         console.error("Check-in failed:", error);

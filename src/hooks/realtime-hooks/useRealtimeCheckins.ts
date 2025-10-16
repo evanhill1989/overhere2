@@ -20,15 +20,34 @@ export function useRealtimeCheckins(placeId: PlaceId | null) {
   const queryClient = useQueryClient();
   const channelRef = useRef<RealtimeChannel | null>(null);
 
+  console.log("🔍 [useRealtimeCheckins] Called with:", {
+    placeId,
+    placeIdType: typeof placeId,
+    enabled: !!placeId,
+  });
   // 1. Fetch initial data
   const query = useQuery<Checkin[], Error>({
     queryKey: ["checkins", placeId],
-    queryFn: () => fetchCheckins(placeId!),
+    queryFn: () => {
+      console.log(
+        "🔍 [useRealtimeCheckins] queryFn called with placeId:",
+        placeId,
+      );
+      return fetchCheckins(placeId!);
+    },
     enabled: !!placeId,
     staleTime: 30000,
     refetchInterval: false,
     refetchOnWindowFocus: false,
     refetchOnMount: false,
+  });
+
+  console.log("🔍 [useRealtimeCheckins] Query state:", {
+    isLoading: query.isLoading,
+    isError: query.isError,
+    error: query.error?.message,
+    data: query.data,
+    enabled: !!placeId,
   });
 
   // 2. Real-time subscription

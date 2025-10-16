@@ -44,6 +44,7 @@ export default function PlaceFinderUI() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [searchMode, setSearchMode] = useState(false);
 
+  //TODO does this await really do nothing?
   const handleSearchSubmit = async (formData: FormData) => {
     await searchFormAction(formData);
     setDrawerOpen(true);

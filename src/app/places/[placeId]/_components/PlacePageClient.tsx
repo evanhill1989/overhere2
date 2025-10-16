@@ -14,6 +14,7 @@ import { MessageErrorBoundary } from "@/components/error_boundaries/MessageError
 
 import type { UserId, PlaceId } from "@/lib/types/database";
 import { PlaceDetails } from "./PlaceDetails";
+import router from "next/router";
 
 type PlacePageClientProps = {
   placeId: PlaceId;
@@ -79,19 +80,27 @@ export function PlacePageClient({
   // ============================================
   // DERIVED STATE
   // ============================================
-  const currentUserCheckin = checkins.find((c) => c.userId === userId);
 
-  // Express our confidence in the system - this should never happen
-  if (!currentUserCheckin) {
-    throw new Error(
-      `Invariant violation: User ${userId} in messaging flow without active checkin`,
-    );
-  }
-  const currentCheckinId = currentUserCheckin.id;
+  const currentUserCheckin = checkins.find((c) => c.userId === userId);
+  const currentCheckinId = currentUserCheckin?.id;
+
+  // ✅ Don't show place content until we've verified the user's check-in
+  const userCheckinLoading =
+    realtimeLoading || (checkins.length > 0 && !currentUserCheckin);
+  const userHasActiveCheckin = !userCheckinLoading && !!currentUserCheckin;
 
   // Combined loading/error states
-  const isLoading = sessionLoading;
+  const isLoading = sessionLoading || userCheckinLoading; // ← Add userCheckinLoading
   const hasError = realtimeError || sessionError;
+
+  // ============================================
+  // RENDER STATES
+  // ============================================
+
+  // ✅ New security check: User must have active check-in to see place content
+
+  // Combined loading/error states
+
   const errorMessage =
     realtimeError?.message ||
     sessionError?.message ||
@@ -210,6 +219,34 @@ export function PlacePageClient({
   // ============================================
   // RENDER STATES
   // ============================================
+
+  if (isLoading) {
+    return (
+      <div className="flex min-h-[50vh] items-center justify-center">
+        <LoadingState
+          message={
+            userCheckinLoading
+              ? "Verifying your check-in..."
+              : "Loading place details..."
+          }
+        />
+      </div>
+    );
+  }
+
+  // ✅ New security check: User must have active check-in to see place content
+  if (!userHasActiveCheckin) {
+    return (
+      <div className="flex min-h-[50vh] items-center justify-center">
+        <ErrorState
+          title="Access Denied"
+          message="You must check in to this location to view its details."
+          onRetry={() => router.push("/")}
+        />
+      </div>
+    );
+  }
+
   if (isLoading) {
     return (
       <div className="flex min-h-[50vh] items-center justify-center">
@@ -252,11 +289,13 @@ export function PlacePageClient({
             windowState={messagingState}
             error={messagingError}
           >
-            <MessageInput
-              sessionId={session.id}
-              senderCheckinId={currentCheckinId}
-              onError={handleMessagingError}
-            />
+            {currentCheckinId && (
+              <MessageInput
+                sessionId={session.id}
+                senderCheckinId={currentCheckinId}
+                onError={handleMessagingError}
+              />
+            )}
           </EphemeralSessionWindow>
         </div>
       </MessageErrorBoundary>
