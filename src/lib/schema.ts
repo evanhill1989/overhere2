@@ -1,4 +1,4 @@
-// db/schema.ts
+// src/lib/schema.ts
 import { eq } from "drizzle-orm";
 import {
   pgTable,

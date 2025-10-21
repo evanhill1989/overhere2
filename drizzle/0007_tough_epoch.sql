@@ -1,1 +1,0 @@
-ALTER TABLE "places" ADD COLUMN "generative_summary" text;

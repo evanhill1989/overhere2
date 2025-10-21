@@ -264,6 +264,20 @@ export async function checkIn(
   const userId = userIdSchema.parse(user.id);
   console.log("🔐 Check-in request from user:", userId);
 
+  console.log("🔍 Debug auth state:", {
+    userId: user.id,
+    role: user.role,
+    authUid: user.id, // This should match what auth.uid() returns in policies
+  });
+
+  // Test a simple query to see if basic permissions work
+  const { data: testQuery, error: testError } = await supabase
+    .from("checkins")
+    .select("id")
+    .limit(1);
+
+  console.log("🔍 Test query result:", { testQuery, testError });
+
   // Ensure user exists in database
   await ensureUserInDb(user);
 
