@@ -56,7 +56,7 @@ export function useRealtimeMessageRequests(
     }
 
     const channel = supabase
-      .channel(`message-requests-${placeId}-${userId}-${Date.now()}`)
+      .channel(`message-requests-${placeId}-${userId}`)
       .on(
         "postgres_changes",
         {

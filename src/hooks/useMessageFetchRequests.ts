@@ -62,7 +62,7 @@ export function useMessageFetchRequests(userId: string | null) {
     }
 
     const channel = supabase
-      .channel(`message-requests-${userId}-${Date.now()}`) // Unique channel name
+      .channel(`message-requests-${userId}`) // Unique channel name
       .on(
         "postgres_changes",
         {

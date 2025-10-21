@@ -55,7 +55,7 @@ export function useRealtimeCheckins(placeId: PlaceId | null) {
     }
 
     const channel = supabase
-      .channel(`checkins-${placeId}-${Date.now()}`)
+      .channel(`checkins-${placeId}`)
       .on(
         "postgres_changes",
         {

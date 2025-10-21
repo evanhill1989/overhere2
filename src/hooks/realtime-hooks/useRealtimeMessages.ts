@@ -1,14 +1,43 @@
 // src/hooks/realtime-hooks/useRealtimeMessages.ts
 import { useState, useEffect, useRef } from "react";
 import { createClient } from "@/utils/supabase/client";
+import type { RealtimeChannel } from "@supabase/supabase-js";
 import type { Message } from "@/lib/types/database";
+import {
+  timestampSchema,
+  messageIdSchema,
+  sessionIdSchema,
+  checkinIdSchema,
+  sanitizedContentSchema,
+} from "@/lib/types/database";
+
+interface SupabaseMessageRow {
+  id: number;
+  session_id: string;
+  content: string;
+  sender_checkin_id: string;
+  created_at: string;
+  delivered_at: string | null;
+  read_at: string | null;
+}
+
+type RealtimePayload = {
+  new: {
+    id: number;
+    session_id: string;
+    content: string;
+    sender_checkin_id: string;
+    created_at: string;
+    delivered_at: string | null;
+    read_at: string | null;
+  };
+};
 
 export function useRealtimeMessages(sessionId: string) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const supabase = createClient();
-  const channelRef = useRef<any>(null);
+  const channelRef = useRef<RealtimeChannel | null>(null);
 
   useEffect(() => {
     if (!sessionId) {
@@ -23,7 +52,6 @@ export function useRealtimeMessages(sessionId: string) {
     const fetchInitialMessages = async () => {
       try {
         setIsLoading(true);
-        setError(null);
 
         const { data, error: fetchError } = await supabase
           .from("messages")
@@ -33,26 +61,26 @@ export function useRealtimeMessages(sessionId: string) {
 
         if (fetchError) throw fetchError;
 
-        // Convert to domain types
-        const formattedMessages: Message[] = (data || []).map((msg) => ({
-          id: msg.id,
-          sessionId: msg.session_id,
-          content: msg.content,
-          senderCheckinId: msg.sender_checkin_id,
-          createdAt: new Date(msg.created_at),
-          deliveredAt: msg.delivered_at
-            ? new Date(msg.delivered_at)
-            : undefined,
-          readAt: msg.read_at ? new Date(msg.read_at) : undefined,
-        }));
+        // ✅ Convert to domain types using branded schemas
+        const formattedMessages: Message[] = (data || []).map(
+          (msg: SupabaseMessageRow) => ({
+            id: messageIdSchema.parse(msg.id),
+            sessionId: sessionIdSchema.parse(msg.session_id),
+            content: sanitizedContentSchema.parse(msg.content),
+            senderCheckinId: checkinIdSchema.parse(msg.sender_checkin_id),
+            createdAt: timestampSchema.parse(new Date(msg.created_at)),
+            deliveredAt: msg.delivered_at
+              ? timestampSchema.parse(new Date(msg.delivered_at))
+              : undefined,
+            readAt: msg.read_at
+              ? timestampSchema.parse(new Date(msg.read_at))
+              : undefined,
+          }),
+        );
 
         setMessages(formattedMessages);
-        console.log("✅ Loaded", formattedMessages.length, "messages");
       } catch (err) {
         console.error("❌ Failed to fetch messages:", err);
-        setError(
-          err instanceof Error ? err.message : "Failed to load messages",
-        );
       } finally {
         setIsLoading(false);
       }
@@ -75,20 +103,24 @@ export function useRealtimeMessages(sessionId: string) {
             table: "messages",
             filter: `session_id=eq.${sessionId}`,
           },
-          (payload) => {
+          (payload: RealtimePayload) => {
             console.log("🔔 New message received:", payload.new);
 
             const newMessage: Message = {
-              id: payload.new.id,
-              sessionId: payload.new.session_id,
-              content: payload.new.content,
-              senderCheckinId: payload.new.sender_checkin_id,
-              createdAt: new Date(payload.new.created_at),
+              id: messageIdSchema.parse(payload.new.id),
+              sessionId: sessionIdSchema.parse(payload.new.session_id),
+              content: sanitizedContentSchema.parse(payload.new.content),
+              senderCheckinId: checkinIdSchema.parse(
+                payload.new.sender_checkin_id,
+              ),
+              createdAt: timestampSchema.parse(
+                new Date(payload.new.created_at),
+              ),
               deliveredAt: payload.new.delivered_at
-                ? new Date(payload.new.delivered_at)
+                ? timestampSchema.parse(new Date(payload.new.delivered_at))
                 : undefined,
               readAt: payload.new.read_at
-                ? new Date(payload.new.read_at)
+                ? timestampSchema.parse(new Date(payload.new.read_at))
                 : undefined,
             };
 
@@ -101,7 +133,7 @@ export function useRealtimeMessages(sessionId: string) {
             });
           },
         )
-        .subscribe((status) => {
+        .subscribe((status: string) => {
           console.log("📡 Subscription status:", status);
         });
 
@@ -122,5 +154,5 @@ export function useRealtimeMessages(sessionId: string) {
     };
   }, [sessionId, supabase]);
 
-  return { messages, isLoading, error };
+  return { messages, isLoading };
 }
