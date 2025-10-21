@@ -21,7 +21,7 @@ export function SimpleMessagingWindow({
   placeName,
   onClose,
 }: SimpleMessagingWindowProps) {
-  const { messages, isLoading, error } = useRealtimeMessages(sessionId);
+  const { messages, isLoading } = useRealtimeMessages(sessionId);
   const [newMessage, setNewMessage] = useState("");
   const [isSending, setIsSending] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -81,11 +81,7 @@ export function SimpleMessagingWindow({
           </div>
         )}
 
-        {error && (
-          <div className="text-center text-sm text-red-500">Error: {error}</div>
-        )}
-
-        {!isLoading && !error && messages.length === 0 && (
+        {!isLoading && messages.length === 0 && (
           <div className="text-center text-sm text-gray-500">
             No messages yet. Start the conversation! 👋
           </div>

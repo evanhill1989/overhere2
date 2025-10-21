@@ -183,6 +183,10 @@ export type ApiCheckin = {
   checkedOutAt: string | null;
 };
 
+// export type DatabaseMessage = {
+
+// }
+
 // ============================================
 // FORM INPUT SCHEMAS (for server actions)
 // ============================================
