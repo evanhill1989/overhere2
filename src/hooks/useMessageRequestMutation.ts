@@ -59,13 +59,13 @@ export function useMessageRequestMutation() {
       }
     },
     onSuccess: (data, variables) => {
-      console.log("✅ Message request sent successfully");
+      console.log("✅ Message request sent successfully (Mutation)");
 
-      // ✅ Update both sender and receiver caches
-      queryClient.invalidateQueries({
+      queryClient.refetchQueries({
         queryKey: ["messageRequests", variables.initiatorId],
       });
-      queryClient.invalidateQueries({
+
+      queryClient.refetchQueries({
         queryKey: ["messageRequests", variables.initiateeId],
       });
     },

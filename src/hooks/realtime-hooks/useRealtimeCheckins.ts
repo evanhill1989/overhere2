@@ -104,13 +104,18 @@ export function useRealtimeCheckins(placeId: PlaceId | null) {
               }
             },
           );
-
-          queryClient.invalidateQueries({
-            queryKey: ["checkins", placeId],
-          });
         },
       )
-      .subscribe();
+      .subscribe((status) => {
+        // 💡 ADD status callback here
+        if (status === "SUBSCRIBED") {
+          console.log("✅ Subscribed to checkins real-time");
+          // 💡 FIX: Force a refetch on successful subscription to cover the initial data load gap.
+          queryClient.refetchQueries({
+            queryKey: ["checkins", placeId],
+          });
+        }
+      });
 
     channelRef.current = channel;
 

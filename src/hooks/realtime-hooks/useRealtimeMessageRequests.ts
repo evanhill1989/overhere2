@@ -70,16 +70,15 @@ export function useRealtimeMessageRequests(
             "🔔 Real-time message request update:",
             payload.eventType,
           );
-
-          // Simple approach: refetch through API route
-          queryClient.invalidateQueries({
-            queryKey: ["messageRequests", userId, placeId],
-          });
         },
       )
-      .subscribe((status) => {
+      .subscribe(async (status) => {
         if (status === "SUBSCRIBED") {
           console.log("✅ Subscribed to message requests real-time");
+          await new Promise((r) => setTimeout(r, 550));
+          queryClient.refetchQueries({
+            queryKey: ["messageRequests", userId, placeId],
+          });
         } else if (status === "CHANNEL_ERROR") {
           console.error("❌ Message requests subscription error");
         }

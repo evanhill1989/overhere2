@@ -120,6 +120,12 @@ export function useRealtimeMessageSession(
 
     const supabase = createClient();
 
+    console.log(
+      "⏱️ Realtime session subscription started for",
+      placeId,
+      userId,
+    );
+
     // Clean up existing channel
     if (channelRef.current) {
       console.log("🧹 Cleaning up existing session channel");
@@ -200,9 +206,19 @@ export function useRealtimeMessageSession(
           }
         },
       )
-      .subscribe((status) => {
+      .subscribe(async (status) => {
+        console.log(" 📡📡📡📡📡 Channel status:", status);
+
         if (status === "SUBSCRIBED") {
-          console.log("✅ Subscribed to message session real-time");
+          await new Promise((r) => setTimeout(r, 550));
+          // FIX 1: Force a refetch of the session data.
+          queryClient.refetchQueries({
+            queryKey: ["messageSession", userId, placeId],
+          });
+
+          queryClient.refetchQueries({
+            queryKey: ["messageRequests", userId, placeId],
+          });
         } else if (status === "CHANNEL_ERROR") {
           console.error("❌ Message session subscription error");
         } else if (status === "TIMED_OUT") {
