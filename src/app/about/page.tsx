@@ -1,9 +1,5 @@
 import React from "react";
 
-// Define an interface or type for your props (empty for now)
-// interface AboutPageProps {} // Use if props are needed later
-
-// Type the function directly
 export default function AboutPage() {
   return (
     <main className="container mx-auto px-4 py-12 md:py-16 lg:py-20">

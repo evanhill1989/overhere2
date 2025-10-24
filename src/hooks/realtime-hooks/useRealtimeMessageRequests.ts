@@ -63,7 +63,6 @@ export function useRealtimeMessageRequests(
           event: "*",
           schema: "public",
           table: "message_session_requests",
-          filter: `place_id=eq.${placeId}`,
         },
         (payload) => {
           console.log(

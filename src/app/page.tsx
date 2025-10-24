@@ -20,11 +20,11 @@ export default function HomePage() {
         <h1 className="text-4xl font-extrabold tracking-tight sm:text-5xl">
           Meet people,
           <br />
-          not&nbsp;profiles.
+          not&nbsp;usernames.
         </h1>
         <p className="text-muted-foreground text-lg leading-relaxed">
-          Overhere helps you connect spontaneously with people nearby — no
-          profiles, no pressure.
+          Spontaneous conversation with people where you are — no profiles, no
+          pressure.
         </p>
         <Link href="/auth/login">
           <Button size="lg" className="w-full text-lg">
