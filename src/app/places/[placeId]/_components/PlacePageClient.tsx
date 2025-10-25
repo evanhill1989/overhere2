@@ -13,6 +13,7 @@ import type { UserId, PlaceId } from "@/lib/types/database";
 import { PlaceDetails } from "./PlaceDetails";
 import router from "next/router";
 import { SimpleMessagingWindow } from "./SimpleMessagingWindow";
+import { RealtimeDebugger } from "./RealtimeDebugger";
 
 type PlacePageClientProps = {
   placeId: PlaceId;
@@ -192,6 +193,7 @@ export function PlacePageClient({
         messagingState={messagingState}
         hasActiveSession={!!session}
       />
+      {/* <RealtimeDebugger userId={userId} placeId={placeInfo.id} /> */}
 
       {/* Simple Messaging Window */}
       {session && currentCheckinId && messagingState === "active" && (

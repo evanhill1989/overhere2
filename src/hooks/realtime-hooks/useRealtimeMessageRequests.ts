@@ -68,6 +68,11 @@ export function useRealtimeMessageRequests(
         },
         (payload) => {
           console.log("Real-time message request update:", payload.eventType);
+          console.log(
+            `🔔 [UserB] Real-time event received:`,
+            payload.eventType,
+            payload,
+          );
 
           // Actually handle the event instead of just logging
           queryClient.setQueryData<MessageRequestWithTopic[]>(
@@ -129,7 +134,7 @@ export function useRealtimeMessageRequests(
     channelRef.current = channel; // This creates a strict sequence: Component mounts -> Start listening -> Fetch data.
     // This fetch is the one that pulls in existing requests and updates UserB's UI.
     // 🛑 FIX 3: Force the refetch AFTER the subscription has been initiated.
-    queryClient.refetchQueries({ queryKey });
+    // queryClient.refetchQueries({ queryKey });
 
     return () => {
       if (channelRef.current) {

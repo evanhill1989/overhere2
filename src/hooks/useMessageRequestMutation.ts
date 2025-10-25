@@ -64,6 +64,7 @@ export function useMessageRequestMutation() {
       }
     },
     onSuccess: (data, variables, context) => {
+      console.log(`${new Date().toISOString()}`);
       console.log("✅ Message request sent successfully (Mutation)");
       if (context?.initiatorKey && context.initiateeKey) {
         // 3. REFETCH/INVALIDATE the keys for BOTH users to get the true server state
