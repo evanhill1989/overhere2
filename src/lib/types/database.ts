@@ -274,6 +274,11 @@ export type CreateMessage = Omit<
 export type CreateFailedRequest = Omit<FailedRequest, "id" | "createdAt">;
 
 // ============================================
+// Query Keys
+// ============================================
+export type MessageRequestsQueryKey = ["messageRequests", UserId, PlaceId];
+
+// ============================================
 // RE-EXPORTS
 // ============================================
 

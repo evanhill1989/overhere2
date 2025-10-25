@@ -40,7 +40,7 @@ export function useRealtimeMessageRequests(
     staleTime: 30000,
     refetchInterval: false,
     refetchOnWindowFocus: false,
-    refetchOnMount: false,
+    refetchOnMount: true,
   });
 
   // 2. Real-time updates trigger API refetch
@@ -48,6 +48,7 @@ export function useRealtimeMessageRequests(
     if (!userId || !placeId) return;
 
     const supabase = createClient();
+    const queryKey = ["messageRequests", userId, placeId];
 
     if (channelRef.current) {
       console.log("🧹 Cleaning up existing requests channel");
@@ -63,27 +64,72 @@ export function useRealtimeMessageRequests(
           event: "*",
           schema: "public",
           table: "message_session_requests",
+          filter: `place_id=eq.${placeId}`,
         },
         (payload) => {
-          console.log(
-            "🔔 Real-time message request update:",
-            payload.eventType,
+          console.log("Real-time message request update:", payload.eventType);
+
+          // Actually handle the event instead of just logging
+          queryClient.setQueryData<MessageRequestWithTopic[]>(
+            ["messageRequests", userId, placeId],
+            (old = []) => {
+              if (payload.eventType === "INSERT" && payload.new) {
+                const rawRequest = payload.new as any;
+                const newRequest: MessageRequestWithTopic = {
+                  id: rawRequest.id,
+                  initiatorId: rawRequest.initiator_id,
+                  initiateeId: rawRequest.initiatee_id,
+                  placeId: rawRequest.place_id,
+                  status: rawRequest.status,
+                  createdAt: rawRequest.created_at,
+                  respondedAt: rawRequest.responded_at,
+                  topic: null, // or map from rawRequest if available
+                };
+
+                // Prevent duplicates
+                if (old.some((r) => r.id === newRequest.id)) {
+                  return old;
+                }
+
+                return [newRequest, ...old];
+              }
+
+              if (payload.eventType === "UPDATE" && payload.new) {
+                const rawRequest = payload.new as any;
+                return old.map((r) =>
+                  r.id === rawRequest.id
+                    ? {
+                        ...r,
+                        status: rawRequest.status,
+                        respondedAt: rawRequest.responded_at,
+                      }
+                    : r,
+                );
+              }
+
+              if (payload.eventType === "DELETE" && payload.old) {
+                const deletedId = payload.old.id;
+                return old.filter((r) => r.id !== deletedId);
+              }
+
+              return old;
+            },
           );
         },
       )
-      .subscribe(async (status) => {
+      .subscribe((status) => {
+        // NOTE: Removed 'async' from the callback
         if (status === "SUBSCRIBED") {
-          console.log("✅ Subscribed to message requests real-time");
-          await new Promise((r) => setTimeout(r, 550));
-          queryClient.refetchQueries({
-            queryKey: ["messageRequests", userId, placeId],
-          });
+          console.log("✅ Subscribed to message requests real-time"); // 🛑 FIX: REMOVE THE TIMEOUT. Refetch immediately to get current data.
         } else if (status === "CHANNEL_ERROR") {
           console.error("❌ Message requests subscription error");
         }
       });
 
-    channelRef.current = channel;
+    channelRef.current = channel; // This creates a strict sequence: Component mounts -> Start listening -> Fetch data.
+    // This fetch is the one that pulls in existing requests and updates UserB's UI.
+    // 🛑 FIX 3: Force the refetch AFTER the subscription has been initiated.
+    queryClient.refetchQueries({ queryKey });
 
     return () => {
       if (channelRef.current) {
