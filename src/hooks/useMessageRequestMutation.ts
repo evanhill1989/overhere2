@@ -72,6 +72,15 @@ export function useMessageRequestMutation() {
         queryClient.refetchQueries({ queryKey: context.initiatorKey }); // Initiatee (B) refreshes/invalidates (usually relies on Realtime, but this is a backup)
         queryClient.invalidateQueries({ queryKey: context.initiateeKey });
       }
+      setTimeout(() => {
+        queryClient.refetchQueries({
+          queryKey: [
+            "messageRequests",
+            variables.initiateeId,
+            variables.placeId,
+          ],
+        });
+      }, 2000);
     },
     onSettled: (data, error, variables, context) => {
       // 4. Final safety net invalidation for both.
