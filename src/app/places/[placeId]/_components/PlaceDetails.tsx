@@ -119,7 +119,12 @@ export function PlaceDetails({
       return 0;
     });
   }, [otherPeopleCheckins, requests, currentUserId, activeSession]);
-
+  console.log("🔍 PlaceDetails render:", {
+    checkinsCount: checkins.length,
+    sortedPeopleCount: sortedPeople.length,
+    activeSession: !!activeSession,
+    requests: requests?.length,
+  });
   if (sortedPeople.length === 0) {
     return (
       <section className="space-y-6">

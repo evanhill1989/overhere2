@@ -28,6 +28,51 @@ export function useRealtimeCheckins(
     placeIdType: typeof placeId,
     enabled: !!placeId && isPrimed,
   });
+
+  // 2. Real-time subscription
+  useEffect(() => {
+    if (!placeId) return;
+
+    const supabase = createClient();
+    const channel = supabase
+      .channel(`checkins-${placeId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "checkins",
+          filter: `place_id=eq.${placeId}`,
+        },
+        (payload) => {
+          // Handle updates immediately
+          console.log("🔔 Realtime checkin event:", payload.eventType);
+
+          // Force refetch to ensure consistency
+          queryClient.invalidateQueries({
+            queryKey: ["checkins", placeId],
+          });
+        },
+      )
+      .subscribe((status) => {
+        if (status === "SUBSCRIBED") {
+          console.log("✅ Checkins subscription ready");
+          // NOW fetch initial data after subscription is ready
+          queryClient.refetchQueries({
+            queryKey: ["checkins", placeId],
+          });
+        }
+      });
+
+    channelRef.current = channel;
+
+    return () => {
+      if (channelRef.current) {
+        supabase.removeChannel(channelRef.current);
+      }
+    };
+  }, [placeId, queryClient]); // Remove isPrimed dependency
+
   // 1. Fetch initial data
   const query = useQuery<Checkin[], Error>({
     queryKey: ["checkins", placeId],
@@ -44,91 +89,6 @@ export function useRealtimeCheckins(
     refetchOnWindowFocus: false,
     refetchOnMount: false,
   });
-
-  // 2. Real-time subscription
-  useEffect(() => {
-    if (!placeId || !isPrimed) return;
-
-    const supabase = createClient();
-
-    // Clean up existing channel
-    if (channelRef.current) {
-      supabase.removeChannel(channelRef.current);
-      channelRef.current = null;
-    }
-
-    const channel = supabase
-      .channel(`checkins-${placeId}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "checkins",
-          filter: `place_id=eq.${placeId}`,
-        },
-        (payload) => {
-          queryClient.setQueryData<Checkin[]>(
-            ["checkins", placeId],
-            (old = []) => {
-              try {
-                if (payload.eventType === "INSERT" && payload.new) {
-                  const newCheckin = mapCheckinToCamel(
-                    payload.new as DatabaseCheckin,
-                  );
-
-                  if (old.some((c) => c.id === newCheckin.id)) {
-                    return old;
-                  }
-
-                  return [...old, newCheckin];
-                }
-
-                if (payload.eventType === "UPDATE" && payload.new) {
-                  const updated = mapCheckinToCamel(
-                    payload.new as DatabaseCheckin,
-                  );
-
-                  return old.map((c) => (c.id === updated.id ? updated : c));
-                }
-
-                if (payload.eventType === "DELETE" && payload.old) {
-                  const deletedId = checkinIdSchema.parse(
-                    (payload.old as DatabaseCheckin).id,
-                  );
-
-                  return old.filter((c) => c.id !== deletedId);
-                }
-
-                return old;
-              } catch (error) {
-                console.error("Real-time update error:", error);
-                return old;
-              }
-            },
-          );
-        },
-      )
-      .subscribe((status) => {
-        // 💡 ADD status callback here
-        if (status === "SUBSCRIBED") {
-          console.log("✅ Subscribed to checkins real-time");
-          // 💡 FIX: Force a refetch on successful subscription to cover the initial data load gap.
-          queryClient.refetchQueries({
-            queryKey: ["checkins", placeId],
-          });
-        }
-      });
-
-    channelRef.current = channel;
-
-    return () => {
-      if (channelRef.current) {
-        supabase.removeChannel(channelRef.current);
-        channelRef.current = null;
-      }
-    };
-  }, [placeId, queryClient, isPrimed]);
 
   return query;
 }
