@@ -13,7 +13,6 @@ import type { UserId, PlaceId } from "@/lib/types/database";
 import { PlaceDetails } from "./PlaceDetails";
 import router from "next/router";
 import { SimpleMessagingWindow } from "./SimpleMessagingWindow";
-import { RealtimeDebugger } from "./RealtimeDebugger";
 
 type PlacePageClientProps = {
   placeId: PlaceId;
@@ -35,16 +34,7 @@ export function PlacePageClient({
 }: PlacePageClientProps) {
   // Track prop changes
   const prevProps = useRef({ placeId, userId, placeInfo });
-  if (
-    prevProps.current.placeId !== placeId ||
-    prevProps.current.userId !== userId ||
-    prevProps.current.placeInfo.name !== placeInfo.name
-  ) {
-    console.log("🔄 PlacePageClient props changed:", {
-      from: prevProps.current,
-      to: { placeId, userId, placeInfo },
-    });
-  }
+
   prevProps.current = { placeId, userId, placeInfo };
 
   // ============================================
@@ -52,6 +42,13 @@ export function PlacePageClient({
   // ============================================
   const [messagingState, setMessagingState] =
     useState<MessagingState>("hidden");
+
+  const {
+    data: session,
+    isLoading: sessionLoading,
+    error: sessionError,
+    //not realtime anymore
+  } = useRealtimeMessageSession(userId, placeId);
 
   // ============================================
   // REALTIME SUBSCRIPTIONS
@@ -61,17 +58,6 @@ export function PlacePageClient({
     isLoading: realtimeLoading,
     error: realtimeError,
   } = useRealtimeCheckins(placeId);
-
-  // Add this debug effect
-  useEffect(() => {
-    console.log("📄 Checkins data updated in PlacePageClient:", checkins);
-  }, [checkins]);
-
-  const {
-    data: session,
-    isLoading: sessionLoading,
-    error: sessionError,
-  } = useRealtimeMessageSession(userId, placeId);
 
   // ============================================
   // DERIVED STATE
@@ -111,6 +97,7 @@ export function PlacePageClient({
   // ============================================
   // SESSION CHANGE DETECTION & AUTO-MANAGEMENT
   // ============================================
+  // THIS ISN"T HAPPENING!
   useEffect(() => {
     if (session && !sessionLoading && messagingState === "hidden") {
       console.log("✅ Session available, auto-opening messaging interface");
@@ -196,7 +183,7 @@ export function PlacePageClient({
       {/* <RealtimeDebugger userId={userId} placeId={placeInfo.id} /> */}
 
       {/* Simple Messaging Window */}
-      {session && currentCheckinId && messagingState === "active" && (
+      {session && currentCheckinId && (
         <MessageErrorBoundary onReset={() => setMessagingState("hidden")}>
           <SimpleMessagingWindow
             sessionId={session.id}

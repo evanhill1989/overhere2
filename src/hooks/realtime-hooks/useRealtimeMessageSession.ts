@@ -1,10 +1,10 @@
 // src/hooks/useRealtimeMessageSession.ts
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useMemo } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { createClient } from "@/utils/supabase/client";
-import type { RealtimeChannel } from "@supabase/supabase-js";
+
 import { subHours } from "date-fns";
 
 import type { MessageSession, UserId, PlaceId } from "@/lib/types/database";
@@ -102,10 +102,13 @@ export function useRealtimeMessageSession(
   placeId: PlaceId | null,
 ) {
   const queryClient = useQueryClient();
-  const channelRef = useRef<RealtimeChannel | null>(null);
+  const sessionQueryKey = useMemo(
+    () => ["messageSession", userId, placeId] as const,
+    [userId, placeId], // Dependencies for useMemo
+  );
 
   const query = useQuery<MessageSession | null, Error>({
-    queryKey: ["messageSession", userId, placeId],
+    queryKey: sessionQueryKey,
     queryFn: () => fetchMessageSession(userId!, placeId!),
     enabled: !!userId && !!placeId,
     staleTime: 30000, // 30 seconds
@@ -114,128 +117,23 @@ export function useRealtimeMessageSession(
     refetchOnMount: false, // ✅ Only fetch once
   });
 
-  // 2. Real-time subscription
+  // client-side expiration timer - parallel to DB
   useEffect(() => {
-    if (!userId || !placeId) return;
+    if (query.data?.expiresAt) {
+      const timeUntilExpiration =
+        new Date(query.data.expiresAt).getTime() - new Date().getTime();
 
-    const supabase = createClient();
+      if (timeUntilExpiration > 0) {
+        const timeoutId = setTimeout(() => {
+          console.log("⏱️ Session expired via client-side timer.");
+          // Set data to null to immediately update UI
+          queryClient.setQueryData(sessionQueryKey, null);
+        }, timeUntilExpiration + 1000); // Add a small buffer
 
-    console.log(
-      "⏱️ Realtime session subscription started for",
-      placeId,
-      userId,
-    );
-
-    // Clean up existing channel
-    if (channelRef.current) {
-      console.log("🧹 Cleaning up existing session channel");
-      supabase.removeChannel(channelRef.current);
-      channelRef.current = null;
-    }
-
-    const channel = supabase
-      .channel(`message-session-${placeId}-${userId}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "INSERT",
-          schema: "public",
-          table: "message_sessions",
-          filter: `place_id=eq.${placeId}`,
-        },
-        (payload) => {
-          console.log("🔔 New session created via real-time");
-
-          try {
-            const rawSession = payload.new as DatabaseMessageSession;
-
-            // Only process if this user is part of the session
-            if (
-              rawSession.initiator_id === userId ||
-              rawSession.initiatee_id === userId
-            ) {
-              const newSession = mapSessionToCamel(rawSession);
-
-              queryClient.setQueryData<MessageSession | null>(
-                ["messageSession", userId, placeId],
-                newSession,
-              );
-
-              console.log("✅ Session cache updated:", newSession.id);
-            }
-          } catch (error) {
-            console.error("❌ Error processing session INSERT:", error);
-          }
-        },
-      )
-      .on(
-        "postgres_changes",
-        {
-          event: "UPDATE",
-          schema: "public",
-          table: "message_sessions",
-          filter: `place_id=eq.${placeId}`,
-        },
-        (payload) => {
-          console.log("🔔 Session updated via real-time");
-
-          try {
-            const rawSession = payload.new as DatabaseMessageSession;
-
-            // Only process if this user is part of the session
-            if (
-              rawSession.initiator_id === userId ||
-              rawSession.initiatee_id === userId
-            ) {
-              const updatedSession = mapSessionToCamel(rawSession);
-
-              queryClient.setQueryData<MessageSession | null>(
-                ["messageSession", userId, placeId],
-                updatedSession,
-              );
-
-              console.log("✅ Session status updated:", updatedSession.status);
-
-              // If session expired, could show a notification
-              if (updatedSession.status === "expired") {
-                console.log("⏱️ Session expired");
-              }
-            }
-          } catch (error) {
-            console.error("❌ Error processing session UPDATE:", error);
-          }
-        },
-      )
-      .subscribe(async (status) => {
-        console.log(" 📡📡📡📡📡 Channel status:", status);
-
-        if (status === "SUBSCRIBED") {
-          await new Promise((r) => setTimeout(r, 550));
-          // FIX 1: Force a refetch of the session data.
-          queryClient.refetchQueries({
-            queryKey: ["messageSession", userId, placeId],
-          });
-
-          queryClient.refetchQueries({
-            queryKey: ["messageRequests", userId, placeId],
-          });
-        } else if (status === "CHANNEL_ERROR") {
-          console.error("❌ Message session subscription error");
-        } else if (status === "TIMED_OUT") {
-          console.warn("⏱️ Message session subscription timed out");
-        }
-      });
-
-    channelRef.current = channel;
-
-    return () => {
-      if (channelRef.current) {
-        console.log("🔌 Unsubscribing from message session");
-        supabase.removeChannel(channelRef.current);
-        channelRef.current = null;
+        return () => clearTimeout(timeoutId);
       }
-    };
-  }, [userId, placeId, queryClient]);
+    }
+  }, [query.data, queryClient, sessionQueryKey]);
 
   return query;
 }

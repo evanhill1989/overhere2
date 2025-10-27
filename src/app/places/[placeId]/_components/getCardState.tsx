@@ -48,7 +48,14 @@ export function getCardState({
   onRejectRequest,
 }: CardStateProps): CardState {
   const checkinUserId = checkin.userId;
-  console.log(onRejectRequest);
+  // console.log(
+  //   "❌❌  ❌❌ ❌ onRejectRequest in getCardState ",
+  //   onRejectRequest,
+  // );
+  // console.log(
+  //   "✅ ✅  ✅ ✅  ✅ onAcceptRequest in getCardState",
+  //   onAcceptRequest,
+  // );
   // Find incoming request from the other user to the current user
   const theirRequestToMe = requests.find(
     (r) =>

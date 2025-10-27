@@ -4,6 +4,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { requestToMessage } from "@/app/_actions/messageActions";
 import { MessageRequestsQueryKey, PlaceId, UserId } from "@/lib/types/database";
+import { useRequestStateTracker } from "./useRequestStateTracker";
 
 type MessageRequestInput = {
   initiatorId: UserId;
@@ -13,10 +14,15 @@ type MessageRequestInput = {
 
 export function useMessageRequestMutation() {
   const queryClient = useQueryClient();
+  const tracker = useRequestStateTracker();
 
   return useMutation({
     mutationFn: async (input: MessageRequestInput) => {
       const result = await requestToMessage(input);
+      console.log(
+        "!!!!!!!!!!!SENT REQUEST INSIDE useMutation, result:",
+        result,
+      );
       if (!result.success) {
         throw new Error(result.error || "Failed to send request");
       }
@@ -66,6 +72,18 @@ export function useMessageRequestMutation() {
     onSuccess: (data, variables, context) => {
       console.log(`${new Date().toISOString()}`);
       console.log("✅ Message request sent successfully (Mutation)");
+
+      if (data.success && data.data?.requestId) {
+        tracker.trackRequest({
+          requestId: data.data.requestId,
+          initiatorId: variables.initiatorId,
+          initiateeId: variables.initiateeId,
+          placeId: variables.placeId,
+          status: "pending",
+          sentAt: new Date(),
+        });
+      }
+
       if (context?.initiatorKey && context.initiateeKey) {
         // 3. REFETCH/INVALIDATE the keys for BOTH users to get the true server state
         // Initiator (A) refreshes to replace the optimistic data with real data

@@ -36,7 +36,6 @@ export function PlaceDetails({
   activeSession,
   onResumeSession,
 }: PlaceDetailsProps) {
-  // Get requests (this is what the current architecture does)
   const { requests } = useRealtimeMessageRequests(currentUserId, place.id);
   const sendRequestMutation = useMessageRequestMutation();
 
@@ -53,6 +52,11 @@ export function PlaceDetails({
       console.error("Request response failed:", error);
     },
   });
+
+  // console.log(
+  //   rejectRequest,
+  //   "<<--- rejectRequest returned to PlaceDetails from useMessageRequestResponse hook",
+  // );
   // Handle sending requests (this stays in PlaceDetails per current pattern)
   const handleSendRequest = async (targetUserId: UserId) => {
     try {

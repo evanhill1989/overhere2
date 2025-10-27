@@ -167,6 +167,19 @@ export type DatabaseCheckin = {
   checked_out_at: string | null;
 };
 
+//Database Message Session (snake_case from Supabase)
+export type DatabaseMessageSession = {
+  id: string;
+  place_id: string;
+  initiator_id: string;
+  initiatee_id: string;
+  source_request_id: string | null;
+  created_at: string;
+  status: "active" | "expired"; // Matches your schema
+  expires_at: string | null;
+  closed_at: string | null;
+};
+
 // REST API response (camelCase from /api/checkins)
 export type ApiCheckin = {
   id: string;

@@ -72,6 +72,8 @@ export default function PersonCard({
 
   const cardState = getCardState(getCardStatePropsObj);
 
+  console.log("📤📤 📤📤 📤📤 CARD STATE in PersonCard:", cardState);
+
   return (
     <Card className={`p-4 transition-all ${cardState.className}`}>
       <div className="flex items-center justify-between">

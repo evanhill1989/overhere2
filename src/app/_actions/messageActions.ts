@@ -31,6 +31,7 @@ import {
   respondToRequestFormSchema,
   MESSAGE_REQUEST_STATUS,
   MESSAGE_SESSION_STATUS,
+  DatabaseMessageSession,
 } from "@/lib/types/database";
 
 // API contracts (request/response types)
@@ -54,6 +55,7 @@ import {
 export async function requestToMessage(
   input: CreateMessageRequestRequest,
 ): Promise<CreateMessageRequestResponse> {
+  console.log("USERA requesting a messagesessi @@@@@@@@@@@@@@@@");
   try {
     // Rate limiting
     const rateLimitResult = await checkServerActionRateLimit(
@@ -132,6 +134,8 @@ export async function requestToMessage(
       return { success: false, error: "Request already exists" };
     }
 
+    console.log("[USERA INSERT]", new Date().toISOString());
+
     // Insert new request
     const { data: newRequest, error: insertError } = await supabase
       .from("message_session_requests")
@@ -176,7 +180,7 @@ export async function requestToMessage(
 export async function respondToMessageRequest(
   prevState: { message: string },
   formData: FormData,
-): Promise<{ message: string }> {
+): Promise<{ message: string; newSession?: DatabaseMessageSession }> {
   try {
     // Rate limiting
     const rateLimitResult = await checkServerActionRateLimit(
@@ -191,16 +195,14 @@ export async function respondToMessageRequest(
       };
     }
 
-    // Parse and validate form data
     const validated = respondToRequestFormSchema.parse({
       requestId: formData.get("requestId"),
       response: formData.get("response"),
     });
 
     const requestId = requestIdSchema.parse(validated.requestId);
-    const response = messageRequestStatusSchema.parse(validated.response);
+    const response = messageRequestStatusSchema.parse(validated.response); // Auth check
 
-    // Auth check
     const supabase = await createClient();
     const {
       data: { user },
@@ -212,9 +214,8 @@ export async function respondToMessageRequest(
       return { message: "Not authenticated." };
     }
 
-    const userId = userIdSchema.parse(user.id);
+    const userId = userIdSchema.parse(user.id); // Get the request
 
-    // Get the request
     const { data: request, error: fetchError } = await supabase
       .from("message_session_requests")
       .select("*")
@@ -224,20 +225,21 @@ export async function respondToMessageRequest(
     if (fetchError || !request) {
       console.error("❌ Request not found or unauthorized:", fetchError);
       return { message: "Request not found." };
-    }
+    } // Verify user is part of request
 
-    // Verify user is part of request
     if (request.initiator_id !== userId && request.initiatee_id !== userId) {
       console.error("❌ Unauthorized to respond to this request");
       return { message: "Unauthorized." };
     }
 
-    // If accepted, create message session
+    // 💡 Initialize variable for the new session data
+    let newSession: DatabaseMessageSession | undefined; // If accepted, create message session
+
     if (
       response === MESSAGE_REQUEST_STATUS.ACCEPTED &&
       request.initiatee_id === userId
     ) {
-      const { error: sessionError } = await supabase
+      const { data: sessionData, error: sessionError } = await supabase
         .from("message_sessions")
         .insert({
           place_id: request.place_id,
@@ -245,17 +247,21 @@ export async function respondToMessageRequest(
           initiatee_id: request.initiatee_id,
           source_request_id: requestId,
           status: MESSAGE_SESSION_STATUS.ACTIVE,
-        });
+        })
+        .select("*")
+        .single();
 
-      if (sessionError) {
+      if (sessionError || !sessionData) {
+        // Check for sessionData
         console.error("❌ Failed to create session:", sessionError);
         return { message: "Failed to create messaging session." };
       }
 
-      console.log("✅ Message session created for request:", requestId);
-    }
+      newSession = sessionData as DatabaseMessageSession; // 💡 Store the new session data
 
-    // Update request status
+      console.log("✅ Message session created for request:", requestId);
+    } // Update request status
+
     const { error: updateError } = await supabase
       .from("message_session_requests")
       .update({
@@ -270,7 +276,10 @@ export async function respondToMessageRequest(
     }
 
     console.log(`✅ Request ${response}:`, requestId);
-    return { message: `Request ${response}.` };
+    return {
+      message: `Request ${response}.`,
+      newSession: newSession, // 💡 RETURN THE NEW SESSION DATA
+    };
   } catch (e: unknown) {
     const error = e instanceof Error ? e : new Error("Unknown error");
     console.error("❌ respondToMessageRequest failed:", error.message);
