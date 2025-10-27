@@ -17,11 +17,13 @@ import { SimpleMessagingWindow } from "./SimpleMessagingWindow";
 type PlacePageClientProps = {
   placeId: PlaceId;
   userId: UserId;
+
   placeInfo: {
     id: PlaceId;
     name: string;
     address: string;
   };
+  isPrimed: boolean;
 };
 
 // Simplified messaging states
@@ -31,6 +33,7 @@ export function PlacePageClient({
   placeId,
   userId,
   placeInfo,
+  isPrimed,
 }: PlacePageClientProps) {
   // Track prop changes
   const prevProps = useRef({ placeId, userId, placeInfo });
@@ -57,7 +60,7 @@ export function PlacePageClient({
     data: checkins = [],
     isLoading: realtimeLoading,
     error: realtimeError,
-  } = useRealtimeCheckins(placeId);
+  } = useRealtimeCheckins(placeId, isPrimed);
 
   // ============================================
   // DERIVED STATE
@@ -128,6 +131,11 @@ export function PlacePageClient({
   // RENDER STATES
   // ============================================
 
+  if (!isPrimed) {
+    // You can show a loading state while the priming completes
+    return <div className="p-4 text-center">Preparing Realtime Filters...</div>;
+  }
+
   if (isLoading) {
     return (
       <div className="flex min-h-[50vh] items-center justify-center">
@@ -179,6 +187,7 @@ export function PlacePageClient({
         checkinsError={realtimeError}
         messagingState={messagingState}
         hasActiveSession={!!session}
+        isPrimed={isPrimed}
       />
       {/* <RealtimeDebugger userId={userId} placeId={placeInfo.id} /> */}
 

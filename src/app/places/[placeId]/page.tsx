@@ -3,7 +3,7 @@ import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/utils/supabase/server";
 import { placeIdSchema, userIdSchema } from "@/lib/types/core";
 
-import { PlacePageClient } from "./_components/PlacePageClient";
+import { PlacePageClientPrimerWrapper } from "./_components/PlacePagePrimerWrapper";
 
 type PageProps = {
   params: Promise<{ placeId: string }>;
@@ -56,7 +56,7 @@ export default async function PlacePage(props: PageProps) {
   // ============================================
   return (
     <main className="container mx-auto max-w-2xl p-4">
-      <PlacePageClient
+      <PlacePageClientPrimerWrapper
         placeId={placeId}
         userId={userId}
         placeInfo={{

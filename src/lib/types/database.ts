@@ -167,6 +167,17 @@ export type DatabaseCheckin = {
   checked_out_at: string | null;
 };
 
+//Database Message Request (snake_case from Supabase)
+export type DatabaseMessageRequest = {
+  id: string;
+  initiator_id: string;
+  initiatee_id: string;
+  place_id: string;
+  status: "pending" | "accepted" | "rejected" | "canceled" | "expired"; // Assuming these statuses
+  created_at: string;
+  responded_at: string | null;
+};
+
 //Database Message Session (snake_case from Supabase)
 export type DatabaseMessageSession = {
   id: string;

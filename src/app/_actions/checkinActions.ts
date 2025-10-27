@@ -7,13 +7,12 @@ import { eq, sql } from "drizzle-orm";
 
 import {
   // Branded types
-  type UserId,
+
   type PlaceId,
   type CheckinId,
   // Domain entities
   type Place,
   placeSchema,
-  placeIdSchema,
   userIdSchema,
   checkinIdSchema,
   // Form/Input schemas
@@ -383,140 +382,4 @@ export async function checkIn(
     console.error("❌ Check-in validation or processing error:", error);
     throw error;
   }
-}
-
-// ============================================
-// VERIFICATION FUNCTIONS (Updated with branded types)
-// ============================================
-
-export async function verifyCheckinAtPlace(
-  userId: UserId, // ✅ Branded type
-  placeId: PlaceId, // ✅ Branded type
-): Promise<boolean> {
-  const supabase = await createClient();
-
-  const { data, error } = await supabase
-    .from("checkins")
-    .select("id")
-    .eq("user_id", userId)
-    .eq("place_id", placeId)
-    .eq("is_active", true)
-    .gte("created_at", new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString())
-    .single();
-
-  if (error || !data) {
-    return false;
-  }
-
-  return true;
-}
-
-export async function getCurrentCheckin(
-  userId: UserId, // ✅ Branded type
-) {
-  const supabase = await createClient();
-
-  const { data, error } = await supabase
-    .from("checkins")
-    .select("*")
-    .eq("user_id", userId)
-    .eq("is_active", true)
-    .gte("created_at", new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString())
-    .single();
-
-  if (error) {
-    console.error("Error getting current check-in:", error);
-    return null;
-  }
-
-  return data;
-}
-
-export async function checkOut(): Promise<void> {
-  const supabase = await createClient();
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    throw new Error("Not authenticated");
-  }
-
-  // ✅ Parse as branded type
-  const userId = userIdSchema.parse(user.id);
-
-  const { error } = await supabase
-    .from("checkins")
-    .update({
-      is_active: false,
-      checked_out_at: new Date().toISOString(),
-    })
-    .eq("user_id", userId)
-    .eq("is_active", true);
-
-  if (error) {
-    console.error("Error checking out:", error);
-    throw new Error("Failed to check out");
-  }
-
-  console.log("✅ User checked out successfully");
-}
-
-export async function verifyUserAtPlace(
-  userId: UserId, // ✅ Branded type
-  placeId: PlaceId, // ✅ Branded type
-): Promise<boolean> {
-  const supabase = await createClient();
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user || user.id !== userId) {
-    return false;
-  }
-
-  // Call the SECURITY DEFINER function
-  const { data, error } = await supabase.rpc("is_user_checked_in_at_place", {
-    user_id_param: userId,
-    place_id_param: placeId,
-  });
-
-  if (error) {
-    console.error("Error checking user location:", error);
-    return false;
-  }
-
-  return data === true;
-}
-
-export async function getUserActivePlaces(
-  userId: UserId, // ✅ Branded type
-): Promise<PlaceId[]> {
-  const supabase = await createClient();
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user || user.id !== userId) {
-    return [];
-  }
-
-  const { data, error } = await supabase.rpc("get_user_active_places", {
-    user_id_param: userId,
-  });
-
-  if (error) {
-    console.error("Error getting active places:", error);
-    return [];
-  }
-
-  // ✅ Parse returned place IDs as branded types
-  return (
-    data?.map((row: { place_id: string }) =>
-      placeIdSchema.parse(row.place_id),
-    ) || []
-  );
 }

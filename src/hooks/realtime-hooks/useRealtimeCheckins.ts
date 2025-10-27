@@ -5,10 +5,10 @@ import { useEffect, useRef } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { createClient } from "@/utils/supabase/client";
 import type { RealtimeChannel } from "@supabase/supabase-js";
-
+import { checkinIdSchema } from "@/lib/types/database";
 import type { Checkin, DatabaseCheckin } from "@/lib/types/database";
 import type { PlaceId } from "@/lib/types/core";
-import { checkinIdSchema } from "@/lib/types/core";
+
 import { mapCheckinToCamel } from "@/lib/caseConverter";
 import { getCheckinsAtPlace } from "@/app/_actions/checkinQueries";
 
@@ -16,14 +16,17 @@ async function fetchCheckins(placeId: PlaceId): Promise<Checkin[]> {
   return getCheckinsAtPlace(placeId);
 }
 
-export function useRealtimeCheckins(placeId: PlaceId | null) {
+export function useRealtimeCheckins(
+  placeId: PlaceId | null,
+  isPrimed: boolean,
+) {
   const queryClient = useQueryClient();
   const channelRef = useRef<RealtimeChannel | null>(null);
 
   console.log("🔍 [useRealtimeCheckins] Called with:", {
     placeId,
     placeIdType: typeof placeId,
-    enabled: !!placeId,
+    enabled: !!placeId && isPrimed,
   });
   // 1. Fetch initial data
   const query = useQuery<Checkin[], Error>({
@@ -35,7 +38,7 @@ export function useRealtimeCheckins(placeId: PlaceId | null) {
       );
       return fetchCheckins(placeId!);
     },
-    enabled: !!placeId,
+    enabled: !!placeId && isPrimed,
     staleTime: 30000,
     refetchInterval: false,
     refetchOnWindowFocus: false,
@@ -44,7 +47,7 @@ export function useRealtimeCheckins(placeId: PlaceId | null) {
 
   // 2. Real-time subscription
   useEffect(() => {
-    if (!placeId) return;
+    if (!placeId || !isPrimed) return;
 
     const supabase = createClient();
 
@@ -125,7 +128,7 @@ export function useRealtimeCheckins(placeId: PlaceId | null) {
         channelRef.current = null;
       }
     };
-  }, [placeId, queryClient]);
+  }, [placeId, queryClient, isPrimed]);
 
   return query;
 }

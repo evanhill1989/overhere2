@@ -24,13 +24,12 @@ export type CardState = {
 export type CardStateProps = {
   currentUserId: UserId;
   checkin: Checkin;
-  placeId: PlaceId;
-  requests: MessageRequest[];
+  placeId: PlaceId; // 💡 FIX 1: Allow requests to be undefined (when TanStack Query is loading)
+  requests: MessageRequest[] | undefined;
   activeSession?: MessageSession;
   isRequestPending: boolean;
   onSendRequest: () => void;
   onResumeSession?: () => void;
-  // ✅ Add these with proper types
   onAcceptRequest?: (requestId: RequestId) => void;
   onRejectRequest?: (requestId: RequestId) => void;
 };
@@ -39,33 +38,27 @@ export function getCardState({
   currentUserId,
   checkin,
   placeId,
-  requests,
-  activeSession, // ✅ Now the optional MessageSession object
+  requests, // Now typed as MessageRequest[] | undefined
+  activeSession,
   isRequestPending,
   onSendRequest,
   onResumeSession,
   onAcceptRequest,
   onRejectRequest,
 }: CardStateProps): CardState {
-  const checkinUserId = checkin.userId;
-  // console.log(
-  //   "❌❌  ❌❌ ❌ onRejectRequest in getCardState ",
-  //   onRejectRequest,
-  // );
-  // console.log(
-  //   "✅ ✅  ✅ ✅  ✅ onAcceptRequest in getCardState",
-  //   onAcceptRequest,
-  // );
-  // Find incoming request from the other user to the current user
-  const theirRequestToMe = requests.find(
+  // 💡 FIX 2: Use Nullish Coalescing (??) to ensure requests is an array before using .find()
+  const safeRequests = requests ?? [];
+
+  const checkinUserId = checkin.userId; // Find incoming request from the other user to the current user
+  // NOTE: Using safeRequests here prevents the 'Cannot read properties of undefined (reading 'find')' error
+  const theirRequestToMe = safeRequests.find(
     (r) =>
       r.initiatorId === checkinUserId &&
       r.initiateeId === currentUserId &&
       r.placeId === placeId,
-  );
+  ); // Find outgoing request from the current user to the other user
 
-  // Find outgoing request from the current user to the other user
-  const myRequestToThem = requests.find(
+  const myRequestToThem = safeRequests.find(
     (r) =>
       r.initiatorId === currentUserId &&
       r.initiateeId === checkinUserId &&

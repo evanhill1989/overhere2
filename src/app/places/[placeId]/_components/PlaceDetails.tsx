@@ -27,6 +27,7 @@ type PlaceDetailsProps = {
   checkinsError: Error | null;
   messagingState: string; // From current PlacePageClient
   hasActiveSession: boolean; // From current PlacePageClient
+  isPrimed: boolean;
 };
 
 export function PlaceDetails({
@@ -35,8 +36,13 @@ export function PlaceDetails({
   currentUserId,
   activeSession,
   onResumeSession,
+  isPrimed,
 }: PlaceDetailsProps) {
-  const { requests } = useRealtimeMessageRequests(currentUserId, place.id);
+  const { requests } = useRealtimeMessageRequests(
+    currentUserId,
+    place.id,
+    isPrimed,
+  );
   const sendRequestMutation = useMessageRequestMutation();
 
   const {

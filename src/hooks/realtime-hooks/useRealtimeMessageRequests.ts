@@ -20,13 +20,14 @@ type MessageRequestWithTopic = MessageRequest & { topic: string | null };
 export function useRealtimeMessageRequests(
   userId: UserId | null,
   placeId: PlaceId | null,
+  isPrimed: boolean,
 ) {
   // 💡 Initialize Query Client
-  const queryClient = useQueryClient();
+  const queryClient = useQueryClient(); // for updating session not session_requests
   const [requests, setRequests] = useState<MessageRequestWithTopic[]>([]);
 
   useEffect(() => {
-    if (!userId || !placeId) return;
+    if (!userId || !placeId || !isPrimed) return;
     const supabase = createClient();
     const channel = supabase
       .channel(`message-requests-${placeId}-${userId}`)
@@ -39,13 +40,6 @@ export function useRealtimeMessageRequests(
           filter: `place_id=eq.${placeId}`,
         },
         (payload) => {
-          console.log("[USERB EVENT]", {
-            time: new Date().toISOString(),
-            event: payload.eventType,
-            id: (payload.new as Record<string, any>)?.id,
-            raw: payload,
-          });
-
           // Extract the new (updated) data
           const rawNewData = payload.new as
             | (Record<string, any> & {
@@ -54,19 +48,11 @@ export function useRealtimeMessageRequests(
               })
             | null;
 
-          // ==========================================================
-          // 💡 NEW LOGIC: Check for accepted request to trigger session refetch
-          // This ensures the INITIATOR's UI updates immediately.
-          // ==========================================================
           if (payload.eventType === "UPDATE" && rawNewData) {
             // Check if the update resulted in an 'accepted' status
             if (rawNewData.status === MESSAGE_REQUEST_STATUS.ACCEPTED) {
               // Verify the current user is the INITIATOR of this request
               if (rawNewData.initiator_id === userId) {
-                console.log(
-                  "🔔 Initiator's request accepted! Forcing session query refetch.",
-                );
-
                 // Refetch the specific session query that useRealtimeMessageSession is running
                 const sessionQueryKey = [
                   "messageSession",
@@ -77,12 +63,6 @@ export function useRealtimeMessageRequests(
                 // 1. Force the refetch
                 queryClient.refetchQueries({
                   queryKey: sessionQueryKey,
-                });
-
-                // 2. Optionally, invalidate all message requests (this will trigger a full refetch
-                // if the commented-out useQuery section is ever re-enabled)
-                queryClient.invalidateQueries({
-                  queryKey: ["messageRequests", userId, placeId],
                 });
               }
             }
@@ -125,6 +105,9 @@ export function useRealtimeMessageRequests(
         console.log(`[SUBSCRIPTION STATUS] ${status}`);
         if (status === "SUBSCRIBED") {
           console.log("[USERB SUBSCRIBED]", new Date().toISOString());
+          queryClient.refetchQueries({
+            queryKey: ["messageRequests", userId, placeId],
+          });
         }
       });
 
@@ -132,7 +115,7 @@ export function useRealtimeMessageRequests(
       supabase.removeChannel(channel);
     };
     // 💡 Add queryClient to the dependency array
-  }, [userId, placeId, queryClient]);
+  }, [userId, placeId, queryClient, isPrimed]);
 
   return { requests, isLoading: false, error: null };
 }
