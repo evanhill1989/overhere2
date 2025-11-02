@@ -47,9 +47,7 @@ export function SimpleMessagingWindow({
       if (sendError) throw sendError;
 
       setNewMessage("");
-      console.log("✅ Message sent successfully");
     } catch (err) {
-      console.error("❌ Failed to send message:", err);
       alert("Failed to send message. Please try again.");
     } finally {
       setIsSending(false);

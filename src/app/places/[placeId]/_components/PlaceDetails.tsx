@@ -48,16 +48,7 @@ export function PlaceDetails({
   const {
     acceptRequest,
     rejectRequest,
-    isPending: isResponsePending,
-  } = useMessageRequestResponse({
-    onSuccess: (message) => {
-      console.log("Request response successful:", message);
-      console.log(isResponsePending);
-    },
-    onError: (error) => {
-      console.error("Request response failed:", error);
-    },
-  });
+  } = useMessageRequestResponse();
 
   // console.log(
   //   rejectRequest,
@@ -72,7 +63,6 @@ export function PlaceDetails({
         placeId: place.id,
       });
     } catch (error) {
-      console.error("Failed to send message request:", error);
     }
   };
 
@@ -119,12 +109,7 @@ export function PlaceDetails({
       return 0;
     });
   }, [otherPeopleCheckins, requests, currentUserId, activeSession]);
-  console.log("🔍 PlaceDetails render:", {
-    checkinsCount: checkins.length,
-    sortedPeopleCount: sortedPeople.length,
-    activeSession: !!activeSession,
-    requests: requests?.length,
-  });
+
   if (sortedPeople.length === 0) {
     return (
       <section className="space-y-6">

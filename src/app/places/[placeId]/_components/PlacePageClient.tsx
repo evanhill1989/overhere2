@@ -58,19 +58,9 @@ export function PlacePageClient({
   // Force refetch when component mounts or placeId changes
   useEffect(() => {
     if (placeId) {
-      console.log("🔄 Force refetch on mount/placeId change");
       refetchCheckins();
     }
   }, [placeId, refetchCheckins]);
-
-  // Log polling updates
-  useEffect(() => {
-    if (checkins.length > 0) {
-      console.log(
-        `📊 Polling update: ${checkins.length} checkins at place ${placeId}`,
-      );
-    }
-  }, [checkins, placeId]);
 
   // ============================================
   // DERIVED STATE
@@ -96,12 +86,10 @@ export function PlacePageClient({
   // MESSAGING FUNCTIONS
   // ============================================
   const openMessagingWindow = useCallback(() => {
-    console.log("🪟 Opening messaging window");
     setMessagingState("active");
   }, []);
 
   const closeMessagingWindow = useCallback(() => {
-    console.log("🚪 Closing messaging window");
     setMessagingState("hidden");
   }, []);
 
@@ -110,10 +98,8 @@ export function PlacePageClient({
   // ============================================
   useEffect(() => {
     if (session && !sessionLoading && messagingState === "hidden") {
-      console.log("✅ Session available, auto-opening messaging interface");
       openMessagingWindow();
     } else if (!session && messagingState === "active") {
-      console.log("🔚 Session ended, closing messaging window");
       closeMessagingWindow();
     }
   }, [
@@ -123,16 +109,6 @@ export function PlacePageClient({
     openMessagingWindow,
     closeMessagingWindow,
   ]);
-
-  // ============================================
-  // LIFECYCLE LOGGING
-  // ============================================
-  useEffect(() => {
-    console.log("🎬 PlacePageClient mounted with polling for place:", placeId);
-    return () => {
-      console.log("🔌 PlacePageClient unmounting for place:", placeId);
-    };
-  }, [placeId]);
 
   // ============================================
   // RENDER STATES

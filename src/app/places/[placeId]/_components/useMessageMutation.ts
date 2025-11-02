@@ -54,12 +54,6 @@ export function useMessageMutation(options?: UseMessageMutationOptions) {
       formData.append("sessionId", sessionId);
       formData.append("senderCheckinId", senderCheckinId);
 
-      console.log("📤 Sending message via server action:", {
-        sessionId,
-        senderCheckinId,
-        contentLength: trimmedContent.length,
-      });
-
       const result = await submitMessage(
         { success: false, error: "Not submitted yet" },
         formData,
@@ -119,8 +113,6 @@ export function useMessageMutation(options?: UseMessageMutationOptions) {
 
     // ✅ Automatic rollback on error
     onError: (error, variables, context) => {
-      console.error("❌ Message send failed:", error.message);
-
       // Rollback to previous state
       if (context?.previousMessages) {
         queryClient.setQueryData(
@@ -134,17 +126,13 @@ export function useMessageMutation(options?: UseMessageMutationOptions) {
     },
 
     // ✅ Success handling
-    onSuccess: (data, variables) => {
-      console.log("✅ Message sent successfully:", data.message.id, variables);
-
+    onSuccess: (data) => {
       // Call custom success handler
       options?.onSuccess?.(data);
     },
 
     // ✅ Enhanced retry logic
     retry: (failureCount, error) => {
-      console.log(`🔄 Retry attempt ${failureCount} for message send`);
-
       // Don't retry validation errors
       if (error.message.includes("empty") || error.message.includes("long")) {
         return false;
