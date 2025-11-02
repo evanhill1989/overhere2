@@ -73,22 +73,16 @@ export default function PersonCard({
   const cardState = getCardState(getCardStatePropsObj);
 
   return (
-    <Card className={`p-4 transition-all ${cardState.className}`}>
-      <div className="flex items-center justify-between">
-        <div className="flex-1">
-          <p className="font-medium">{checkin.topic || "Open to chat"}</p>
-          <p className="text-muted-foreground text-sm capitalize">
+    <Card className={`group border-border/40 p-5 shadow-sm transition-all duration-200 hover:border-primary/50 hover:shadow-md ${cardState.className}`}>
+      <div className="flex items-center justify-between gap-4">
+        <div className="flex-1 space-y-1.5">
+          <p className="text-base font-semibold leading-snug">{checkin.topic || "Open to chat"}</p>
+          <p className="text-xs capitalize tracking-wide text-muted-foreground/80">
             {checkin.checkinStatus}
           </p>
-          {/* Debug info showing session details */}
-          {isInActiveSession && activeSession && (
-            <p className="text-xs text-blue-600">
-              Session: {activeSession.id} ({activeSession.status})
-            </p>
-          )}
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex shrink-0 items-center gap-3">
           {/* Map the string icon from utility to the React component */}
           {iconMap[cardState.icon as keyof typeof iconMap]}
           <Button

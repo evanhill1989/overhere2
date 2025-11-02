@@ -113,28 +113,30 @@ export function PlaceDetails({
   if (sortedPeople.length === 0) {
     return (
       <section className="space-y-6">
-        <header>
-          <h1 className="text-2xl font-bold">{place.name}</h1>
-          <p className="text-muted-foreground text-sm">{place.address}</p>
+        <header className="space-y-2 rounded-xl border border-border/40 bg-card/30 p-6 text-center backdrop-blur-sm">
+          <h1 className="text-3xl font-bold tracking-tight">{place.name}</h1>
+          <p className="text-sm text-muted-foreground/90">{place.address}</p>
         </header>
 
-        <EmptyState
-          title="Nobody else is here"
-          description="Be the first to start a conversation when someone checks in!"
-          icon={Users}
-        />
+        <div className="flex min-h-[50vh] items-center justify-center">
+          <EmptyState
+            title="Nobody else is here"
+            description="Be the first to start a conversation when someone checks in!"
+            icon={Users}
+          />
+        </div>
       </section>
     );
   }
 
   return (
     <section className="space-y-6">
-      <header>
-        <h1 className="text-2xl font-bold">{place.name}</h1>
-        <p className="text-muted-foreground text-sm">{place.address}</p>
+      <header className="space-y-2 rounded-xl border border-border/40 bg-card/30 p-6 text-center backdrop-blur-sm">
+        <h1 className="text-3xl font-bold tracking-tight">{place.name}</h1>
+        <p className="text-sm text-muted-foreground/90">{place.address}</p>
       </header>
 
-      <div className="space-y-3">
+      <div className="space-y-4">
         {sortedPeople.map((checkin) => (
           <PersonCard
             key={checkin.id}

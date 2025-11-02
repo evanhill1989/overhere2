@@ -175,11 +175,6 @@ export function PlacePageClient({
         isPrimed={isPrimed}
       />
 
-      {/* Polling Status Indicator */}
-      <div className="fixed bottom-4 left-4 text-xs text-gray-500">
-        🔄 Polling active (5s)
-      </div>
-
       {/* Simple Messaging Window */}
       {session && currentCheckinId && (
         <MessageErrorBoundary onReset={() => setMessagingState("hidden")}>
