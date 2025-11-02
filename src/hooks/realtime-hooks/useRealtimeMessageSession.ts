@@ -80,16 +80,13 @@ async function fetchMessageSession(
     .maybeSingle();
 
   if (error) {
-    console.error("❌ Error fetching message session:", error);
     throw new Error(`Failed to fetch session: ${error.message}`);
   }
 
   if (!data) {
-    console.log("📭 No active session found");
     return null;
   }
 
-  console.log("✅ Active session found:", data.id);
   return mapSessionToCamel(data);
 }
 
@@ -125,7 +122,6 @@ export function useRealtimeMessageSession(
 
       if (timeUntilExpiration > 0) {
         const timeoutId = setTimeout(() => {
-          console.log("⏱️ Session expired via client-side timer.");
           // Set data to null to immediately update UI
           queryClient.setQueryData(sessionQueryKey, null);
         }, timeUntilExpiration + 1000); // Add a small buffer
@@ -164,7 +160,6 @@ export function useHasActiveSession(userId: UserId | null) {
         .limit(1)
         .maybeSingle();
 
-      console.error(error);
       return !!data;
     },
     enabled: !!userId,

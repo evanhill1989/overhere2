@@ -104,11 +104,6 @@ export default function UserMap({
     mapZoom = 13;
   }
 
-  // ✅ DEBUG: Log the places being passed to the map
-  console.log("🗺️ UserMap received places:", places.length);
-  console.log("🗺️ First place:", places[0]);
-  console.log("🗺️ Selected place:", selectedPlace);
-
   return (
     <MapContainer
       key={JSON.stringify(mapCenter) + initialZoom}
@@ -139,21 +134,11 @@ export default function UserMap({
       {places.map((place) => {
         // ✅ Updated to use canonical Place structure
         if (place.latitude == null || place.longitude == null) {
-          console.warn("⚠️ Skipping place without coordinates:", place.name);
           return null;
         }
 
         // ✅ Updated comparison to use canonical id
         const isCurrentlySelected = selectedPlace?.id === place.id;
-
-        // ✅ DEBUG: Log each place being rendered
-        console.log(`🗺️ Rendering place marker:`, {
-          id: place.id,
-          name: place.name,
-          lat: place.latitude,
-          lng: place.longitude,
-          selected: isCurrentlySelected,
-        });
 
         return (
           <Marker

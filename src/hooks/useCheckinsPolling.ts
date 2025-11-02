@@ -6,8 +6,6 @@ import type { PlaceId } from "@/lib/types/core";
 import type { Checkin } from "@/lib/types/database";
 
 async function fetchCheckinsFromAPI(placeId: PlaceId): Promise<Checkin[]> {
-  console.log("🔄 Polling checkins for place:", placeId);
-
   const response = await fetch(`/api/checkins?placeId=${placeId}`, {
     method: "GET",
     headers: {
@@ -17,12 +15,10 @@ async function fetchCheckinsFromAPI(placeId: PlaceId): Promise<Checkin[]> {
   });
 
   if (!response.ok) {
-    console.error("❌ Failed to fetch checkins:", response.status);
     throw new Error(`Failed to fetch checkins: ${response.status}`);
   }
 
   const data = await response.json();
-  console.log(`✅ Polling received ${data.length} checkins`);
 
   return data;
 }

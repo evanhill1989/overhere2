@@ -16,32 +16,24 @@ export function useSearchPlacesMutation() {
       query,
       coords,
     }: SearchPlacesInput): Promise<Place[]> => {
-      console.log("🔍 Starting search mutation:", { query, coords });
       const results = await searchPlaces(query, coords);
-      console.log("✅ Search completed:", results.length, "places found");
       return results;
     },
 
     // Optional: Add optimistic updates if you want instant UI feedback
     onMutate: async ({ query }) => {
-      console.log("🚀 Search started for:", query);
       // Could add loading state or clear previous results here
       return { searchQuery: query };
     },
 
     onError: (error) => {
-      console.error("❌ Search failed:", error.message);
       // Could show toast notification here
     },
 
     onSuccess: (data, variables) => {
-      console.log(
-        `✅ Search successful: Found ${data.length} places for "${variables.query}"`,
-      );
     },
 
     onSettled: (data, error, variables) => {
-      console.log("🏁 Search completed for:", variables.query);
     },
   });
 }

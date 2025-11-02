@@ -86,12 +86,7 @@ export function useMessageRequestResponse(options?: RespondToRequestOptions) {
         formData.append("requestId", requestId);
         formData.append("response", validatedResponse);
 
-        console.log("📤 Responding to message request:", {
-          requestId,
-          response: validatedResponse,
-        }); // The result now includes the optional newSession field
-
-        const result = await respondToMessageRequest({ message: "" }, formData); // Check if the response indicates success
+        const result = await respondToMessageRequest({ message: "" }, formData);
 
         const isSuccess =
           result.message === "Request accepted." ||
@@ -123,26 +118,18 @@ export function useMessageRequestResponse(options?: RespondToRequestOptions) {
               sessionQueryKey,
               newSession,
             );
-
-            console.log(
-              "✅ Cache updated: New active session established:",
-              newSession.id,
-            );
           }
 
           // 4. Invalidate all message request lists to ensure the UI removes the responded-to request.
           queryClient.invalidateQueries({ queryKey: ["messageRequests"] });
 
-          console.log("✅ Request response successful:", result.message);
           options?.onSuccess?.(result.message);
         } else {
-          console.error("❌ Request response failed:", result.message);
           options?.onError?.(result.message);
         }
       } catch (error) {
         const errorMessage =
           error instanceof Error ? error.message : "Unknown error";
-        console.error("❌ respondToRequest failed:", errorMessage);
         options?.onError?.(errorMessage);
       }
     });

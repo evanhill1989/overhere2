@@ -56,7 +56,6 @@ export function useMessageFetchRequests(userId: string | null) {
 
     // Clean up any existing channel
     if (channelRef.current) {
-      console.log("🧹 Cleaning up existing message requests channel");
       supabase.removeChannel(channelRef.current);
       channelRef.current = null;
     }
@@ -73,11 +72,6 @@ export function useMessageFetchRequests(userId: string | null) {
           filter: `or(initiator_id.eq.${userId},initiatee_id.eq.${userId})`,
         },
         (payload) => {
-          console.log(
-            "🔔 Real-time message request update:",
-            payload.eventType,
-          );
-
           // Update React Query cache with real-time changes
           queryClient.setQueryData(
             ["messageRequests", userId],
@@ -127,9 +121,7 @@ export function useMessageFetchRequests(userId: string | null) {
       )
       .subscribe((status) => {
         if (status === "SUBSCRIBED") {
-          console.log("✅ Subscribed to message requests real-time");
         } else if (status === "CHANNEL_ERROR") {
-          console.error("❌ Message requests subscription error");
         }
       });
 

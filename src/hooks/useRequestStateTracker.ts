@@ -30,25 +30,12 @@ export function useRequestStateTracker() {
       acknowledged: false,
     };
 
-    console.log("📊📊  📊📊 Tracking request:", request.requestId);
     pendingDeliveries.set(request.requestId, fullRequest);
 
     // Set up timeout for this specific request
     const timeout = setTimeout(() => {
       const tracked = pendingDeliveries.get(request.requestId);
-      console.log(
-        "🔍🔍  🔍🔍 TIMEOUT FIRED for:",
-        request.requestId,
-        "tracked:",
-        !!tracked,
-        "acknowledged:",
-        tracked?.acknowledged,
-      );
       if (tracked && !tracked.acknowledged) {
-        console.warn(
-          "⚠️⚠️ 🛑⚠️⚠️🛑 ⚠️⚠️ Request not acknowledged after 5s:",
-          request.requestId,
-        );
       }
     }, FAILURE_THRESHOLD_MS);
 
@@ -61,7 +48,6 @@ export function useRequestStateTracker() {
     if (tracked) {
       tracked.acknowledged = true;
       tracked.receivedAt = new Date();
-      console.log("✅✅  ✅✅ Request acknowledged:", requestId);
 
       // Clear the timeout since it's been acknowledged
       const timeout = timeoutsRef.current.get(requestId);
@@ -70,7 +56,6 @@ export function useRequestStateTracker() {
         timeoutsRef.current.delete(requestId);
       }
     } else {
-      console.warn("🤔 Acknowledging unknown request:", requestId);
     }
   };
 

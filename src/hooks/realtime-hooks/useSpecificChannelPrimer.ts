@@ -31,9 +31,6 @@ export function useSpecificChannelPrimer(
       .subscribe((status) => {
         // 2. Check for the simplest success status
         if (status === "SUBSCRIBED") {
-          console.log(
-            `✅ [Primer] Channel '${checkinsChannelName}' SUBSCRIBED. PRIMING COMPLETE.`,
-          );
           setIsPrimed(true);
         }
       });

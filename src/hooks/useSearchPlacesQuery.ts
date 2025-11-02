@@ -31,11 +31,6 @@ export function useSearchPlacesQuery({
         throw new Error("Coordinates are required for search");
       }
 
-      console.log("🔍 Running search query via Server Action:", {
-        query,
-        coords,
-      });
-
       return searchPlaces(query, coords);
     },
     // ✅ Only run if enabled AND coords exist AND query is not empty

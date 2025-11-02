@@ -46,8 +46,6 @@ export function useRealtimeMessages(sessionId: string) {
       return;
     }
 
-    console.log("🎬 Setting up messages for session:", sessionId);
-
     // 1. Fetch initial messages
     const fetchInitialMessages = async () => {
       try {
@@ -80,7 +78,6 @@ export function useRealtimeMessages(sessionId: string) {
 
         setMessages(formattedMessages);
       } catch (err) {
-        console.error("❌ Failed to fetch messages:", err);
       } finally {
         setIsLoading(false);
       }
@@ -104,8 +101,6 @@ export function useRealtimeMessages(sessionId: string) {
             filter: `session_id=eq.${sessionId}`,
           },
           (payload: RealtimePayload) => {
-            console.log("🔔 New message received:", payload.new);
-
             const newMessage: Message = {
               id: messageIdSchema.parse(payload.new.id),
               sessionId: sessionIdSchema.parse(payload.new.session_id),
@@ -134,7 +129,6 @@ export function useRealtimeMessages(sessionId: string) {
           },
         )
         .subscribe((status: string) => {
-          console.log("📡 Subscription status:", status);
         });
 
       channelRef.current = channel;
@@ -147,7 +141,6 @@ export function useRealtimeMessages(sessionId: string) {
     // Cleanup
     return () => {
       if (channelRef.current) {
-        console.log("🔌 Cleaning up message subscription");
         supabase.removeChannel(channelRef.current);
         channelRef.current = null;
       }

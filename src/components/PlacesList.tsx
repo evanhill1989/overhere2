@@ -20,18 +20,8 @@ export default function PlacesList() {
   const router = useRouter();
   const { prefetchPlaceData } = usePlaceDataPrefetch();
 
-  // ✅ DEBUG: Let's see what the data actually looks like
-  console.log("🔍 derivedDisplayedPlaces:", derivedDisplayedPlaces);
-  console.log("🔍 First place:", derivedDisplayedPlaces[0]);
-  console.log("🔍 First place.id:", derivedDisplayedPlaces[0]?.id);
-  console.log(
-    "🔍 typeof first place.id:",
-    typeof derivedDisplayedPlaces[0]?.id,
-  );
-
   const handlePlaceClick = async (place: Place) => {
     if (!userId) {
-      console.warn("Tried to prefetch without a valid userId");
       return;
     }
 
@@ -40,8 +30,8 @@ export default function PlacesList() {
     try {
       router.prefetch(`/places/${placeId}`);
       await prefetchPlaceData(placeId, userId);
-    } catch (error) {
-      console.error("Prefetch error:", error);
+    } catch {
+      // Silently handle prefetch errors
     }
 
     setActivePlace(place);
@@ -52,15 +42,6 @@ export default function PlacesList() {
       {/* Scrollable list */}
       <ul className="grow space-y-2 overflow-y-auto p-4">
         {derivedDisplayedPlaces.map((place, index) => {
-          // ✅ DEBUG: Log each place's key
-          console.log(`🔍 Place ${index}:`, {
-            id: place.id,
-            hasId: !!place.id,
-            idType: typeof place.id,
-            idValue: place.id,
-            name: place.name,
-          });
-
           return (
             <li
               // ✅ TEMPORARY FIX: Use index as fallback if place.id is problematic

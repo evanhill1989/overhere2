@@ -19,10 +19,6 @@ export function useMessageRequestMutation() {
   return useMutation({
     mutationFn: async (input: MessageRequestInput) => {
       const result = await requestToMessage(input);
-      console.log(
-        "!!!!!!!!!!!SENT REQUEST INSIDE useMutation, result:",
-        result,
-      );
       if (!result.success) {
         throw new Error(result.error || "Failed to send request");
       }
@@ -70,9 +66,6 @@ export function useMessageRequestMutation() {
       }
     },
     onSuccess: (data, variables, context) => {
-      console.log(`${new Date().toISOString()}`);
-      console.log("✅ Message request sent successfully (Mutation)");
-
       if (data.success && data.data?.requestId) {
         tracker.trackRequest({
           requestId: data.data.requestId,

@@ -23,12 +23,6 @@ export function useRealtimeCheckins(
   const queryClient = useQueryClient();
   const channelRef = useRef<RealtimeChannel | null>(null);
 
-  console.log("🔍 [useRealtimeCheckins] Called with:", {
-    placeId,
-    placeIdType: typeof placeId,
-    enabled: !!placeId && isPrimed,
-  });
-
   // 2. Real-time subscription
   useEffect(() => {
     if (!placeId) return;
@@ -46,8 +40,6 @@ export function useRealtimeCheckins(
         },
         (payload) => {
           // Handle updates immediately
-          console.log("🔔 Realtime checkin event:", payload.eventType);
-
           // Force refetch to ensure consistency
           queryClient.invalidateQueries({
             queryKey: ["checkins", placeId],
@@ -56,7 +48,6 @@ export function useRealtimeCheckins(
       )
       .subscribe((status) => {
         if (status === "SUBSCRIBED") {
-          console.log("✅ Checkins subscription ready");
           // NOW fetch initial data after subscription is ready
           queryClient.refetchQueries({
             queryKey: ["checkins", placeId],
@@ -77,10 +68,6 @@ export function useRealtimeCheckins(
   const query = useQuery<Checkin[], Error>({
     queryKey: ["checkins", placeId],
     queryFn: () => {
-      console.log(
-        "🔍 [useRealtimeCheckins] queryFn called with placeId:",
-        placeId,
-      );
       return fetchCheckins(placeId!);
     },
     enabled: !!placeId && isPrimed,

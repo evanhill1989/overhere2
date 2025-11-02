@@ -102,9 +102,7 @@ export function useRealtimeMessageRequests(
         },
       )
       .subscribe((status) => {
-        console.log(`[SUBSCRIPTION STATUS] ${status}`);
         if (status === "SUBSCRIBED") {
-          console.log("[USERB SUBSCRIBED]", new Date().toISOString());
           queryClient.refetchQueries({
             queryKey: ["messageRequests", userId, placeId],
           });
