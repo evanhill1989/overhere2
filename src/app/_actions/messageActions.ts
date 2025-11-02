@@ -55,7 +55,6 @@ import {
 export async function requestToMessage(
   input: CreateMessageRequestRequest,
 ): Promise<CreateMessageRequestResponse> {
-  console.log("USERA requesting a messagesessi @@@@@@@@@@@@@@@@");
   try {
     // Rate limiting
     const rateLimitResult = await checkServerActionRateLimit(
@@ -134,8 +133,6 @@ export async function requestToMessage(
       return { success: false, error: "Request already exists" };
     }
 
-    console.log("[USERA INSERT]", new Date().toISOString());
-
     // Insert new request
     const { data: newRequest, error: insertError } = await supabase
       .from("message_session_requests")
@@ -159,8 +156,6 @@ export async function requestToMessage(
     // Parse response as domain types
     const requestId = requestIdSchema.parse(newRequest.id);
     const status = messageRequestStatusSchema.parse(newRequest.status);
-
-    console.log("✅ Message request created:", requestId);
 
     return {
       success: true,
@@ -258,8 +253,6 @@ export async function respondToMessageRequest(
       }
 
       newSession = sessionData as DatabaseMessageSession; // 💡 Store the new session data
-
-      console.log("✅ Message session created for request:", requestId);
     } // Update request status
 
     const { error: updateError } = await supabase
@@ -275,7 +268,6 @@ export async function respondToMessageRequest(
       return { message: "Failed to update request." };
     }
 
-    console.log(`✅ Request ${response}:`, requestId);
     return {
       message: `Request ${response}.`,
       newSession: newSession, // 💡 RETURN THE NEW SESSION DATA
@@ -455,7 +447,6 @@ export async function submitMessage(
     }
 
     const messageId = messageIdSchema.parse(newMessage.id);
-    console.log("✅ Message sent:", messageId);
 
     // Return as domain type with all fields properly branded
     const message: Message = {
@@ -569,7 +560,6 @@ export async function cancelMessageRequest(
       return { success: false, error: error.message };
     }
 
-    console.log("✅ Request canceled:", requestId);
     return { success: true, data: undefined };
   } catch (e: unknown) {
     const error = e instanceof Error ? e : new Error("Unknown error");

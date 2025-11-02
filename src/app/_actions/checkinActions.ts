@@ -14,7 +14,6 @@ import {
   type Place,
   placeSchema,
   userIdSchema,
-  checkinIdSchema,
   // Form/Input schemas
 } from "@/lib/types/database";
 import { createCheckinSchema } from "@/lib/types/core";
@@ -62,8 +61,6 @@ export async function fetchAndCacheGooglePlaceDetails(
         new Date().getTime() - cachedPlace.lastFetchedAt.getTime() >
         CACHE_STALE_MS;
       if (!isStale) {
-        console.log("✅ Using cached place data for:", placeId);
-
         // ⚠️ CRITICAL STEP: Map Drizzle result to canonical domain type
         // The raw 'cachedPlace' from Drizzle might have different type structures
         // (e.g., date objects, non-branded ID strings) than your canonical 'Place'.
@@ -85,7 +82,6 @@ export async function fetchAndCacheGooglePlaceDetails(
           // Fall through to re-fetch if cached data is malformed
         }
       }
-      console.log("⚠️ Cached place data is stale, refreshing...");
     }
   } catch (dbError) {
     console.error(`DB cache lookup failed for place ID ${placeId}:`, dbError);
@@ -172,8 +168,6 @@ export async function fetchAndCacheGooglePlaceDetails(
     });
 
     if (finalPlace) {
-      console.log("✅ Place data cached successfully:", placeId);
-
       // ⚠️ CRITICAL STEP: Map Drizzle result to canonical domain type
       return placeSchema.parse({
         id: finalPlace.id,
@@ -243,10 +237,6 @@ export async function checkIn(
     throw new Error(rateLimitResult.error || "Rate limit exceeded");
   }
 
-  console.log(
-    `✅ Rate limit check passed. Remaining: ${rateLimitResult.remaining}`,
-  );
-
   const supabase = await createClient();
 
   // Get authenticated user
@@ -261,21 +251,6 @@ export async function checkIn(
 
   // ✅ Parse user ID as branded type
   const userId = userIdSchema.parse(user.id);
-  console.log("🔐 Check-in request from user:", userId);
-
-  console.log("🔍 Debug auth state:", {
-    userId: user.id,
-    role: user.role,
-    authUid: user.id, // This should match what auth.uid() returns in policies
-  });
-
-  // Test a simple query to see if basic permissions work
-  const { data: testQuery, error: testError } = await supabase
-    .from("checkins")
-    .select("id")
-    .limit(1);
-
-  console.log("🔍 Test query result:", { testQuery, testError });
 
   // Ensure user exists in database
   await ensureUserInDb(user);
@@ -308,17 +283,10 @@ export async function checkIn(
       isActive: true,
     });
 
-    console.log("📝 Check-in data validated:", {
-      placeId: validated.placeId,
-      status: validated.checkinStatus,
-      topic: validated.topic,
-    });
     // ✅ Step 1: Cache place details in background
-    console.log("🔍 About to cache place:", validated.placeId);
     const cachedPlace = await fetchAndCacheGooglePlaceDetails(
       validated.placeId,
     );
-    console.log("📦 Cached place result:", cachedPlace);
 
     if (!cachedPlace) {
       throw new Error(`Failed to cache place details for ${validated.placeId}`);
@@ -327,8 +295,6 @@ export async function checkIn(
     fetchAndCacheGooglePlaceDetails(validated.placeId).catch((err) => {
       console.warn("⚠️ Failed to cache place details (non-critical):", err);
     });
-
-    console.log("✅ Place cached successfully, proceeding with check-in");
 
     // ✅ Step 2: Deactivate previous check-ins
     const { error: deactivateError } = await supabase
@@ -348,10 +314,8 @@ export async function checkIn(
       throw new Error("Failed to deactivate previous check-ins");
     }
 
-    console.log("✅ Previous check-ins deactivated");
-
     // ✅ Step 3: Create new check-in with validated data
-    const { data: newCheckin, error: insertError } = await supabase
+    const { error: insertError } = await supabase
       .from("checkins")
       .insert({
         user_id: validated.userId,
@@ -371,10 +335,6 @@ export async function checkIn(
       console.error("❌ Failed to create check-in:", insertError);
       throw new Error(`Failed to check in: ${insertError.message}`);
     }
-
-    // ✅ Parse returned checkin ID as branded type
-    const checkinId = checkinIdSchema.parse(newCheckin.id);
-    console.log("✅ Check-in created:", checkinId);
 
     // Redirect to place page
     return { placeId: validated.placeId };

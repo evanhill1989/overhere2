@@ -101,12 +101,6 @@ export async function searchPlaces(
     throw error;
   }
 
-  console.log("✅ Search input validated:", {
-    query: validated.query,
-    coords: validated.coords,
-    maxResults: validated.maxResults,
-  });
-
   // ✅ Step 2: Rate limiting check
   const rateLimitResult = await checkServerActionRateLimit(
     RATE_LIMIT_CONFIGS.searchPlaces,
@@ -119,10 +113,6 @@ export async function searchPlaces(
         "Too many searches. Please wait before searching again.",
     );
   }
-
-  console.log(
-    `✅ Search rate limit check passed. Remaining: ${rateLimitResult.remaining}`,
-  );
 
   // ✅ Step 3: Verify API key
   const PLACES_API_KEY = process.env.GOOGLE_PLACES_API_KEY;
@@ -194,7 +184,6 @@ export async function searchPlaces(
   }
 
   if (!data.places || !Array.isArray(data.places)) {
-    console.warn("⚠️ Google Places API returned no results");
     return [];
   }
 
@@ -209,7 +198,6 @@ export async function searchPlaces(
     try {
       // Validate critical fields (UNCHANGED)
       if (!place.id || !place.displayName?.text) {
-        console.warn("⚠️ Skipping place with missing required fields:", place);
         continue;
       }
 
@@ -246,14 +234,12 @@ export async function searchPlaces(
       };
 
       results.push(result);
-    } catch (error) {
-      // Log validation errors but continue processing other results
-      console.warn("⚠️ Failed to validate place result:", place, error);
+    } catch {
+      // Skip validation errors and continue processing other results
       continue;
     }
   }
 
-  console.log(`✅ Search completed: ${results.length} valid results`);
   return results;
 }
 
