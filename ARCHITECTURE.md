@@ -11,18 +11,21 @@ Naive solutions fail because they optimize for the wrong thing. If you track con
 ## Constraints
 
 We could not assume:
+
 - Users would tolerate app store friction (must work in mobile browsers)
 - People would accept persistent chat archives (privacy risk too high)
 - Unlimited API budget for real-time location lookups (Google Places charges per request)
 - Users would wait for page refreshes to see new check-ins (real-time is table stakes)
 
 We explicitly avoided:
+
 - User profiles or persistent identity beyond active sessions
 - Message history that survives session expiration
 - Custom auth infrastructure (time/security risk)
 - Native mobile apps (development/maintenance cost)
 
 The system had to:
+
 - Feel real-time without custom WebSocket infrastructure
 - Work on day one without complex ops
 - Prevent abuse without heavyweight moderation tools
@@ -58,3 +61,9 @@ Managed infrastructure (Supabase, Vercel) means the app stays fast and available
 Browser-first design means no app store gatekeeping. See a QR code at a coffee shop? You're chatting in 30 seconds. Lower friction, faster value.
 
 The architecture isn't clever for cleverness's sake. Every choice trades off something to optimize for one outcome: **getting strangers to talk to each other without fear**. That's a product problem solved with infrastructure decisions.
+
+## Predictions for a true launch
+
+**Watching for potential failures**
+No history means privacy and anonymity peace of mind, but does make bad actors more difficult to track :
+People using OH
