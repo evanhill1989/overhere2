@@ -47,7 +47,7 @@ export default function PlacesList() {
               // ✅ TEMPORARY FIX: Use index as fallback if place.id is problematic
               key={place.id || `place-${index}`}
               onClick={() => handlePlaceClick(place)}
-              className="border-muted hover:bg-accent hover:text-secondary-foreground cursor-pointer rounded border p-3 shadow-sm transition"
+              className="bg-background/85 border-muted hover:bg-accent hover:text-secondary-foreground cursor-pointer rounded border p-3 shadow-sm transition"
             >
               <h3 className="text-base font-medium">{place.name}</h3>
               <p className="text-muted-foreground text-sm">{place.address}</p>
