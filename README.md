@@ -2,7 +2,7 @@
 
 **Tagline:** _Stop scrolling, start talking._
 
-OverHere is a mobile-first, hyper-local app designed to foster spontaneous, real-world conversations. It helps users connect safely and anonymously with nearby people for brief, platonic interactions — no profiles, no pressure, just genuine human connection.
+OverHere is a mobile-first, hyper-local app designed to foster spontaneous, real-world conversations. It helps users connect safely and anonymously with nearby people for brief, platonic interactions. No profiles, no pressure, just genuine human connection.
 
 ---
 
