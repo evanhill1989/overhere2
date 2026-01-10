@@ -3,6 +3,8 @@
 
 import { useRouter } from "next/navigation";
 import { usePlaceFinder } from "@/providers/PlaceFinderProvider";
+import { useNearbyPlaces } from "@/hooks/useNearbyPlaces";
+import { useSearchPlacesQuery } from "@/hooks/useSearchPlacesQuery";
 import CheckinDialog from "@/components/CheckinDialog";
 import { useState } from "react";
 import { type Place } from "@/lib/types/database";
@@ -14,7 +16,20 @@ export default function PlacesList() {
   const session = useSession();
   const userId: UserId | null = session?.userId ?? null;
 
-  const { derivedDisplayedPlaces } = usePlaceFinder();
+  // Get client state from context
+  const { userLocation, searchQuery, isInSearchMode } = usePlaceFinder();
+
+  // Get server state from React Query
+  const { data: nearbyPlaces = [] } = useNearbyPlaces(userLocation);
+  const { data: searchResults = [] } = useSearchPlacesQuery({
+    query: searchQuery,
+    coords: userLocation,
+    enabled: isInSearchMode && !!userLocation,
+  });
+
+  // Derive display places locally
+  const derivedDisplayedPlaces = isInSearchMode ? searchResults : nearbyPlaces;
+
   const [activePlace, setActivePlace] = useState<Place | null>(null);
 
   const router = useRouter();

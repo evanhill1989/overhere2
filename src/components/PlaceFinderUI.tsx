@@ -4,6 +4,8 @@
 import { useState } from "react";
 import dynamic from "next/dynamic";
 import { usePlaceFinder } from "@/providers/PlaceFinderProvider";
+import { useNearbyPlaces } from "@/hooks/useNearbyPlaces";
+import { useSearchPlacesQuery } from "@/hooks/useSearchPlacesQuery";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Loader2, Search as SearchIcon, X } from "lucide-react";
@@ -30,16 +32,33 @@ const UserMap = dynamic(() => import("./UserMap"), {
 });
 
 export default function PlaceFinderUI() {
+  // Get client state from context
   const {
-    derivedDisplayedPlaces,
-    isLoadingOverall,
-    searchFormAction,
-    isSearchPending,
+    userLocation,
     searchQuery,
     setSearchQuery,
-    searchError,
+    isInSearchMode,
+    searchFormAction,
     clearSearch,
   } = usePlaceFinder();
+
+  // Get server state from React Query
+  const { data: nearbyPlaces = [], isLoading: isNearbyLoading } = useNearbyPlaces(userLocation);
+  const {
+    data: searchResults = [],
+    isLoading: isSearchLoading,
+    error: searchErrorObj,
+  } = useSearchPlacesQuery({
+    query: searchQuery,
+    coords: userLocation,
+    enabled: isInSearchMode && !!userLocation,
+  });
+
+  // Derive local state
+  const derivedDisplayedPlaces = isInSearchMode ? searchResults : nearbyPlaces;
+  const isLoadingOverall = isInSearchMode ? isSearchLoading : isNearbyLoading;
+  const isSearchPending = isSearchLoading;
+  const searchError = searchErrorObj?.message || null;
 
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [searchMode, setSearchMode] = useState(false);

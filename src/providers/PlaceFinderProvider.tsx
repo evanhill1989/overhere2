@@ -5,26 +5,16 @@ import { useState, useEffect, useRef, useContext, createContext } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/utils/supabase/client";
 
-import { useNearbyPlaces } from "@/hooks/useNearbyPlaces";
-
-import { useSearchPlacesQuery } from "@/hooks/useSearchPlacesQuery";
-
 import { Coords, coordsSchema } from "@/lib/types/core";
-import { Place } from "@/lib/types/database";
 
 type PlaceFinderContextType = {
   userLocation: Coords | null;
-  derivedDisplayedPlaces: Place[];
-  isLoadingOverall: boolean;
   searchQuery: string;
   setSearchQuery: (value: string) => void;
-  isSearchPending: boolean;
+  isInSearchMode: boolean;
   searchFormAction: (formData: FormData) => void;
   locationError: string | null;
-  nearbyError: string | null;
-  isNearbyLoading: boolean;
-  searchError: string | null; //
-  clearSearch: () => void; //
+  clearSearch: () => void;
 };
 
 const PlaceFinderContext = createContext<PlaceFinderContextType | null>(null);
@@ -43,30 +33,6 @@ export function PlaceFinderProvider({
   const [searchQuery, setSearchQuery] = useState("");
   const [locationError, setLocationError] = useState<string | null>(null);
   const [isInSearchMode, setIsInSearchMode] = useState(false);
-
-  // ✅ Use the nearby places hook
-  const {
-    data: nearbyPlaces = [],
-    isLoading: isNearbyLoading,
-    error: nearbyError,
-  } = useNearbyPlaces(userLocation);
-
-  const {
-    data: searchResults = [], // Renamed for consistency
-    isLoading: isSearchPending, // Use isLoading for pending status
-    error: searchErrorObject,
-  } = useSearchPlacesQuery({
-    query: searchQuery,
-    coords: userLocation, // UserLocation is checked later
-    enabled: isInSearchMode && !!userLocation, // Only run when in search mode AND location is known
-  });
-
-  // ✅ Derive displayed places from either search results or nearby places
-  const derivedDisplayedPlaces = isInSearchMode ? searchResults : nearbyPlaces;
-
-  // ✅ Extract search state from mutation
-  // const isSearchPending = searchMutation.isPending;
-  const searchError = searchErrorObject?.message || null;
 
   // Geolocation setup (unchanged)
   useEffect(() => {
@@ -161,15 +127,8 @@ export function PlaceFinderProvider({
   // ✅ Clear search function
   const clearSearch = () => {
     setIsInSearchMode(false);
-
     setSearchQuery("");
   };
-
-  // ✅ Overall loading combines location readiness + nearby loading + search pending
-  const isLoadingOverall =
-    !ready ||
-    (ready && !!userLocation && isNearbyLoading) ||
-    (isInSearchMode && isSearchPending);
 
   if (!ready || !userLocation) {
     if (locationError) {
@@ -199,16 +158,11 @@ export function PlaceFinderProvider({
     <PlaceFinderContext.Provider
       value={{
         userLocation,
-        derivedDisplayedPlaces,
-        isLoadingOverall,
         searchQuery,
         setSearchQuery,
-        isSearchPending,
+        isInSearchMode,
         searchFormAction,
         locationError,
-        nearbyError: nearbyError?.message || null,
-        isNearbyLoading,
-        searchError,
         clearSearch,
       }}
     >
