@@ -39,6 +39,14 @@ export function PlacePageClient({
   const [messagingState, setMessagingState] =
     useState<MessagingState>("hidden");
 
+  // Track which sessions user has explicitly closed
+  const [userClosedSessionIds, setUserClosedSessionIds] = useState<Set<string>>(
+    new Set()
+  );
+
+  // Track last session ID to detect changes (new session created)
+  const [lastSessionId, setLastSessionId] = useState<string | null>(null);
+
   const {
     data: session,
     isLoading: sessionLoading,
@@ -87,21 +95,52 @@ export function PlacePageClient({
   // ============================================
   const openMessagingWindow = useCallback(() => {
     setMessagingState("active");
-  }, []);
+    // When user manually opens, remove from closed set
+    if (session?.id) {
+      setUserClosedSessionIds((prev) => {
+        const newSet = new Set(prev);
+        newSet.delete(session.id);
+        return newSet;
+      });
+    }
+  }, [session?.id]);
 
   const closeMessagingWindow = useCallback(() => {
     setMessagingState("hidden");
-  }, []);
+    // Track that user explicitly closed this session
+    if (session?.id) {
+      setUserClosedSessionIds((prev) => new Set(prev).add(session.id));
+    }
+  }, [session?.id]);
 
   // ============================================
   // SESSION CHANGE DETECTION
   // ============================================
   useEffect(() => {
-    if (!session && messagingState === "active") {
-      closeMessagingWindow();
-      console.log("Session expired or removed - closing window");
+    const currentSessionId = session?.id ?? null;
+
+    // Case 1: New session created (ID changed from null or different ID)
+    if (currentSessionId && currentSessionId !== lastSessionId) {
+      console.log("New session detected:", currentSessionId);
+
+      // Auto-open ONLY if user hasn't explicitly closed this session before
+      if (!userClosedSessionIds.has(currentSessionId)) {
+        console.log("Auto-opening messaging window for new session");
+        setMessagingState("active");
+      } else {
+        console.log("User previously closed this session, keeping window hidden");
+      }
+
+      setLastSessionId(currentSessionId);
     }
-  }, [session, messagingState, closeMessagingWindow]);
+
+    // Case 2: Session ended (went from existing to null)
+    else if (!currentSessionId && lastSessionId) {
+      console.log("Session ended, closing window");
+      setMessagingState("hidden");
+      setLastSessionId(null);
+    }
+  }, [session?.id, lastSessionId, userClosedSessionIds]);
 
   // ============================================
   // RENDER STATES
