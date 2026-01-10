@@ -111,7 +111,7 @@ export function SimpleMessagingWindow({
             onChange={(e) => setNewMessage(e.target.value)}
             onKeyPress={handleKeyPress}
             placeholder="Type a message..."
-            className="min-h-0 flex-1 resize-none"
+            className="min-h-0 flex-1 resize-none text-black"
             rows={1}
             disabled={isSending}
           />

@@ -97,18 +97,11 @@ export function PlacePageClient({
   // SESSION CHANGE DETECTION
   // ============================================
   useEffect(() => {
-    if (session && !sessionLoading && messagingState === "hidden") {
-      openMessagingWindow();
-    } else if (!session && messagingState === "active") {
+    if (!session && messagingState === "active") {
       closeMessagingWindow();
+      console.log("Session expired or removed - closing window");
     }
-  }, [
-    session,
-    sessionLoading,
-    messagingState,
-    openMessagingWindow,
-    closeMessagingWindow,
-  ]);
+  }, [session, messagingState, closeMessagingWindow]);
 
   // ============================================
   // RENDER STATES
@@ -176,7 +169,7 @@ export function PlacePageClient({
       />
 
       {/* Simple Messaging Window */}
-      {session && currentCheckinId && (
+      {session && currentCheckinId && messagingState === "active" && (
         <MessageErrorBoundary onReset={() => setMessagingState("hidden")}>
           <SimpleMessagingWindow
             sessionId={session.id}
