@@ -30,3 +30,15 @@ UI integration points -
 1. Pass unread counts to checkin card. Add indicator when unreadCount > 0.
 2. Messaging window - when window opens call markMessagesAsRead.
 3.
+
+### 01/16/26
+
+**unread messages notification bugs**
+Brief fixes attempted.
+
+### 01/17/26
+
+**Plan**
+
+1. finish fixes on notifications
+2.

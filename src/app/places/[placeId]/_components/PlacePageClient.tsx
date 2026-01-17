@@ -30,11 +30,6 @@ export function PlacePageClient({
   placeInfo,
   isPrimed,
 }: PlacePageClientProps) {
-  const prevProps = useRef({ placeId, userId, placeInfo });
-  prevProps.current = { placeId, userId, placeInfo };
-
-  const hasMountedRef = useRef(false);
-
   // ============================================
   // MESSAGING STATE
   // ============================================
@@ -48,6 +43,9 @@ export function PlacePageClient({
 
   // Track last session ID to detect changes (new session created)
   const [lastSessionId, setLastSessionId] = useState<string | null>(null);
+
+  // Track if we've completed the initial session load (separate from lastSessionId)
+  const hasInitializedSessionRef = useRef(false);
 
   const {
     data: session,
@@ -121,24 +119,29 @@ export function PlacePageClient({
   useEffect(() => {
     const currentSessionId = session?.id ?? null;
 
-    // Only update lastSessionId on mount, don't auto-open
-    if (lastSessionId === null && currentSessionId !== null) {
-      console.log("Initial session found on mount:", currentSessionId);
-      setLastSessionId(currentSessionId);
-      return; // Don't auto-open
+    // Don't do anything while session is still loading
+    if (sessionLoading) {
+      return;
     }
 
-    // Case 1: New session created (ID changed from different ID)
-    if (
-      currentSessionId &&
-      currentSessionId !== lastSessionId &&
-      lastSessionId !== null
-    ) {
-      console.log("New session created during page session:", currentSessionId);
+    // First time we get session data after load completes
+    if (!hasInitializedSessionRef.current) {
+      hasInitializedSessionRef.current = true;
+      setLastSessionId(currentSessionId);
+      console.log("Initial session state after load:", currentSessionId);
+      // Don't auto-open on initial page load
+      return;
+    }
+
+    // After initialization, handle session changes
+
+    // Case 1: New session appeared or changed
+    if (currentSessionId && currentSessionId !== lastSessionId) {
+      console.log("Session changed:", lastSessionId, "->", currentSessionId);
 
       // Auto-open ONLY if user hasn't explicitly closed this session before
       if (!userClosedSessionIds.has(currentSessionId)) {
-        console.log("Auto-opening messaging window for new session");
+        console.log("Auto-opening messaging window for session");
         setMessagingState("active");
       } else {
         console.log(
@@ -155,7 +158,7 @@ export function PlacePageClient({
       setMessagingState("hidden");
       setLastSessionId(null);
     }
-  }, [session?.id, lastSessionId, userClosedSessionIds]);
+  }, [session?.id, sessionLoading, lastSessionId, userClosedSessionIds]);
 
   // ============================================
   // RENDER STATES

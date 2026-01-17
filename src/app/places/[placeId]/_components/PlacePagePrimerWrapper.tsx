@@ -17,16 +17,11 @@ interface WrapperProps {
   placeInfo: PlaceInfo;
 }
 
-/**
- * Ensures specific Supabase Realtime channels are subscribed and confirmed
- * before mounting the main PlacePageClient, which runs the main data hooks.
- */
 export function PlacePageClientPrimerWrapper({
   placeId,
   userId,
   placeInfo,
 }: WrapperProps) {
-  // 1. Run the primer hook unconditionally
   const isRealtimeReady = useSpecificChannelPrimer(placeId);
 
   if (!isRealtimeReady) {
