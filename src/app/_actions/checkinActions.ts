@@ -296,7 +296,59 @@ export async function checkIn(
       console.warn("⚠️ Failed to cache place details (non-critical):", err);
     });
 
-    // ✅ Step 2: Deactivate previous check-ins
+    // ✅ Step 2: Check for existing check-in at this place (within 12 hours)
+    const twelveHoursAgo = new Date(Date.now() - 12 * 60 * 60 * 1000);
+    const { data: existingCheckin } = await supabase
+      .from("checkins")
+      .select("*")
+      .eq("user_id", validated.userId)
+      .eq("place_id", validated.placeId)
+      .gte("created_at", twelveHoursAgo.toISOString())
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    // ✅ Step 3: If recent check-in exists at same place, reactivate it
+    if (existingCheckin) {
+      console.log("♻️ Reactivating existing check-in:", existingCheckin.id);
+
+      // Deactivate any OTHER active check-ins (different places)
+      const { error: deactivateOthersError } = await supabase
+        .from("checkins")
+        .update({
+          is_active: false,
+          checked_out_at: new Date().toISOString(),
+        })
+        .eq("user_id", validated.userId)
+        .eq("is_active", true)
+        .neq("id", existingCheckin.id);
+
+      if (deactivateOthersError) {
+        console.error(
+          "❌ Failed to deactivate other check-ins:",
+          deactivateOthersError,
+        );
+        throw new Error("Failed to deactivate other check-ins");
+      }
+
+      // Reactivate the existing check-in at this place
+      const { error: reactivateError } = await supabase
+        .from("checkins")
+        .update({
+          is_active: true,
+          checked_out_at: null,
+        })
+        .eq("id", existingCheckin.id);
+
+      if (reactivateError) {
+        console.error("❌ Failed to reactivate check-in:", reactivateError);
+        throw new Error("Failed to reactivate check-in");
+      }
+
+      return { placeId: validated.placeId };
+    }
+
+    // ✅ Step 4: No recent check-in exists, deactivate all and create new
     const { error: deactivateError } = await supabase
       .from("checkins")
       .update({
@@ -314,7 +366,7 @@ export async function checkIn(
       throw new Error("Failed to deactivate previous check-ins");
     }
 
-    // ✅ Step 3: Create new check-in with validated data
+    // ✅ Step 5: Create new check-in with validated data
     const { error: insertError } = await supabase
       .from("checkins")
       .insert({

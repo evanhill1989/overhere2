@@ -33,15 +33,15 @@ type PersonCardProps = {
   onSendRequest: () => void;
   onResumeSession?: () => void;
   isRequestPending: boolean;
-  // ✅ Properly typed handlers
   onAcceptRequest: (requestId: RequestId) => void;
   onRejectRequest: (requestId: RequestId) => void;
+  unreadCount?: number; // Add this line
 };
 
 export default function PersonCard({
   checkin,
   currentUserId,
-  placeId, // ✅ Ensure placeId is available for filtering requests in utility
+  placeId,
   requests,
   activeSession,
   onSendRequest,
@@ -49,6 +49,7 @@ export default function PersonCard({
   isRequestPending,
   onAcceptRequest,
   onRejectRequest,
+  unreadCount = 0,
 }: PersonCardProps) {
   // Determine if the current card's user is a participant in the active session
   const isInActiveSession =
@@ -73,26 +74,36 @@ export default function PersonCard({
   const cardState = getCardState(getCardStatePropsObj);
 
   return (
-    <Card className={`group border-border/40 p-5 shadow-sm transition-all duration-200 hover:border-primary/50 hover:shadow-md ${cardState.className}`}>
+    <Card
+      className={`group border-border/40 hover:border-primary/50 p-5 shadow-sm transition-all duration-200 hover:shadow-md ${cardState.className}`}
+    >
       <div className="flex items-center justify-between gap-4">
         <div className="flex-1 space-y-1.5">
-          <p className="text-base font-semibold leading-snug">{checkin.topic || "Open to chat"}</p>
-          <p className="text-xs capitalize tracking-wide text-muted-foreground/80">
+          <p className="text-base leading-snug font-semibold">
+            {checkin.topic || "Open to chat"}
+          </p>
+          <p className="text-muted-foreground/80 text-xs tracking-wide capitalize">
             {checkin.checkinStatus}
           </p>
         </div>
 
         <div className="flex shrink-0 items-center gap-3">
-          {/* Map the string icon from utility to the React component */}
           {iconMap[cardState.icon as keyof typeof iconMap]}
-          <Button
-            variant={cardState.variant}
-            disabled={cardState.disabled}
-            onClick={cardState.onClick}
-            size="sm"
-          >
-            {cardState.text}
-          </Button>
+          <div className="relative">
+            <Button
+              variant={cardState.variant}
+              disabled={cardState.disabled}
+              onClick={cardState.onClick}
+              size="sm"
+            >
+              {cardState.text}
+            </Button>
+            {unreadCount > 0 && (
+              <div className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-xs font-semibold text-white">
+                {unreadCount}
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </Card>

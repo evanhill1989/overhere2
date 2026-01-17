@@ -7,6 +7,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { X, Send } from "lucide-react";
 import { useRealtimeMessages } from "@/hooks/realtime-hooks/useRealtimeMessages";
 import { createClient } from "@/utils/supabase/client";
+import { markMessagesAsRead } from "@/app/_actions/messageActions";
+import { useQueryClient } from "@tanstack/react-query";
 
 interface SimpleMessagingWindowProps {
   sessionId: string;
@@ -27,10 +29,25 @@ export function SimpleMessagingWindow({
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const supabase = createClient();
 
+  const queryClient = useQueryClient();
+
   // Auto-scroll to bottom
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
+
+  useEffect(() => {
+    return () => {
+      markMessagesAsRead(sessionId as any, currentUserCheckinId)
+        .then(() => {
+          // Invalidate unread counts after marking as read
+          queryClient.invalidateQueries({ queryKey: ["unreadMessageCounts"] });
+        })
+        .catch((err) => {
+          console.error("Failed to mark messages as read:", err);
+        });
+    };
+  }, [sessionId, currentUserCheckinId, queryClient]);
 
   const sendMessage = async () => {
     if (!newMessage.trim() || isSending) return;

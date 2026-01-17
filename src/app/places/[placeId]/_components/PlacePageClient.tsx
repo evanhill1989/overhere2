@@ -33,6 +33,8 @@ export function PlacePageClient({
   const prevProps = useRef({ placeId, userId, placeInfo });
   prevProps.current = { placeId, userId, placeInfo };
 
+  const hasMountedRef = useRef(false);
+
   // ============================================
   // MESSAGING STATE
   // ============================================
@@ -41,7 +43,7 @@ export function PlacePageClient({
 
   // Track which sessions user has explicitly closed
   const [userClosedSessionIds, setUserClosedSessionIds] = useState<Set<string>>(
-    new Set()
+    new Set(),
   );
 
   // Track last session ID to detect changes (new session created)
@@ -119,16 +121,29 @@ export function PlacePageClient({
   useEffect(() => {
     const currentSessionId = session?.id ?? null;
 
-    // Case 1: New session created (ID changed from null or different ID)
-    if (currentSessionId && currentSessionId !== lastSessionId) {
-      console.log("New session detected:", currentSessionId);
+    // Only update lastSessionId on mount, don't auto-open
+    if (lastSessionId === null && currentSessionId !== null) {
+      console.log("Initial session found on mount:", currentSessionId);
+      setLastSessionId(currentSessionId);
+      return; // Don't auto-open
+    }
+
+    // Case 1: New session created (ID changed from different ID)
+    if (
+      currentSessionId &&
+      currentSessionId !== lastSessionId &&
+      lastSessionId !== null
+    ) {
+      console.log("New session created during page session:", currentSessionId);
 
       // Auto-open ONLY if user hasn't explicitly closed this session before
       if (!userClosedSessionIds.has(currentSessionId)) {
         console.log("Auto-opening messaging window for new session");
         setMessagingState("active");
       } else {
-        console.log("User previously closed this session, keeping window hidden");
+        console.log(
+          "User previously closed this session, keeping window hidden",
+        );
       }
 
       setLastSessionId(currentSessionId);

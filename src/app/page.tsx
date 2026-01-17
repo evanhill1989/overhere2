@@ -1,10 +1,9 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
-import Link from "next/link";
 import { PlaceFinderProvider } from "@/providers/PlaceFinderProvider";
 import PlaceFinderUI from "@/components/PlaceFinderUI";
 import { useSession } from "@/components/SessionProvider";
+import { LoginButton } from "@/components/LoginButton";
 
 export default function HomePage() {
   const session = useSession();
@@ -26,11 +25,10 @@ export default function HomePage() {
           Spontaneous conversation with people where you are — no profiles, no
           pressure.
         </p>
-        <Link href="/auth/login">
-          <Button size="lg" className="w-full text-lg">
-            Get Started
-          </Button>
-        </Link>
+
+        <LoginButton size="lg" className="w-full text-lg">
+          Say hello
+        </LoginButton>
       </div>
     </div>
   );

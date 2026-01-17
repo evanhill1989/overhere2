@@ -646,3 +646,149 @@ export async function verifySessionAccess(
     return false;
   }
 }
+
+// ============================================
+// MARK MESSAGES AS READ
+// ============================================
+
+export async function markMessagesAsRead(
+  sessionId: SessionId,
+  currentUserCheckinId: string,
+): Promise<ApiResponse<void>> {
+  try {
+    const supabase = await createClient();
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+      return { success: false, error: "Not authenticated" };
+    }
+
+    const userId = userIdSchema.parse(user.id);
+
+    // Verify user has access to this session
+    const hasAccess = await verifySessionAccess(sessionId, userId);
+    if (!hasAccess) {
+      return { success: false, error: "Unauthorized" };
+    }
+
+    // Mark all messages as read where:
+    // - Message is in this session
+    // - Message was NOT sent by current user's checkin
+    // - Message is not already read
+    const { error } = await supabase
+      .from("messages")
+      .update({ read_at: new Date().toISOString() })
+      .eq("session_id", sessionId)
+      .neq("sender_checkin_id", currentUserCheckinId)
+      .is("read_at", null);
+
+    if (error) {
+      console.error("❌ Failed to mark messages as read:", error);
+      return { success: false, error: error.message };
+    }
+
+    return { success: true, data: undefined };
+  } catch (e: unknown) {
+    const error = e instanceof Error ? e : new Error("Unknown error");
+    console.error("❌ markMessagesAsRead failed:", error.message);
+
+    return { success: false, error: error.message };
+  }
+}
+
+// ============================================
+// GET UNREAD MESSAGE COUNTS
+// ============================================
+
+export async function getUnreadMessageCounts(
+  placeId: PlaceId,
+  currentUserId: UserId,
+): Promise<Record<string, number>> {
+  try {
+    const supabase = await createClient();
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+
+    if (authError || !user || user.id !== currentUserId) {
+      return {};
+    }
+
+    // Get current user's active checkin
+    const { data: myCheckin } = await supabase
+      .from("checkins")
+      .select("id")
+      .eq("user_id", currentUserId)
+      .eq("place_id", placeId)
+      .eq("is_active", true)
+      .maybeSingle();
+
+    if (!myCheckin) {
+      return {};
+    }
+
+    // Get all active sessions at this place involving current user
+    const { data: sessions, error: sessionsError } = await supabase
+      .from("message_sessions")
+      .select("id, initiator_id, initiatee_id")
+      .eq("place_id", placeId)
+      .eq("status", MESSAGE_SESSION_STATUS.ACTIVE)
+      .or(`initiator_id.eq.${currentUserId},initiatee_id.eq.${currentUserId}`);
+
+    if (sessionsError || !sessions || sessions.length === 0) {
+      return {};
+    }
+
+    const unreadCounts: Record<string, number> = {};
+
+    for (const session of sessions) {
+      // Get the other user's ID
+      const otherUserId =
+        session.initiator_id === currentUserId
+          ? session.initiatee_id
+          : session.initiator_id;
+
+      // Get their active checkin at this place
+      const { data: otherCheckin } = await supabase
+        .from("checkins")
+        .select("id")
+        .eq("user_id", otherUserId)
+        .eq("place_id", placeId)
+        .eq("is_active", true)
+        .maybeSingle();
+
+      if (!otherCheckin) continue;
+
+      // Count unread messages in this session that were:
+      // - NOT sent by me
+      // - NOT yet read
+      const { data: unreadMessages } = await supabase
+        .from("messages")
+        .select("id, sender_checkin_id")
+        .eq("session_id", session.id)
+        .is("read_at", null);
+
+      if (!unreadMessages || unreadMessages.length === 0) continue;
+
+      // Filter out messages sent by current user
+      const unreadFromOther = unreadMessages.filter(
+        (msg) => msg.sender_checkin_id !== myCheckin.id,
+      );
+
+      if (unreadFromOther.length > 0) {
+        // Map to the OTHER user's checkin ID (not mine)
+        unreadCounts[otherCheckin.id] = unreadFromOther.length;
+      }
+    }
+
+    return unreadCounts;
+  } catch (e: unknown) {
+    const error = e instanceof Error ? e : new Error("Unknown error");
+    console.error("❌ getUnreadMessageCounts failed:", error.message);
+    return {};
+  }
+}

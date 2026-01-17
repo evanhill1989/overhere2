@@ -15,6 +15,8 @@ import type {
 } from "@/lib/types/database";
 import PersonCard from "./PersonCard";
 import { useMessageRequestResponse } from "@/hooks/useMessageRequestResponse";
+import { useUnreadMessageCounts } from "@/hooks/useUnreadMessageCounts";
+import { useRealtimeUnreadUpdates } from "@/hooks/useRealtimeUnreadUpdates";
 
 type PlaceDetailsProps = {
   place: { id: PlaceId; name: string; address: string };
@@ -45,16 +47,16 @@ export function PlaceDetails({
   );
   const sendRequestMutation = useMessageRequestMutation();
 
-  const {
-    acceptRequest,
-    rejectRequest,
-  } = useMessageRequestResponse();
+  const { acceptRequest, rejectRequest } = useMessageRequestResponse();
 
-  // console.log(
-  //   rejectRequest,
-  //   "<<--- rejectRequest returned to PlaceDetails from useMessageRequestResponse hook",
-  // );
-  // Handle sending requests (this stays in PlaceDetails per current pattern)
+  const { data: unreadCounts = {} } = useUnreadMessageCounts(
+    place.id,
+    currentUserId,
+    isPrimed,
+  );
+
+  useRealtimeUnreadUpdates(place.id, currentUserId, isPrimed);
+
   const handleSendRequest = async (targetUserId: UserId) => {
     try {
       await sendRequestMutation.mutateAsync({
@@ -62,8 +64,7 @@ export function PlaceDetails({
         initiateeId: targetUserId, // ✅ Type system ensures correct assignment
         placeId: place.id,
       });
-    } catch (error) {
-    }
+    } catch (error) {}
   };
 
   // Filter out current user's checkin
@@ -113,9 +114,9 @@ export function PlaceDetails({
   if (sortedPeople.length === 0) {
     return (
       <section className="space-y-6">
-        <header className="space-y-2 rounded-xl border border-border/40 bg-card/30 p-6 text-center backdrop-blur-sm">
+        <header className="border-border/40 bg-card/30 space-y-2 rounded-xl border p-6 text-center backdrop-blur-sm">
           <h1 className="text-3xl font-bold tracking-tight">{place.name}</h1>
-          <p className="text-sm text-muted-foreground/90">{place.address}</p>
+          <p className="text-muted-foreground/90 text-sm">{place.address}</p>
         </header>
 
         <div className="flex min-h-[50vh] items-center justify-center">
@@ -131,9 +132,9 @@ export function PlaceDetails({
 
   return (
     <section className="space-y-6">
-      <header className="space-y-2 rounded-xl border border-border/40 bg-card/30 p-6 text-center backdrop-blur-sm">
+      <header className="border-border/40 bg-card/30 space-y-2 rounded-xl border p-6 text-center backdrop-blur-sm">
         <h1 className="text-3xl font-bold tracking-tight">{place.name}</h1>
-        <p className="text-sm text-muted-foreground/90">{place.address}</p>
+        <p className="text-muted-foreground/90 text-sm">{place.address}</p>
       </header>
 
       <div className="space-y-4">
@@ -144,12 +145,13 @@ export function PlaceDetails({
             currentUserId={currentUserId}
             placeId={place.id}
             requests={requests}
-            activeSession={activeSession} // ✅ Properly typed MessageSession
+            activeSession={activeSession}
             onSendRequest={() => handleSendRequest(checkin.userId)}
             onResumeSession={onResumeSession}
             isRequestPending={sendRequestMutation.isPending}
             onAcceptRequest={acceptRequest}
             onRejectRequest={rejectRequest}
+            unreadCount={unreadCounts[checkin.id] || 0}
           />
         ))}
       </div>
