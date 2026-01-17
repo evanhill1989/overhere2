@@ -42,3 +42,5 @@ Brief fixes attempted.
 
 1. finish fixes on notifications
 2.
+
+So this weird little situation where the state says "Resume Chat" for a currently open messaging window. We could just blindly build up more state on top and fashion a more appropriate state to signify a currently open messaging window.I can already sense the complexity addition not being straightforward as we're moving from managing 2 states to managing 3. But really if we take a step back we see that "Resume chat" is sort of awkward in the first place. Like the user needs the word resume to tell them that clicking on the chat button would resume a chat. All we need is to remove the word resume. And if we really want we could add some subtle styling to distinguish an ongoing "chat(they started)" from a "request to chat"

@@ -34,70 +34,89 @@ export function PlaceFinderProvider({
   const [locationError, setLocationError] = useState<string | null>(null);
   const [isInSearchMode, setIsInSearchMode] = useState(false);
 
-  // Geolocation setup (unchanged)
+  // Geolocation setup with fallback strategy
   useEffect(() => {
     const client = supabase.current;
+
+    const handleLocationSuccess = (pos: GeolocationPosition) => {
+      const rawLocationData = {
+        latitude: pos.coords.latitude,
+        longitude: pos.coords.longitude,
+        accuracy: pos.coords.accuracy,
+        timestamp: pos.timestamp,
+      };
+
+      try {
+        const brandedLocationData: Coords =
+          coordsSchema.parse(rawLocationData);
+
+        setUserLocation(brandedLocationData);
+
+        console.log(
+          "📍 Real location:",
+          pos.coords.latitude,
+          pos.coords.longitude,
+        );
+        setLocationError(null);
+        setReady(true);
+      } catch (e) {
+        console.error("❌ Failed to parse/brand location data:", e);
+        setLocationError("Failed to validate location coordinates.");
+        setReady(false);
+      }
+    };
+
+    const handleLocationError = (error: GeolocationPositionError) => {
+      console.error("❌ Location error:", error);
+
+      let errorMessage = "Unable to get your location.";
+
+      switch (error.code) {
+        case error.PERMISSION_DENIED:
+          errorMessage =
+            "Location access denied. Please enable location permissions.";
+          router.replace("/explain-location");
+          break;
+        case error.POSITION_UNAVAILABLE:
+          errorMessage =
+            "Location information unavailable. Please check your device settings.";
+          break;
+        case error.TIMEOUT:
+          errorMessage = "Location request timed out. Please try again.";
+          break;
+      }
+
+      setLocationError(errorMessage);
+      setReady(false);
+    };
 
     const {
       data: { subscription },
     } = client.auth.onAuthStateChange((event, session) => {
       if (session?.user) {
+        // First try fast network-based location (works better on cold start)
         navigator.geolocation.getCurrentPosition(
-          (pos) => {
-            const rawLocationData = {
-              latitude: pos.coords.latitude,
-              longitude: pos.coords.longitude,
-              accuracy: pos.coords.accuracy,
-              timestamp: pos.timestamp,
-            };
-
-            try {
-              // ✅ CRITICAL FIX: Validate and brand the raw data
-              const brandedLocationData: Coords =
-                coordsSchema.parse(rawLocationData);
-
-              setUserLocation(brandedLocationData);
-
-              console.log(
-                "📍 Real location:",
-                pos.coords.latitude,
-                pos.coords.longitude,
-              );
-              // ... rest of the success block
-              setLocationError(null);
-              setReady(true);
-            } catch (e) {
-              console.error("❌ Failed to parse/brand location data:", e);
-              setLocationError("Failed to validate location coordinates.");
-              setReady(false);
-            }
-          },
+          handleLocationSuccess,
           (error) => {
-            console.error("❌ Location error:", error);
-
-            let errorMessage = "Unable to get your location.";
-
-            switch (error.code) {
-              case error.PERMISSION_DENIED:
-                errorMessage =
-                  "Location access denied. Please enable location permissions.";
-                router.replace("/explain-location");
-                break;
-              case error.POSITION_UNAVAILABLE:
-                errorMessage =
-                  "Location information unavailable. Please check your device settings.";
-                break;
-              case error.TIMEOUT:
-                errorMessage = "Location request timed out. Please try again.";
-                break;
+            // If fast location fails with timeout, try with high accuracy and longer timeout
+            if (error.code === error.TIMEOUT) {
+              console.log("📍 Fast location timed out, trying high accuracy...");
+              navigator.geolocation.getCurrentPosition(
+                handleLocationSuccess,
+                handleLocationError,
+                {
+                  enableHighAccuracy: true,
+                  timeout: 30000,
+                  maximumAge: 300000,
+                },
+              );
+            } else {
+              handleLocationError(error);
             }
-
-            setLocationError(errorMessage);
-            setReady(false);
           },
           {
-            enableHighAccuracy: true,
-            timeout: 10000,
+            enableHighAccuracy: false,
+            timeout: 5000,
             maximumAge: 300000,
           },
         );

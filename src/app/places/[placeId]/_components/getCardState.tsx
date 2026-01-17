@@ -75,7 +75,7 @@ export function getCardState({
     const isTheyTheInitiator = sessionRole === "initiator";
 
     return {
-      text: `Resume Chat${isTheyTheInitiator ? " (they started)" : " (you started)"}`,
+      text: `Chat${isTheyTheInitiator ? " (they started)" : " (you started)"}`,
       variant: "default",
       disabled: false,
       icon: "message",
