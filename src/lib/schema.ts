@@ -269,8 +269,6 @@ export const failedMessageRequestsTable = pgTable(
 // OWNER DASHBOARD TABLES
 // ============================================
 
-// Place Claims - Tracks verification workflow
-// 1. Place Claims Table
 export const placeClaimsTable = pgTable(
   "place_claims",
   {
@@ -305,7 +303,6 @@ export const placeClaimsTable = pgTable(
   ],
 );
 
-// 2. Verified Owners Table
 export const verifiedOwnersTable = pgTable(
   "verified_owners",
   {
@@ -340,7 +337,6 @@ export const verifiedOwnersTable = pgTable(
   ],
 );
 
-// 3. Promotions Table
 export const promotionsTable = pgTable(
   "promotions",
   {
@@ -369,3 +365,23 @@ export const promotionsTable = pgTable(
     index("promotions_created_by_idx").on(table.createdBy),
   ],
 );
+
+export const placeOwnerSettingsTable = pgTable("place_owner_settings", {
+  placeId: varchar("place_id", { length: 255 })
+    .primaryKey()
+    .references(() => placesTable.id, { onDelete: "cascade" }),
+  // Custom content
+  descriptionOverride: text("description_override"),
+  announcementText: text("announcement_text"),
+  announcementExpiresAt: timestamp("announcement_expires_at", {
+    withTimezone: true,
+  }),
+  // Contact info (never publicly displayed, for admin/support only)
+  contactEmail: varchar("contact_email", { length: 255 }),
+  contactPhone: varchar("contact_phone", { length: 20 }),
+  // Metadata
+  lastUpdatedBy: uuid("last_updated_by").references(() => usersTable.id),
+  lastUpdatedAt: timestamp("last_updated_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});

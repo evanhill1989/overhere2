@@ -52,6 +52,56 @@ import {
   CHECKIN_STATUS,
   MESSAGE_REQUEST_STATUS,
   MESSAGE_SESSION_STATUS,
+
+  // Owner Dashboard branded types
+  claimIdSchema,
+  promotionIdSchema,
+  verifiedOwnerIdSchema,
+
+  // Owner Dashboard value schemas
+  phoneNumberSchema,
+  verificationCodeSchema,
+  stripeCustomerIdSchema,
+  stripeSubscriptionIdSchema,
+  promotionTitleSchema,
+  promotionMessageSchema,
+  descriptionOverrideSchema,
+  announcementTextSchema,
+
+  // Owner Dashboard status schemas
+  claimStatusSchema,
+  verificationMethodSchema,
+  ownerRoleSchema,
+  subscriptionStatusSchema,
+  promotionTypeSchema,
+  promotionStatusSchema,
+
+  // Owner Dashboard branded type exports
+  type ClaimId,
+  type PromotionId,
+  type VerifiedOwnerId,
+  type ClaimStatus,
+  type VerificationMethod,
+  type OwnerRole,
+  type SubscriptionStatus,
+  type PromotionType,
+  type PromotionStatus,
+  type ValidatedPhoneNumber,
+  type VerificationCode,
+  type StripeCustomerId,
+  type StripeSubscriptionId,
+  type PromotionTitle,
+  type PromotionMessage,
+  type DescriptionOverride,
+  type AnnouncementText,
+
+  // Owner Dashboard constants
+  CLAIM_STATUS,
+  VERIFICATION_METHOD,
+  OWNER_ROLE,
+  SUBSCRIPTION_STATUS,
+  PROMOTION_TYPE,
+  PROMOTION_STATUS,
 } from "./core";
 
 // ============================================
@@ -141,6 +191,64 @@ export const failedRequestSchema = z.object({
 });
 
 // ============================================
+// OWNER DASHBOARD DOMAIN ENTITY SCHEMAS
+// ============================================
+
+// Place Claim
+export const placeClaimSchema = z.object({
+  id: claimIdSchema,
+  placeId: placeIdSchema,
+  userId: userIdSchema,
+  status: claimStatusSchema,
+  verificationMethod: verificationMethodSchema,
+  phoneNumber: phoneNumberSchema.nullable().optional(),
+  verificationCode: verificationCodeSchema.nullable().optional(),
+  verificationCodeExpiresAt: timestampSchema.nullable().optional(),
+  rejectionReason: z.string().nullable().optional(),
+  submittedAt: timestampSchema,
+  verifiedAt: timestampSchema.nullable().optional(),
+});
+
+// Verified Owner
+export const verifiedOwnerSchema = z.object({
+  id: verifiedOwnerIdSchema,
+  placeId: placeIdSchema,
+  userId: userIdSchema,
+  role: ownerRoleSchema,
+  stripeCustomerId: stripeCustomerIdSchema.nullable().optional(),
+  stripeSubscriptionId: stripeSubscriptionIdSchema.nullable().optional(),
+  subscriptionStatus: subscriptionStatusSchema,
+  subscriptionCurrentPeriodEnd: timestampSchema.nullable().optional(),
+  createdAt: timestampSchema,
+});
+
+// Place Owner Settings
+export const placeOwnerSettingsSchema = z.object({
+  placeId: placeIdSchema, // PK
+  descriptionOverride: descriptionOverrideSchema,
+  announcementText: announcementTextSchema,
+  announcementExpiresAt: timestampSchema.nullable().optional(),
+  contactEmail: validatedEmailSchema.nullable().optional(),
+  contactPhone: phoneNumberSchema.nullable().optional(),
+  lastUpdatedBy: userIdSchema.nullable().optional(),
+  lastUpdatedAt: timestampSchema,
+});
+
+// Promotion
+export const promotionSchema = z.object({
+  id: promotionIdSchema,
+  placeId: placeIdSchema,
+  type: promotionTypeSchema,
+  title: promotionTitleSchema.nullable().optional(),
+  message: promotionMessageSchema.nullable().optional(),
+  startAt: timestampSchema,
+  endAt: timestampSchema,
+  status: promotionStatusSchema,
+  createdBy: userIdSchema,
+  createdAt: timestampSchema,
+});
+
+// ============================================
 // DOMAIN ENTITY TYPES
 // ============================================
 
@@ -151,6 +259,11 @@ export type MessageRequest = z.infer<typeof messageRequestSchema>;
 export type MessageSession = z.infer<typeof messageSessionSchema>;
 export type Message = z.infer<typeof messageSchema>;
 export type FailedRequest = z.infer<typeof failedRequestSchema>;
+// Owner Dashboard domain entity types
+export type PlaceClaim = z.infer<typeof placeClaimSchema>;
+export type VerifiedOwner = z.infer<typeof verifiedOwnerSchema>;
+export type PlaceOwnerSettings = z.infer<typeof placeOwnerSettingsSchema>;
+export type Promotion = z.infer<typeof promotionSchema>;
 
 export type DatabaseCheckin = {
   id: string;
@@ -268,6 +381,62 @@ export const updateMessageSessionSchema = z.object({
 });
 
 // ============================================
+// OWNER DASHBOARD FORM INPUT SCHEMAS
+// ============================================
+
+// Claim place form input
+export const claimPlaceFormSchema = z.object({
+  placeId: z.string(),
+  verificationMethod: z.enum([
+    VERIFICATION_METHOD.PHONE,
+    VERIFICATION_METHOD.MAIL,
+    VERIFICATION_METHOD.MANUAL,
+  ] as const),
+  phoneNumber: z.string().optional(),
+});
+
+// Verify phone code form input
+export const verifyPhoneCodeFormSchema = z.object({
+  claimId: z.string(),
+  code: z.string(),
+});
+
+// Update owner settings form input
+export const updateOwnerSettingsFormSchema = z.object({
+  placeId: z.string(),
+  descriptionOverride: z.string().nullable().optional(),
+  announcementText: z.string().nullable().optional(),
+  announcementExpiresAt: z.string().nullable().optional(), // ISO string
+  contactEmail: z.string().nullable().optional(),
+  contactPhone: z.string().nullable().optional(),
+});
+
+// Create promotion form input
+export const createPromotionFormSchema = z.object({
+  placeId: z.string(),
+  type: z.enum([
+    PROMOTION_TYPE.FEATURED_MESSAGE,
+    PROMOTION_TYPE.PRIORITY_SORT,
+    PROMOTION_TYPE.HIGHLIGHT_BADGE,
+  ] as const),
+  title: z.string().optional(),
+  message: z.string().optional(),
+  startAt: z.string(), // ISO string
+  endAt: z.string(), // ISO string
+});
+
+// Update promotion form input
+export const updatePromotionFormSchema = z.object({
+  promotionId: z.string(),
+  status: z.enum([
+    PROMOTION_STATUS.SCHEDULED,
+    PROMOTION_STATUS.ACTIVE,
+    PROMOTION_STATUS.EXPIRED,
+    PROMOTION_STATUS.CANCELED,
+  ] as const),
+});
+
+// ============================================
 // UTILITY TYPES
 // ============================================
 
@@ -296,6 +465,22 @@ export type CreateMessage = Omit<
   "id" | "createdAt" | "deliveredAt" | "readAt"
 >;
 export type CreateFailedRequest = Omit<FailedRequest, "id" | "createdAt">;
+
+// Owner Dashboard create types
+export type CreatePlaceClaim = Omit<
+  PlaceClaim,
+  | "id"
+  | "submittedAt"
+  | "verifiedAt"
+  | "verificationCode"
+  | "verificationCodeExpiresAt"
+>;
+export type CreateVerifiedOwner = Omit<VerifiedOwner, "id" | "createdAt">;
+export type CreatePlaceOwnerSettings = Omit<
+  PlaceOwnerSettings,
+  "lastUpdatedAt"
+>;
+export type CreatePromotion = Omit<Promotion, "id" | "createdAt" | "status">;
 
 // ============================================
 // Query Keys
@@ -349,4 +534,42 @@ export {
   messageRequestStatusSchema, // ✅ Add this
   messageSessionStatusSchema, // ✅ Add this
   checkinStatusSchema, // ✅ Add this
+
+  // Owner Dashboard branded types
+  type ClaimId,
+  type PromotionId,
+  type VerifiedOwnerId,
+  type ClaimStatus,
+  type VerificationMethod,
+  type OwnerRole,
+  type SubscriptionStatus,
+  type PromotionType,
+  type PromotionStatus,
+  type ValidatedPhoneNumber,
+  type VerificationCode,
+  type StripeCustomerId,
+  type StripeSubscriptionId,
+  type PromotionTitle,
+  type PromotionMessage,
+  type DescriptionOverride,
+  type AnnouncementText,
+
+  // Owner Dashboard constants
+  CLAIM_STATUS,
+  VERIFICATION_METHOD,
+  OWNER_ROLE,
+  SUBSCRIPTION_STATUS,
+  PROMOTION_TYPE,
+  PROMOTION_STATUS,
+
+  // Owner Dashboard schemas
+  claimIdSchema,
+  promotionIdSchema,
+  verifiedOwnerIdSchema,
+  claimStatusSchema,
+  verificationMethodSchema,
+  ownerRoleSchema,
+  subscriptionStatusSchema,
+  promotionTypeSchema,
+  promotionStatusSchema,
 };
