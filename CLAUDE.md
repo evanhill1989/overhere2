@@ -6,6 +6,24 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 OverHere is a mobile-first, hyper-local app for spontaneous real-world conversations. Users check in at physical locations, see others nearby, and can initiate ephemeral messaging sessions. The app emphasizes anonymity, privacy, and brief platonic interactions.
 
+## Code Suggestion & Editing Policy (Important)
+
+By default, do NOT apply changes to the repository.
+
+When suggesting code changes:
+
+- Provide **complete, copy-pasteable code blocks** (not diff/patch format).
+- Clearly indicate **which file** the code belongs in and **where** it should be inserted or replaced.
+- Prefer showing the **full updated function/component** when modifying existing code.
+
+Only use diff format or ask to apply changes directly if I explicitly say:
+
+- “apply these changes”
+- “update the file for me”
+- “go ahead and edit the code”
+
+If instructions are ambiguous, assume I want to manually copy/paste the code myself.
+
 ## Development Commands
 
 ```bash

@@ -1,5 +1,5 @@
 // src/lib/schema.ts
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import {
   pgTable,
   varchar,
@@ -34,6 +34,43 @@ export const messageRequestStatusEnum = pgEnum("message_request_status", [
 export const messageSessionStatusEnum = pgEnum("message_session_status", [
   "active",
   "expired",
+]);
+
+// ============================================
+// OWNER DASHBOARD ENUMS
+// ============================================
+export const claimStatusEnum = pgEnum("claim_status", [
+  "pending",
+  "verified",
+  "rejected",
+]);
+
+export const verificationMethodEnum = pgEnum("verification_method", [
+  "phone",
+  "mail",
+  "manual",
+]);
+
+export const ownerRoleEnum = pgEnum("owner_role", ["owner", "manager"]);
+
+export const subscriptionStatusEnum = pgEnum("subscription_status", [
+  "active",
+  "past_due",
+  "canceled",
+  "trialing",
+]);
+
+export const promotionTypeEnum = pgEnum("promotion_type", [
+  "featured_message",
+  "priority_sort",
+  "highlight_badge",
+]);
+
+export const promotionStatusEnum = pgEnum("promotion_status", [
+  "scheduled",
+  "active",
+  "expired",
+  "canceled",
 ]);
 
 // ============================================
@@ -226,4 +263,109 @@ export const failedMessageRequestsTable = pgTable(
     reasonIdx: index("failed_request_reason_idx").on(table.reason),
     createdAtIdx: index("failed_request_created_at_idx").on(table.createdAt),
   }),
+);
+
+// ============================================
+// OWNER DASHBOARD TABLES
+// ============================================
+
+// Place Claims - Tracks verification workflow
+// 1. Place Claims Table
+export const placeClaimsTable = pgTable(
+  "place_claims",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    placeId: varchar("place_id", { length: 255 })
+      .notNull()
+      .references(() => placesTable.id, { onDelete: "cascade" }),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => usersTable.id, { onDelete: "cascade" }),
+    status: claimStatusEnum("status").notNull().default("pending"),
+    verificationMethod: verificationMethodEnum("verification_method").notNull(),
+    phoneNumber: varchar("phone_number", { length: 20 }),
+    verificationCode: varchar("verification_code", { length: 10 }),
+    verificationCodeExpiresAt: timestamp("verification_code_expires_at", {
+      withTimezone: true,
+    }),
+    rejectionReason: text("rejection_reason"),
+    submittedAt: timestamp("submitted_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    verifiedAt: timestamp("verified_at", { withTimezone: true }),
+  },
+  (table) => [
+    index("place_claims_place_idx").on(table.placeId),
+    index("place_claims_user_idx").on(table.userId),
+    index("place_claims_status_idx").on(table.status),
+    index("place_claims_submitted_at_idx").on(table.submittedAt),
+    uniqueIndex("place_claims_unique_pending")
+      .on(table.placeId, table.userId)
+      .where(sql`status = 'pending'`),
+  ],
+);
+
+// 2. Verified Owners Table
+export const verifiedOwnersTable = pgTable(
+  "verified_owners",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    placeId: varchar("place_id", { length: 255 })
+      .notNull()
+      .references(() => placesTable.id, { onDelete: "cascade" }),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => usersTable.id, { onDelete: "cascade" }),
+    role: ownerRoleEnum("role").notNull().default("owner"),
+    stripeCustomerId: varchar("stripe_customer_id", { length: 255 }),
+    stripeSubscriptionId: varchar("stripe_subscription_id", { length: 255 }),
+    subscriptionStatus: subscriptionStatusEnum("subscription_status")
+      .notNull()
+      .default("trialing"),
+    subscriptionCurrentPeriodEnd: timestamp("subscription_current_period_end", {
+      withTimezone: true,
+    }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    index("verified_owners_place_idx").on(table.placeId),
+    index("verified_owners_user_idx").on(table.userId),
+    index("verified_owners_subscription_status_idx").on(
+      table.subscriptionStatus,
+    ),
+    index("verified_owners_stripe_customer_idx").on(table.stripeCustomerId),
+    unique().on(table.placeId, table.userId),
+  ],
+);
+
+// 3. Promotions Table
+export const promotionsTable = pgTable(
+  "promotions",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    placeId: varchar("place_id", { length: 255 })
+      .notNull()
+      .references(() => placesTable.id, { onDelete: "cascade" }),
+    type: promotionTypeEnum("type").notNull(),
+    title: varchar("title", { length: 255 }),
+    message: text("message"),
+    startAt: timestamp("start_at", { withTimezone: true }).notNull(),
+    endAt: timestamp("end_at", { withTimezone: true }).notNull(),
+    status: promotionStatusEnum("status").notNull().default("scheduled"),
+    createdBy: uuid("created_by")
+      .notNull()
+      .references(() => usersTable.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    index("promotions_place_idx").on(table.placeId),
+    index("promotions_status_idx").on(table.status),
+    index("promotions_start_at_idx").on(table.startAt),
+    index("promotions_end_at_idx").on(table.endAt),
+    index("promotions_created_by_idx").on(table.createdBy),
+  ],
 );

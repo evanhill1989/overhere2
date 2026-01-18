@@ -33,12 +33,16 @@ export function PlaceFinderProvider({
   const [searchQuery, setSearchQuery] = useState("");
   const [locationError, setLocationError] = useState<string | null>(null);
   const [isInSearchMode, setIsInSearchMode] = useState(false);
+  const locationRequestedRef = useRef(false);
 
   // Geolocation setup with fallback strategy
   useEffect(() => {
     const client = supabase.current;
+    let isSubscribed = true;
 
     const handleLocationSuccess = (pos: GeolocationPosition) => {
+      if (!isSubscribed) return;
+
       const rawLocationData = {
         latitude: pos.coords.latitude,
         longitude: pos.coords.longitude,
@@ -67,7 +71,15 @@ export function PlaceFinderProvider({
     };
 
     const handleLocationError = (error: GeolocationPositionError) => {
-      console.error("❌ Location error:", error);
+      if (!isSubscribed) return;
+
+      console.error("❌ Location error:", {
+        code: error.code,
+        message: error.message,
+        PERMISSION_DENIED: error.PERMISSION_DENIED,
+        POSITION_UNAVAILABLE: error.POSITION_UNAVAILABLE,
+        TIMEOUT: error.TIMEOUT,
+      });
 
       let errorMessage = "Unable to get your location.";
 
@@ -92,41 +104,41 @@ export function PlaceFinderProvider({
 
     const {
       data: { subscription },
-    } = client.auth.onAuthStateChange((event, session) => {
-      if (session?.user) {
-        // First try fast network-based location (works better on cold start)
+    } = client.auth.onAuthStateChange(async (event, session) => {
+      console.log("🔐 Auth state change:", event, "Has user:", !!session?.user);
+
+      if (session?.user && isSubscribed && !locationRequestedRef.current) {
+        locationRequestedRef.current = true;
+
+        // Check if geolocation is available
+        if (!navigator.geolocation) {
+          console.error("❌ Geolocation is not supported by this browser");
+          setLocationError("Geolocation is not supported by your browser.");
+          setReady(false);
+          return;
+        }
+
+        console.log("📍 Requesting geolocation...");
         navigator.geolocation.getCurrentPosition(
           handleLocationSuccess,
-          (error) => {
-            // If fast location fails with timeout, try with high accuracy and longer timeout
-            if (error.code === error.TIMEOUT) {
-              console.log("📍 Fast location timed out, trying high accuracy...");
-              navigator.geolocation.getCurrentPosition(
-                handleLocationSuccess,
-                handleLocationError,
-                {
-                  enableHighAccuracy: true,
-                  timeout: 30000,
-                  maximumAge: 300000,
-                },
-              );
-            } else {
-              handleLocationError(error);
-            }
-          },
+          handleLocationError,
           {
-            enableHighAccuracy: false,
-            timeout: 5000,
+            enableHighAccuracy: true,
+            timeout: 10000,
             maximumAge: 300000,
           },
         );
-      } else {
+      } else if (!session?.user) {
+        // Only reset state when user logs out, not when location already obtained
         setReady(false);
         setUserLocation(null);
+        locationRequestedRef.current = false;
       }
     });
 
     return () => {
+      isSubscribed = false;
+      locationRequestedRef.current = false;
       subscription.unsubscribe();
     };
   }, [router]);

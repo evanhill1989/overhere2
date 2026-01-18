@@ -33,6 +33,58 @@ export type MessageSessionStatus =
   (typeof MESSAGE_SESSION_STATUS)[keyof typeof MESSAGE_SESSION_STATUS];
 
 // ============================================
+// OWNER DASHBOARD STATUS ENUMS
+// ============================================
+
+export const CLAIM_STATUS = {
+  PENDING: "pending",
+  VERIFIED: "verified",
+  REJECTED: "rejected",
+} as const;
+
+export const VERIFICATION_METHOD = {
+  PHONE: "phone",
+  MAIL: "mail",
+  MANUAL: "manual",
+} as const;
+
+export const OWNER_ROLE = {
+  OWNER: "owner",
+  MANAGER: "manager",
+} as const;
+
+export const SUBSCRIPTION_STATUS = {
+  ACTIVE: "active",
+  PAST_DUE: "past_due",
+  CANCELED: "canceled",
+  TRIALING: "trialing",
+} as const;
+
+export const PROMOTION_TYPE = {
+  FEATURED_MESSAGE: "featured_message",
+  PRIORITY_SORT: "priority_sort",
+  HIGHLIGHT_BADGE: "highlight_badge",
+} as const;
+
+export const PROMOTION_STATUS = {
+  SCHEDULED: "scheduled",
+  ACTIVE: "active",
+  EXPIRED: "expired",
+  CANCELED: "canceled",
+} as const;
+
+export type ClaimStatus = (typeof CLAIM_STATUS)[keyof typeof CLAIM_STATUS];
+export type VerificationMethod =
+  (typeof VERIFICATION_METHOD)[keyof typeof VERIFICATION_METHOD];
+export type OwnerRole = (typeof OWNER_ROLE)[keyof typeof OWNER_ROLE];
+export type SubscriptionStatus =
+  (typeof SUBSCRIPTION_STATUS)[keyof typeof SUBSCRIPTION_STATUS];
+export type PromotionType =
+  (typeof PROMOTION_TYPE)[keyof typeof PROMOTION_TYPE];
+export type PromotionStatus =
+  (typeof PROMOTION_STATUS)[keyof typeof PROMOTION_STATUS];
+
+// ============================================
 // BRANDED SCHEMAS (Based on your actual schema)
 // ============================================
 
@@ -69,6 +121,22 @@ export const failedRequestIdSchema = z
   .int()
   .positive("Failed request ID must be positive")
   .brand<"FailedRequestId">();
+
+// Owner Dashboard IDs (UUID-based)
+export const claimIdSchema = z
+  .string()
+  .uuid("Claim ID must be a valid UUID")
+  .brand<"ClaimId">();
+
+export const promotionIdSchema = z
+  .string()
+  .uuid("Promotion ID must be a valid UUID")
+  .brand<"PromotionId">();
+
+export const verifiedOwnerIdSchema = z
+  .string()
+  .uuid("Verified Owner ID must be a valid UUID")
+  .brand<"VerifiedOwnerId">();
 
 // Place IDs (Google Place API format) - varchar(255) in your schema
 export const placeIdSchema = z
@@ -183,6 +251,65 @@ export const errorDetailsSchema = z
   .nullable()
   .optional();
 
+// Phone number validation (E.164 format)
+export const phoneNumberSchema = z
+  .string()
+  .regex(/^\+?[1-9]\d{1,14}$/, "Invalid phone number format (E.164)")
+  .max(20, "Phone number too long")
+  .brand<"ValidatedPhoneNumber">();
+
+// Verification code (6-digit numeric)
+export const verificationCodeSchema = z
+  .string()
+  .regex(/^\d{6}$/, "Verification code must be 6 digits")
+  .brand<"VerificationCode">();
+
+// Stripe IDs
+export const stripeCustomerIdSchema = z
+  .string()
+  .regex(/^cus_[A-Za-z0-9]+$/, "Invalid Stripe customer ID")
+  .max(255, "Stripe customer ID too long")
+  .brand<"StripeCustomerId">();
+
+export const stripeSubscriptionIdSchema = z
+  .string()
+  .regex(/^sub_[A-Za-z0-9]+$/, "Invalid Stripe subscription ID")
+  .max(255, "Stripe subscription ID too long")
+  .brand<"StripeSubscriptionId">();
+
+// Promotion content
+export const promotionTitleSchema = z
+  .string()
+  .min(1, "Promotion title cannot be empty")
+  .max(255, "Promotion title too long (max 255 characters)")
+  .transform((str) => str.trim())
+  .brand<"PromotionTitle">();
+
+export const promotionMessageSchema = z
+  .string()
+  .min(1, "Promotion message cannot be empty")
+  .max(10000, "Promotion message too long")
+  .transform((str) => str.trim())
+  .brand<"PromotionMessage">();
+
+// Description override for places
+export const descriptionOverrideSchema = z
+  .string()
+  .max(10000, "Description too long")
+  .transform((str) => str.trim())
+  .brand<"DescriptionOverride">()
+  .nullable()
+  .optional();
+
+// Announcement text
+export const announcementTextSchema = z
+  .string()
+  .max(10000, "Announcement too long")
+  .transform((str) => str.trim())
+  .brand<"AnnouncementText">()
+  .nullable()
+  .optional();
+
 // Status schemas with proper enums
 export const checkinStatusSchema = z.enum([
   CHECKIN_STATUS.AVAILABLE,
@@ -200,6 +327,44 @@ export const messageRequestStatusSchema = z.enum([
 export const messageSessionStatusSchema = z.enum([
   MESSAGE_SESSION_STATUS.ACTIVE,
   MESSAGE_SESSION_STATUS.EXPIRED,
+] as const);
+
+// Owner Dashboard status schemas
+export const claimStatusSchema = z.enum([
+  CLAIM_STATUS.PENDING,
+  CLAIM_STATUS.VERIFIED,
+  CLAIM_STATUS.REJECTED,
+] as const);
+
+export const verificationMethodSchema = z.enum([
+  VERIFICATION_METHOD.PHONE,
+  VERIFICATION_METHOD.MAIL,
+  VERIFICATION_METHOD.MANUAL,
+] as const);
+
+export const ownerRoleSchema = z.enum([
+  OWNER_ROLE.OWNER,
+  OWNER_ROLE.MANAGER,
+] as const);
+
+export const subscriptionStatusSchema = z.enum([
+  SUBSCRIPTION_STATUS.ACTIVE,
+  SUBSCRIPTION_STATUS.PAST_DUE,
+  SUBSCRIPTION_STATUS.CANCELED,
+  SUBSCRIPTION_STATUS.TRIALING,
+] as const);
+
+export const promotionTypeSchema = z.enum([
+  PROMOTION_TYPE.FEATURED_MESSAGE,
+  PROMOTION_TYPE.PRIORITY_SORT,
+  PROMOTION_TYPE.HIGHLIGHT_BADGE,
+] as const);
+
+export const promotionStatusSchema = z.enum([
+  PROMOTION_STATUS.SCHEDULED,
+  PROMOTION_STATUS.ACTIVE,
+  PROMOTION_STATUS.EXPIRED,
+  PROMOTION_STATUS.CANCELED,
 ] as const);
 
 // ============================================
@@ -241,6 +406,21 @@ export type ValidatedTimestamp = z.infer<typeof timestampSchema>;
 
 export type ErrorReason = z.infer<typeof errorReasonSchema>;
 export type ErrorDetails = z.infer<typeof errorDetailsSchema>;
+
+// Owner Dashboard branded types
+export type ClaimId = z.infer<typeof claimIdSchema>;
+export type PromotionId = z.infer<typeof promotionIdSchema>;
+export type VerifiedOwnerId = z.infer<typeof verifiedOwnerIdSchema>;
+
+export type ValidatedPhoneNumber = z.infer<typeof phoneNumberSchema>;
+export type VerificationCode = z.infer<typeof verificationCodeSchema>;
+export type StripeCustomerId = z.infer<typeof stripeCustomerIdSchema>;
+export type StripeSubscriptionId = z.infer<typeof stripeSubscriptionIdSchema>;
+
+export type PromotionTitle = z.infer<typeof promotionTitleSchema>;
+export type PromotionMessage = z.infer<typeof promotionMessageSchema>;
+export type DescriptionOverride = z.infer<typeof descriptionOverrideSchema>;
+export type AnnouncementText = z.infer<typeof announcementTextSchema>;
 
 // ============================================
 // COMPOSITE VALIDATION SCHEMAS
@@ -295,6 +475,47 @@ export const createFailedRequestSchema = z.object({
   placeId: placeIdSchema.optional().nullable(),
   reason: errorReasonSchema,
   errorDetails: errorDetailsSchema,
+});
+
+// ============================================
+// OWNER DASHBOARD COMPOSITE SCHEMAS
+// ============================================
+
+// Claim place ownership
+export const createPlaceClaimSchema = z.object({
+  placeId: placeIdSchema,
+  userId: userIdSchema,
+  verificationMethod: verificationMethodSchema,
+  phoneNumber: phoneNumberSchema.optional().nullable(),
+});
+
+// Update verified owner
+export const updateVerifiedOwnerSchema = z.object({
+  role: ownerRoleSchema.optional(),
+  subscriptionStatus: subscriptionStatusSchema.optional(),
+  subscriptionCurrentPeriodEnd: timestampSchema.optional().nullable(),
+});
+
+// Update place owner settings
+export const updatePlaceOwnerSettingsSchema = z.object({
+  placeId: placeIdSchema,
+  descriptionOverride: descriptionOverrideSchema,
+  announcementText: announcementTextSchema,
+  announcementExpiresAt: timestampSchema.optional().nullable(),
+  contactEmail: validatedEmailSchema.optional().nullable(),
+  contactPhone: phoneNumberSchema.optional().nullable(),
+  lastUpdatedBy: userIdSchema,
+});
+
+// Create promotion
+export const createPromotionSchema = z.object({
+  placeId: placeIdSchema,
+  type: promotionTypeSchema,
+  title: promotionTitleSchema.optional().nullable(),
+  message: promotionMessageSchema.optional().nullable(),
+  startAt: timestampSchema,
+  endAt: timestampSchema,
+  createdBy: userIdSchema,
 });
 
 // ============================================
