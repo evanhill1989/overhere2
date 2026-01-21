@@ -13,6 +13,7 @@ import {
   boolean,
   unique,
   uniqueIndex,
+  integer,
 } from "drizzle-orm/pg-core";
 
 // ============================================
@@ -281,12 +282,27 @@ export const placeClaimsTable = pgTable(
       .references(() => usersTable.id, { onDelete: "cascade" }),
     status: claimStatusEnum("status").notNull().default("pending"),
     verificationMethod: verificationMethodEnum("verification_method").notNull(),
+    role: ownerRoleEnum("role").notNull().default("owner"),
     phoneNumber: varchar("phone_number", { length: 20 }),
+    businessEmail: varchar("business_email", { length: 255 }),
+    businessDescription: text("business_description"),
+    yearsAtLocation: varchar("years_at_location", { length: 20 }),
     verificationCode: varchar("verification_code", { length: 10 }),
     verificationCodeExpiresAt: timestamp("verification_code_expires_at", {
       withTimezone: true,
     }),
+    verificationCodeAttempts: integer("verification_code_attempts")
+      .notNull()
+      .default(0),
     rejectionReason: text("rejection_reason"),
+    ipAddress: varchar("ip_address", { length: 45 }),
+    userAgent: text("user_agent"),
+    fraudScore: integer("fraud_score").notNull().default(0),
+    adminReviewNotes: text("admin_review_notes"),
+    checkinIdAtClaim: uuid("checkin_id_at_claim").references(
+      () => checkinsTable.id,
+      { onDelete: "set null" },
+    ),
     submittedAt: timestamp("submitted_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
@@ -297,6 +313,8 @@ export const placeClaimsTable = pgTable(
     index("place_claims_user_idx").on(table.userId),
     index("place_claims_status_idx").on(table.status),
     index("place_claims_submitted_at_idx").on(table.submittedAt),
+    index("place_claims_fraud_score_idx").on(table.fraudScore),
+    index("place_claims_phone_idx").on(table.phoneNumber),
     uniqueIndex("place_claims_unique_pending")
       .on(table.placeId, table.userId)
       .where(sql`status = 'pending'`),
@@ -385,3 +403,67 @@ export const placeOwnerSettingsTable = pgTable("place_owner_settings", {
     .notNull()
     .defaultNow(),
 });
+
+export const verificationAttemptsTable = pgTable(
+  "verification_attempts",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    claimId: uuid("claim_id")
+      .notNull()
+      .references(() => placeClaimsTable.id, { onDelete: "cascade" }),
+    phoneNumber: varchar("phone_number", { length: 20 }),
+    attemptCount: integer("attempt_count").notNull().default(0),
+    lastAttemptAt: timestamp("last_attempt_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    index("verification_attempts_claim_idx").on(table.claimId),
+    index("verification_attempts_phone_idx").on(table.phoneNumber),
+  ],
+);
+
+// Claim Audit Log
+export const claimAuditLogTable = pgTable(
+  "claim_audit_log",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    claimId: uuid("claim_id")
+      .notNull()
+      .references(() => placeClaimsTable.id, { onDelete: "cascade" }),
+    action: varchar("action", { length: 100 }).notNull(),
+    actorId: uuid("actor_id").references(() => usersTable.id, {
+      onDelete: "set null",
+    }),
+    metadata: text("metadata"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    index("claim_audit_log_claim_idx").on(table.claimId),
+    index("claim_audit_log_action_idx").on(table.action),
+    index("claim_audit_log_created_at_idx").on(table.createdAt),
+  ],
+);
+
+// Rate Limiting for Claims by IP
+export const claimRateLimitTable = pgTable(
+  "claim_rate_limits",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    ipAddress: varchar("ip_address", { length: 45 }).notNull(),
+    claimCount: integer("claim_count").notNull().default(1),
+    windowStart: timestamp("window_start", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    lastClaimAt: timestamp("last_claim_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    index("claim_rate_limits_ip_idx").on(table.ipAddress),
+    index("claim_rate_limits_window_idx").on(table.windowStart),
+  ],
+);

@@ -201,10 +201,20 @@ export const placeClaimSchema = z.object({
   userId: userIdSchema,
   status: claimStatusSchema,
   verificationMethod: verificationMethodSchema,
+  role: ownerRoleSchema,
   phoneNumber: phoneNumberSchema.nullable().optional(),
+  businessEmail: z.string().nullable().optional(),
+  businessDescription: z.string().nullable().optional(),
+  yearsAtLocation: z.string().nullable().optional(),
   verificationCode: verificationCodeSchema.nullable().optional(),
   verificationCodeExpiresAt: timestampSchema.nullable().optional(),
+  verificationCodeAttempts: z.number().int().default(0),
   rejectionReason: z.string().nullable().optional(),
+  ipAddress: z.string().nullable().optional(),
+  userAgent: z.string().nullable().optional(),
+  fraudScore: z.number().int().default(0),
+  adminReviewNotes: z.string().nullable().optional(),
+  checkinIdAtClaim: checkinIdSchema.nullable().optional(),
   submittedAt: timestampSchema,
   verifiedAt: timestampSchema.nullable().optional(),
 });
@@ -248,6 +258,35 @@ export const promotionSchema = z.object({
   createdAt: timestampSchema,
 });
 
+// Verification Attempt
+export const verificationAttemptSchema = z.object({
+  id: z.string().uuid().brand<"VerificationAttemptId">(),
+  claimId: claimIdSchema,
+  phoneNumber: phoneNumberSchema.nullable().optional(),
+  attemptCount: z.number().int().default(0),
+  lastAttemptAt: timestampSchema.nullable().optional(),
+  createdAt: timestampSchema,
+});
+
+// Claim Audit Log
+export const claimAuditLogSchema = z.object({
+  id: z.string().uuid().brand<"AuditLogId">(),
+  claimId: claimIdSchema,
+  action: z.string(),
+  actorId: userIdSchema.nullable().optional(),
+  metadata: z.string().nullable().optional(),
+  createdAt: timestampSchema,
+});
+
+// Claim Rate Limit
+export const claimRateLimitSchema = z.object({
+  id: z.string().uuid(),
+  ipAddress: z.string(),
+  claimCount: z.number().int(),
+  windowStart: timestampSchema,
+  lastClaimAt: timestampSchema,
+});
+
 // ============================================
 // DOMAIN ENTITY TYPES
 // ============================================
@@ -264,6 +303,13 @@ export type PlaceClaim = z.infer<typeof placeClaimSchema>;
 export type VerifiedOwner = z.infer<typeof verifiedOwnerSchema>;
 export type PlaceOwnerSettings = z.infer<typeof placeOwnerSettingsSchema>;
 export type Promotion = z.infer<typeof promotionSchema>;
+export type VerificationAttempt = z.infer<typeof verificationAttemptSchema>;
+export type ClaimAuditLog = z.infer<typeof claimAuditLogSchema>;
+export type ClaimRateLimit = z.infer<typeof claimRateLimitSchema>;
+export type VerificationAttemptId = z.infer<
+  typeof verificationAttemptSchema
+>["id"];
+export type AuditLogId = z.infer<typeof claimAuditLogSchema>["id"];
 
 export type DatabaseCheckin = {
   id: string;
@@ -387,12 +433,41 @@ export const updateMessageSessionSchema = z.object({
 // Claim place form input
 export const claimPlaceFormSchema = z.object({
   placeId: z.string(),
-  verificationMethod: z.enum([
-    VERIFICATION_METHOD.PHONE,
-    VERIFICATION_METHOD.MAIL,
-    VERIFICATION_METHOD.MANUAL,
-  ] as const),
-  phoneNumber: z.string().optional(),
+  checkinId: z.string().optional(),
+});
+
+// Business info form input (Step 3)
+export const businessInfoFormSchema = z.object({
+  claimId: z.string(),
+  role: z.enum([OWNER_ROLE.OWNER, OWNER_ROLE.MANAGER] as const),
+  businessEmail: z.string().email(),
+  businessDescription: z.string().min(10).max(500),
+  yearsAtLocation: z.enum(["less_than_1", "1-2", "3-5", "5+"] as const),
+  phoneNumber: z.string(),
+});
+
+// Phone verification form input (Step 4)
+export const phoneVerificationFormSchema = z.object({
+  claimId: z.string(),
+  code: z.string().length(6),
+});
+
+// Resend verification code
+export const resendCodeFormSchema = z.object({
+  claimId: z.string(),
+});
+
+// Cancel claim
+export const cancelClaimFormSchema = z.object({
+  claimId: z.string(),
+});
+
+// Admin review claim form
+export const adminReviewClaimFormSchema = z.object({
+  claimId: z.string(),
+  action: z.enum([CLAIM_STATUS.VERIFIED, CLAIM_STATUS.REJECTED] as const),
+  rejectionReason: z.string().optional(),
+  adminNotes: z.string().optional(),
 });
 
 // Verify phone code form input
@@ -481,6 +556,26 @@ export type CreatePlaceOwnerSettings = Omit<
   "lastUpdatedAt"
 >;
 export type CreatePromotion = Omit<Promotion, "id" | "createdAt" | "status">;
+
+export type CreateVerificationAttempt = Omit<
+  VerificationAttempt,
+  "id" | "createdAt"
+>;
+export type CreateClaimAuditLog = Omit<ClaimAuditLog, "id" | "createdAt">;
+export type CreateClaimRateLimit = Omit<ClaimRateLimit, "id">;
+
+// Enhanced claim creation with all new fields
+export type CreatePlaceClaimEnhanced = Omit<
+  PlaceClaim,
+  | "id"
+  | "submittedAt"
+  | "verifiedAt"
+  | "verificationCode"
+  | "verificationCodeExpiresAt"
+  | "verificationCodeAttempts"
+  | "fraudScore"
+  | "adminReviewNotes"
+>;
 
 // ============================================
 // Query Keys

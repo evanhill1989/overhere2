@@ -422,6 +422,157 @@ export type PromotionMessage = z.infer<typeof promotionMessageSchema>;
 export type DescriptionOverride = z.infer<typeof descriptionOverrideSchema>;
 export type AnnouncementText = z.infer<typeof announcementTextSchema>;
 
+// Business email validation
+export const businessEmailSchema = z
+  .string()
+  .email("Invalid email format")
+  .max(255, "Email too long (max 255 characters)")
+  .toLowerCase()
+  .transform((str) => str.trim())
+  .brand<"BusinessEmail">();
+
+// Business description (for claim applications)
+export const businessDescriptionSchema = z
+  .string()
+  .min(10, "Description must be at least 10 characters")
+  .max(500, "Description too long (max 500 characters)")
+  .transform((str) => str.trim())
+  .brand<"BusinessDescription">();
+
+// Years at location enum
+export const YEARS_AT_LOCATION = {
+  LESS_THAN_ONE: "less_than_1",
+  ONE_TO_TWO: "1-2",
+  THREE_TO_FIVE: "3-5",
+  MORE_THAN_FIVE: "5+",
+} as const;
+
+export type YearsAtLocation =
+  (typeof YEARS_AT_LOCATION)[keyof typeof YEARS_AT_LOCATION];
+
+export const yearsAtLocationSchema = z.enum([
+  YEARS_AT_LOCATION.LESS_THAN_ONE,
+  YEARS_AT_LOCATION.ONE_TO_TWO,
+  YEARS_AT_LOCATION.THREE_TO_FIVE,
+  YEARS_AT_LOCATION.MORE_THAN_FIVE,
+] as const);
+
+// IP Address validation
+export const ipAddressSchema = z
+  .string()
+  .refine(
+    (ip) => {
+      // IPv4 or IPv6 validation
+      const ipv4Regex = /^(\d{1,3}\.){3}\d{1,3}$/;
+      const ipv6Regex = /^([0-9a-fA-F]{0,4}:){7}[0-9a-fA-F]{0,4}$/;
+      return ipv4Regex.test(ip) || ipv6Regex.test(ip);
+    },
+    { message: "Invalid IP address format" },
+  )
+  .brand<"IpAddress">();
+
+// User agent string
+export const userAgentSchema = z
+  .string()
+  .max(1000, "User agent too long")
+  .brand<"UserAgent">();
+
+// Fraud score (0-100)
+export const fraudScoreSchema = z
+  .number()
+  .int()
+  .min(0, "Fraud score must be at least 0")
+  .max(100, "Fraud score must be at most 100")
+  .brand<"FraudScore">();
+
+// Audit log action types
+export const CLAIM_AUDIT_ACTIONS = {
+  CLAIM_STARTED: "claim_started",
+  ELIGIBILITY_ACCEPTED: "eligibility_accepted",
+  BUSINESS_INFO_SUBMITTED: "business_info_submitted",
+  PHONE_CODE_SENT: "phone_code_sent",
+  PHONE_CODE_VERIFIED: "phone_code_verified",
+  PHONE_CODE_FAILED: "phone_code_failed",
+  CLAIM_SUBMITTED: "claim_submitted",
+  CLAIM_APPROVED: "claim_approved",
+  CLAIM_REJECTED: "claim_rejected",
+  CLAIM_CANCELED: "claim_canceled",
+  ADMIN_REVIEW_STARTED: "admin_review_started",
+  ADMIN_NOTES_ADDED: "admin_notes_added",
+} as const;
+
+export type ClaimAuditAction =
+  (typeof CLAIM_AUDIT_ACTIONS)[keyof typeof CLAIM_AUDIT_ACTIONS];
+
+export const claimAuditActionSchema = z.enum([
+  CLAIM_AUDIT_ACTIONS.CLAIM_STARTED,
+  CLAIM_AUDIT_ACTIONS.ELIGIBILITY_ACCEPTED,
+  CLAIM_AUDIT_ACTIONS.BUSINESS_INFO_SUBMITTED,
+  CLAIM_AUDIT_ACTIONS.PHONE_CODE_SENT,
+  CLAIM_AUDIT_ACTIONS.PHONE_CODE_VERIFIED,
+  CLAIM_AUDIT_ACTIONS.PHONE_CODE_FAILED,
+  CLAIM_AUDIT_ACTIONS.CLAIM_SUBMITTED,
+  CLAIM_AUDIT_ACTIONS.CLAIM_APPROVED,
+  CLAIM_AUDIT_ACTIONS.CLAIM_REJECTED,
+  CLAIM_AUDIT_ACTIONS.CLAIM_CANCELED,
+  CLAIM_AUDIT_ACTIONS.ADMIN_REVIEW_STARTED,
+  CLAIM_AUDIT_ACTIONS.ADMIN_NOTES_ADDED,
+] as const);
+
+// Branded type exports
+export type BusinessEmail = z.infer<typeof businessEmailSchema>;
+export type BusinessDescription = z.infer<typeof businessDescriptionSchema>;
+export type IpAddress = z.infer<typeof ipAddressSchema>;
+export type UserAgent = z.infer<typeof userAgentSchema>;
+export type FraudScore = z.infer<typeof fraudScoreSchema>;
+
+// Enhanced Place Claim Schema (with new fields)
+export const createPlaceClaimSchemaEnhanced = z.object({
+  placeId: placeIdSchema,
+  userId: userIdSchema,
+  verificationMethod: verificationMethodSchema,
+  role: ownerRoleSchema.default(OWNER_ROLE.OWNER),
+  phoneNumber: phoneNumberSchema.optional().nullable(),
+  businessEmail: businessEmailSchema.optional().nullable(),
+  businessDescription: businessDescriptionSchema.optional().nullable(),
+  yearsAtLocation: yearsAtLocationSchema.optional().nullable(),
+  checkinIdAtClaim: checkinIdSchema.optional().nullable(),
+  ipAddress: ipAddressSchema.optional().nullable(),
+  userAgent: userAgentSchema.optional().nullable(),
+});
+
+// Submit business info (Step 3 of verification flow)
+export const submitBusinessInfoSchema = z.object({
+  claimId: claimIdSchema,
+  role: ownerRoleSchema,
+  businessEmail: businessEmailSchema,
+  businessDescription: businessDescriptionSchema,
+  yearsAtLocation: yearsAtLocationSchema,
+  phoneNumber: phoneNumberSchema,
+});
+
+// Verify phone code (Step 4 of verification flow)
+export const verifyPhoneCodeSchema = z.object({
+  claimId: claimIdSchema,
+  code: verificationCodeSchema,
+});
+
+// Create audit log entry
+export const createAuditLogSchema = z.object({
+  claimId: claimIdSchema,
+  action: claimAuditActionSchema,
+  actorId: userIdSchema.optional().nullable(),
+  metadata: z.string().optional().nullable(), // JSON string
+});
+
+// Admin review claim
+export const adminReviewClaimSchema = z.object({
+  claimId: claimIdSchema,
+  action: z.enum([CLAIM_STATUS.VERIFIED, CLAIM_STATUS.REJECTED] as const),
+  rejectionReason: z.string().optional().nullable(),
+  adminNotes: z.string().optional().nullable(),
+});
+
 // ============================================
 // COMPOSITE VALIDATION SCHEMAS
 // ============================================

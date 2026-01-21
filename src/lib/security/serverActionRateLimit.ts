@@ -85,4 +85,61 @@ export const RATE_LIMIT_CONFIGS = {
     storeType: "messaging" as const,
     errorMessage: "Too many request responses. Please slow down.",
   },
+  // Claim verification rate limits
+  CLAIM_START: {
+    maxRequests: 2, // Max 2 claim starts per user per day
+    windowMs: 24 * 60 * 60 * 1000, // 24 hours
+    keyPrefix: "claim:start",
+  },
+
+  CLAIM_SUBMIT_BUSINESS_INFO: {
+    maxRequests: 5, // Allow some retries for form errors
+    windowMs: 60 * 60 * 1000, // 1 hour
+    keyPrefix: "claim:business_info",
+  },
+
+  CLAIM_SEND_VERIFICATION_CODE: {
+    maxRequests: 3, // Max 3 code sends per claim
+    windowMs: 60 * 60 * 1000, // 1 hour
+    keyPrefix: "claim:send_code",
+  },
+
+  CLAIM_VERIFY_CODE: {
+    maxRequests: 3, // Max 3 verification attempts
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    keyPrefix: "claim:verify_code",
+  },
+
+  CLAIM_RESEND_CODE: {
+    maxRequests: 2, // Max 2 resends
+    windowMs: 60 * 60 * 1000, // 1 hour
+    keyPrefix: "claim:resend_code",
+  },
+
+  // Per-IP rate limits (stricter)
+  CLAIM_START_IP: {
+    maxRequests: 5, // Max 5 claim starts from same IP per day
+    windowMs: 24 * 60 * 60 * 1000, // 24 hours
+    keyPrefix: "claim:start:ip",
+  },
+
+  CLAIM_START_IP_WEEKLY: {
+    maxRequests: 10, // Max 10 claims per IP per week
+    windowMs: 7 * 24 * 60 * 60 * 1000, // 7 days
+    keyPrefix: "claim:start:ip:weekly",
+  },
+
+  // Per-phone rate limits
+  CLAIM_PHONE_VERIFICATION: {
+    maxRequests: 5, // Max 5 verification attempts per phone per day
+    windowMs: 24 * 60 * 60 * 1000, // 24 hours
+    keyPrefix: "claim:phone:verify",
+  },
+
+  // Per-place rate limits
+  CLAIM_PER_PLACE_DAILY: {
+    maxRequests: 10, // Max 10 claims for same place per day
+    windowMs: 24 * 60 * 60 * 1000, // 24 hours
+    keyPrefix: "claim:place:daily",
+  },
 } as const;
