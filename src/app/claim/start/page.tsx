@@ -150,7 +150,7 @@ export default async function ClaimStartPage() {
         </div>
 
         {/* CTA */}
-        <div className="space-y-4 text-center">
+        <div className="flex flex-col gap-1 space-y-4 text-center">
           <Link href="/claim/eligibility">
             <Button size="lg" className="px-8 text-lg">
               Start Verification

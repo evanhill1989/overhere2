@@ -4,39 +4,11 @@ import { db } from "@/lib/db";
 import { claimRateLimitTable, placeClaimsTable } from "@/lib/schema";
 import { eq, and, gte, sql } from "drizzle-orm";
 import type { UserId, PlaceId } from "@/lib/types/database";
+import { CLAIM_LIMITS } from "./claimLimits"; // Import from separate file
 
 // ============================================
 // CONSTANTS
 // ============================================
-
-export const CLAIM_LIMITS = {
-  // Per-user limits
-  MAX_ACTIVE_CLAIMS: 1,
-  MAX_LIFETIME_CLAIMS: 10,
-  MAX_REJECTED_CLAIMS: 3,
-  REJECTION_COOLDOWN_DAYS: 60,
-
-  // Per-IP limits
-  MAX_CLAIMS_PER_IP_PER_DAY: 2,
-  MAX_CLAIMS_PER_IP_PER_WEEK: 5,
-
-  // Per-place limits
-  MAX_CLAIMS_PER_PLACE_PER_DAY: 10,
-
-  // Per-phone limits
-  REQUIRE_UNIQUE_PHONE_PER_PLACE: true,
-
-  // Account requirements
-  MIN_ACCOUNT_AGE_DAYS: 7,
-  MIN_CHECKINS_BEFORE_CLAIM: 1,
-
-  // Verification code limits
-  CODE_LENGTH: 6,
-  CODE_EXPIRY_MINUTES: 10,
-  MAX_VERIFICATION_ATTEMPTS: 3,
-  MAX_CODE_RESENDS: 2,
-  RESEND_COOLDOWN_SECONDS: 60,
-} as const;
 
 // ============================================
 // ELIGIBILITY CHECKS

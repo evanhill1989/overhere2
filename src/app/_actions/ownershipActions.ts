@@ -8,7 +8,7 @@ import {
   usersTable,
   verifiedOwnersTable,
 } from "@/lib/schema";
-import { eq, and, sql } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 import { createClient } from "@/utils/supabase/server";
 import { revalidatePath } from "next/cache";
 import {
@@ -30,8 +30,8 @@ import {
 import {
   checkClaimEligibility,
   recordIpClaimAttempt,
-  CLAIM_LIMITS,
 } from "@/lib/security/claimRateLimiter";
+import { CLAIM_LIMITS } from "@/lib/security/claimLimits";
 import {
   calculateFraudScore,
   serializeFraudAnalysis,
