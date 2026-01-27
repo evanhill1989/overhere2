@@ -76,10 +76,6 @@ export function ClaimEligibilityScreen({
         <ul className="space-y-2 text-sm">
           <li className="flex items-start gap-2">
             <div className="bg-primary mt-2 h-1.5 w-1.5 flex-shrink-0 rounded-full" />
-            <span>View real-time check-ins at your location</span>
-          </li>
-          <li className="flex items-start gap-2">
-            <div className="bg-primary mt-2 h-1.5 w-1.5 flex-shrink-0 rounded-full" />
             <span>Customize location description and announcements</span>
           </li>
           <li className="flex items-start gap-2">
