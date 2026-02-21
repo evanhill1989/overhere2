@@ -9,7 +9,7 @@ import {
   placesTable,
   usersTable,
 } from "@/lib/schema";
-import { eq, and, desc, sql } from "drizzle-orm";
+import { eq, and, desc, sql, gte } from "drizzle-orm";
 import { createClient } from "@/utils/supabase/server";
 import type { UserId, PlaceId, ClaimId } from "@/lib/types/database";
 import { checkUserClaimEligibility } from "@/lib/security/claimRateLimiter";
@@ -179,7 +179,7 @@ export async function getClaimAuditLog(claimId: string) {
 /**
  * Check claim eligibility before starting
  */
-export async function checkClaimEligibilityForUser(placeId: string) {
+export async function checkClaimEligibilityForUser() {
   try {
     const supabase = await createClient();
     const {
@@ -191,7 +191,6 @@ export async function checkClaimEligibilityForUser(placeId: string) {
     }
 
     const userId = user.id as UserId;
-    const placeIdTyped = placeId as PlaceId;
 
     const eligibility = await checkUserClaimEligibility(userId);
 
@@ -285,12 +284,18 @@ export async function getUserActiveCheckins() {
         and(
           eq(checkinsTable.userId, userId),
           eq(checkinsTable.isActive, true),
-          sql`${checkinsTable.createdAt} >= ${twentyFourHoursAgo}`,
+          gte(checkinsTable.createdAt, twentyFourHoursAgo), // ← Drizzle handles conversion
         ),
       )
       .orderBy(desc(checkinsTable.createdAt));
 
-    return { success: true, checkins };
+    return {
+      success: true,
+      checkins: checkins.map((c) => ({
+        ...c,
+        createdAt: c.createdAt.toISOString(), // ← Convert Date to string
+      })),
+    };
   } catch (error) {
     console.error("Error getting active check-ins:", error);
     return { success: false, error: "Failed to get check-ins" };

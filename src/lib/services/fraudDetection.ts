@@ -1,13 +1,10 @@
-"use server";
-
 import { db } from "@/lib/db";
 import {
   placeClaimsTable,
   checkinsTable,
-  usersTable,
   verifiedOwnersTable,
 } from "@/lib/schema";
-import { eq, and, sql, gte, count } from "drizzle-orm";
+import { eq, and, sql, count } from "drizzle-orm";
 import type { UserId, PlaceId, CheckinId } from "@/lib/types/database";
 
 // ============================================

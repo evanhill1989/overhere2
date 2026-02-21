@@ -65,8 +65,7 @@ export default async function ClaimStartPage() {
             </div>
             <h3 className="text-lg font-semibold">Real-Time Analytics</h3>
             <p className="text-muted-foreground text-sm">
-              Monitor check-ins, track engagement, and understand your customer
-              activity in real-time.
+              See your anonymized customer activity in real-time.
             </p>
           </div>
 

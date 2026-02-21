@@ -25,8 +25,9 @@ import {
   type UserId,
   type PlaceId,
   CLAIM_STATUS,
-  CLAIM_AUDIT_ACTIONS,
 } from "@/lib/types/database";
+import { CLAIM_AUDIT_ACTIONS } from "@/lib/types/core";
+
 import {
   checkClaimEligibility,
   recordIpClaimAttempt,

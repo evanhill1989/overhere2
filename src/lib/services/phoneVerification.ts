@@ -2,9 +2,9 @@
 
 import { db } from "@/lib/db";
 import { placeClaimsTable, verificationAttemptsTable } from "@/lib/schema";
-import { eq, and } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import type { ClaimId } from "@/lib/types/database";
-import { CLAIM_LIMITS } from "@/lib/security/claimRateLimiter";
+import { CLAIM_LIMITS } from "@/lib/security/claimLimits"; // ← correct
 
 // ============================================
 // PHONE VERIFICATION SERVICE (MOCK)
@@ -109,7 +109,6 @@ export async function sendVerificationCode(
  */
 export async function verifyPhoneCode(
   claimId: ClaimId,
-  submittedCode: string,
 ): Promise<VerifyCodeResult> {
   try {
     // Get claim
