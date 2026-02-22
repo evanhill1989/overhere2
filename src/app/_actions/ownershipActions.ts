@@ -24,6 +24,7 @@ import {
   type ClaimId,
   type UserId,
   type PlaceId,
+  type CheckinId, // add this
   CLAIM_STATUS,
 } from "@/lib/types/database";
 import { CLAIM_AUDIT_ACTIONS } from "@/lib/types/core";
@@ -134,7 +135,7 @@ export async function startClaim(formData: unknown) {
     }
 
     // Verify check-in if provided
-    let checkinIdAtClaim = validated.checkinId as string | null;
+    const checkinIdAtClaim = validated.checkinId as CheckinId | null;
     if (checkinIdAtClaim) {
       const checkin = await db
         .select()
@@ -435,7 +436,7 @@ export async function verifyPhone(formData: unknown) {
     }
 
     // Verify code
-    const result = await verifyPhoneCode(claimId, validated.code);
+    const result = await verifyPhoneCode(claimId);
 
     if (!result.success) {
       // Log failed attempt

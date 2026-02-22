@@ -7,9 +7,11 @@ import { useRealtimeMessageSession } from "@/hooks/realtime-hooks/useRealtimeMes
 import { LoadingState, ErrorState } from "@/components/ui/data-states";
 import { MessageErrorBoundary } from "@/components/error_boundaries/MessageErrorBoundary";
 import type { UserId, PlaceId } from "@/lib/types/database";
+import type { PlaceVerificationDetails } from "@/lib/types/database"; // NEW
 import { PlaceDetails } from "./PlaceDetails";
-import router from "next/router";
 import { SimpleMessagingWindow } from "./SimpleMessagingWindow";
+import { VerificationModal } from "@/components/verification/VerificationModal"; // NEW
+import router from "next/router";
 
 type PlacePageClientProps = {
   placeId: PlaceId;
@@ -19,6 +21,7 @@ type PlacePageClientProps = {
     name: string;
     address: string;
   };
+  verificationDetails: PlaceVerificationDetails | null; // NEW
   isPrimed: boolean;
 };
 
@@ -28,6 +31,7 @@ export function PlacePageClient({
   placeId,
   userId,
   placeInfo,
+  verificationDetails, // NEW
   isPrimed,
 }: PlacePageClientProps) {
   // ============================================
@@ -35,6 +39,9 @@ export function PlacePageClient({
   // ============================================
   const [messagingState, setMessagingState] =
     useState<MessagingState>("hidden");
+
+  // NEW: Verification modal state
+  const [showVerificationModal, setShowVerificationModal] = useState(false);
 
   // Track which sessions user has explicitly closed
   const [userClosedSessionIds, setUserClosedSessionIds] = useState<Set<string>>(
@@ -44,7 +51,7 @@ export function PlacePageClient({
   // Track last session ID to detect changes (new session created)
   const [lastSessionId, setLastSessionId] = useState<string | null>(null);
 
-  // Track if we've completed the initial session load (separate from lastSessionId)
+  // Track if we've completed the initial session load
   const hasInitializedSessionRef = useRef(false);
 
   const {
@@ -54,14 +61,14 @@ export function PlacePageClient({
   } = useRealtimeMessageSession(userId, placeId);
 
   // ============================================
-  // POLLING FOR CHECKINS (REPLACES REALTIME)
+  // POLLING FOR CHECKINS
   // ============================================
   const {
     data: checkins = [],
     isLoading: checkinsLoading,
     error: checkinsError,
     refetch: refetchCheckins,
-  } = useCheckinsPolling(placeId, 5000); // Poll every 5 seconds
+  } = useCheckinsPolling(placeId, 5000);
 
   // Force refetch when component mounts or placeId changes
   useEffect(() => {
@@ -76,12 +83,10 @@ export function PlacePageClient({
   const currentUserCheckin = checkins.find((c) => c.userId === userId);
   const currentCheckinId = currentUserCheckin?.id;
 
-  // Don't show place content until we've verified the user's check-in
   const userCheckinLoading =
     checkinsLoading || (checkins.length > 0 && !currentUserCheckin);
   const userHasActiveCheckin = !userCheckinLoading && !!currentUserCheckin;
 
-  // Combined loading/error states
   const isLoading = sessionLoading || userCheckinLoading;
   const hasError = checkinsError || sessionError;
 
@@ -95,7 +100,6 @@ export function PlacePageClient({
   // ============================================
   const openMessagingWindow = useCallback(() => {
     setMessagingState("active");
-    // When user manually opens, remove from closed set
     if (session?.id) {
       setUserClosedSessionIds((prev) => {
         const newSet = new Set(prev);
@@ -107,7 +111,6 @@ export function PlacePageClient({
 
   const closeMessagingWindow = useCallback(() => {
     setMessagingState("hidden");
-    // Track that user explicitly closed this session
     if (session?.id) {
       setUserClosedSessionIds((prev) => new Set(prev).add(session.id));
     }
@@ -119,27 +122,20 @@ export function PlacePageClient({
   useEffect(() => {
     const currentSessionId = session?.id ?? null;
 
-    // Don't do anything while session is still loading
     if (sessionLoading) {
       return;
     }
 
-    // First time we get session data after load completes
     if (!hasInitializedSessionRef.current) {
       hasInitializedSessionRef.current = true;
       setLastSessionId(currentSessionId);
       console.log("Initial session state after load:", currentSessionId);
-      // Don't auto-open on initial page load
       return;
     }
 
-    // After initialization, handle session changes
-
-    // Case 1: New session appeared or changed
     if (currentSessionId && currentSessionId !== lastSessionId) {
       console.log("Session changed:", lastSessionId, "->", currentSessionId);
 
-      // Auto-open ONLY if user hasn't explicitly closed this session before
       if (!userClosedSessionIds.has(currentSessionId)) {
         console.log("Auto-opening messaging window for session");
         setMessagingState("active");
@@ -150,10 +146,7 @@ export function PlacePageClient({
       }
 
       setLastSessionId(currentSessionId);
-    }
-
-    // Case 2: Session ended (went from existing to null)
-    else if (!currentSessionId && lastSessionId) {
+    } else if (!currentSessionId && lastSessionId) {
       console.log("Session ended, closing window");
       setMessagingState("hidden");
       setLastSessionId(null);
@@ -181,7 +174,6 @@ export function PlacePageClient({
     );
   }
 
-  // Security check: User must have active check-in to see place content
   if (!userHasActiveCheckin) {
     return (
       <div className="flex min-h-[50vh] items-center justify-center">
@@ -223,9 +215,11 @@ export function PlacePageClient({
         messagingState={messagingState}
         hasActiveSession={!!session}
         isPrimed={isPrimed}
+        verificationDetails={verificationDetails} // ← NEW: Pass to PlaceDetails
+        onOpenVerificationModal={() => setShowVerificationModal(true)} // ← NEW
       />
 
-      {/* Simple Messaging Window */}
+      {/* Messaging Window */}
       {session && currentCheckinId && messagingState === "active" && (
         <MessageErrorBoundary onReset={() => setMessagingState("hidden")}>
           <SimpleMessagingWindow
@@ -235,6 +229,16 @@ export function PlacePageClient({
             onClose={closeMessagingWindow}
           />
         </MessageErrorBoundary>
+      )}
+
+      {/* NEW: Verification Modal */}
+      {verificationDetails?.isVerified && (
+        <VerificationModal
+          open={showVerificationModal}
+          onOpenChange={setShowVerificationModal}
+          details={verificationDetails}
+          placeName={placeInfo.name}
+        />
       )}
     </div>
   );

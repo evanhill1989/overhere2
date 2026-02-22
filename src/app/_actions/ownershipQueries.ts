@@ -5,6 +5,7 @@ import {
   placeClaimsTable,
   claimAuditLogTable,
   verifiedOwnersTable,
+  placeOwnerSettingsTable,
   checkinsTable,
   placesTable,
   usersTable,
@@ -348,5 +349,59 @@ export async function getAllPendingClaims() {
   } catch (error) {
     console.error("Error getting pending claims:", error);
     return { success: false, error: "Failed to get pending claims" };
+  }
+}
+
+export async function getPlaceVerificationDetails(placeId: PlaceId) {
+  try {
+    // Check if place has verified owner
+    const verifiedOwner = await db
+      .select({
+        role: verifiedOwnersTable.role,
+        userId: verifiedOwnersTable.userId,
+        createdAt: verifiedOwnersTable.createdAt,
+      })
+      .from(verifiedOwnersTable)
+      .where(eq(verifiedOwnersTable.placeId, placeId))
+      .limit(1);
+
+    if (verifiedOwner.length === 0) {
+      return {
+        success: true,
+        isVerified: false,
+      };
+    }
+
+    // Get owner settings (custom description + contact info)
+    const settings = await db
+      .select({
+        descriptionOverride: placeOwnerSettingsTable.descriptionOverride,
+        publicWebsite: placeOwnerSettingsTable.publicWebsite,
+        publicPhone: placeOwnerSettingsTable.publicPhone,
+        publicEmail: placeOwnerSettingsTable.publicEmail,
+      })
+      .from(placeOwnerSettingsTable)
+      .where(eq(placeOwnerSettingsTable.placeId, placeId))
+      .limit(1);
+
+    return {
+      success: true,
+      isVerified: true,
+      verifiedOwner: {
+        role: verifiedOwner[0].role,
+        verifiedAt: verifiedOwner[0].createdAt.toISOString(),
+      },
+      businessContact: settings[0]
+        ? {
+            website: settings[0].publicWebsite,
+            phone: settings[0].publicPhone,
+            email: settings[0].publicEmail,
+          }
+        : null,
+      customDescription: settings[0]?.descriptionOverride || null,
+    };
+  } catch (error) {
+    console.error("Error fetching verification details:", error);
+    return { success: false, error: "Failed to fetch verification details" };
   }
 }

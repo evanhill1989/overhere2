@@ -106,6 +106,7 @@ export async function sendVerificationCode(
 /**
  * Verify phone code
  * MOCK IMPLEMENTATION: Accepts any code (or just "123456")
+ * TODO
  */
 export async function verifyPhoneCode(
   claimId: ClaimId,

@@ -18,6 +18,9 @@ import { useMessageRequestResponse } from "@/hooks/useMessageRequestResponse";
 import { useUnreadMessageCounts } from "@/hooks/useUnreadMessageCounts";
 import { useRealtimeUnreadUpdates } from "@/hooks/useRealtimeUnreadUpdates";
 
+import type { PlaceVerificationDetails } from "@/lib/types/database";
+import { VerificationBadge } from "@/components/verification/VerificationBadge";
+
 type PlaceDetailsProps = {
   place: { id: PlaceId; name: string; address: string };
   checkins: Checkin[];
@@ -30,10 +33,14 @@ type PlaceDetailsProps = {
   messagingState: string; // From current PlacePageClient
   hasActiveSession: boolean; // From current PlacePageClient
   isPrimed: boolean;
+  verificationDetails: PlaceVerificationDetails | null; // NEW
+  onOpenVerificationModal: () => void; // NEW
 };
 
 export function PlaceDetails({
   place,
+  verificationDetails, // NEW
+  onOpenVerificationModal, // NEW
   checkins,
   currentUserId,
   activeSession,
@@ -115,8 +122,22 @@ export function PlaceDetails({
     return (
       <section className="space-y-6">
         <header className="border-border/40 bg-card/30 space-y-2 rounded-xl border p-6 text-center backdrop-blur-sm">
-          <h1 className="text-3xl font-bold tracking-tight">{place.name}</h1>
+          <div className="flex items-start justify-between gap-4">
+            <h1 className="text-3xl font-bold">{place.name}</h1>
+
+            {/* NEW: Verification Badge */}
+            {verificationDetails?.isVerified && (
+              <VerificationBadge onClick={onOpenVerificationModal} />
+            )}
+          </div>
           <p className="text-muted-foreground/90 text-sm">{place.address}</p>
+          {verificationDetails?.customDescription && (
+            <div className="border-primary bg-primary/5 mt-3 border-l-4 py-2 pl-4">
+              <p className="text-foreground text-sm italic">
+                {verificationDetails.customDescription}
+              </p>
+            </div>
+          )}
         </header>
 
         <div className="flex min-h-[50vh] items-center justify-center">

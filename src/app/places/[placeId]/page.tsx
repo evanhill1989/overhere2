@@ -2,9 +2,9 @@
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/utils/supabase/server";
 import { placeIdSchema, userIdSchema } from "@/lib/types/core";
+import { getPlaceVerificationDetails } from "@/app/_actions/ownershipQueries"; // NEW
 
 import { PlacePageClientPrimerWrapper } from "./_components/PlacePagePrimerWrapper";
-import { PlaceOwnershipBanner } from "@/components/ownership/PlaceOwnershipBanner";
 
 type PageProps = {
   params: Promise<{ placeId: string }>;
@@ -47,31 +47,21 @@ export default async function PlacePage(props: PageProps) {
     .limit(1)
     .maybeSingle();
 
-  // ============================================
-  // 2.5. CHECK IF USER HAS ACTIVE CHECKIN AT THIS PLACE
-  // ============================================
-  const { data: userCheckin } = await supabase
-    .from("checkins")
-    .select("id")
-    .eq("place_id", placeId)
-    .eq("user_id", userId)
-    .eq("is_active", true)
-    .maybeSingle();
-
-  const userHasActiveCheckin = !!userCheckin;
-
   if (!placeInfo) {
     console.log("❌ No active checkins found for place:", placeId);
     return notFound();
   }
 
   // ============================================
-  // 3. RENDER CLIENT COMPONENT
+  // 3. FETCH VERIFICATION DETAILS (NEW)
+  // ============================================
+  const verificationDetails = await getPlaceVerificationDetails(placeId);
+
+  // ============================================
+  // 4. RENDER CLIENT COMPONENT
   // ============================================
   return (
     <main className="container mx-auto max-w-2xl p-4">
-      {/* Ownership Banner - only shown to users with active check-in */}
-
       <PlacePageClientPrimerWrapper
         placeId={placeId}
         userId={userId}
@@ -80,6 +70,7 @@ export default async function PlacePage(props: PageProps) {
           name: placeInfo.place_name,
           address: placeInfo.place_address,
         }}
+        verificationDetails={verificationDetails} // ← NEW: Pass down
       />
     </main>
   );

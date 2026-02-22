@@ -87,59 +87,57 @@ export const RATE_LIMIT_CONFIGS = {
   },
   // Claim verification rate limits
   CLAIM_START: {
-    maxRequests: 2, // Max 2 claim starts per user per day
+    limit: 2,
     windowMs: 24 * 60 * 60 * 1000, // 24 hours
-    keyPrefix: "claim:start",
+    storeType: "default" as const,
+    errorMessage: "You can only start 2 claim requests per day.",
   },
 
   CLAIM_SUBMIT_BUSINESS_INFO: {
-    maxRequests: 5, // Allow some retries for form errors
+    limit: 5,
     windowMs: 60 * 60 * 1000, // 1 hour
-    keyPrefix: "claim:business_info",
+    storeType: "default" as const,
   },
 
   CLAIM_SEND_VERIFICATION_CODE: {
-    maxRequests: 3, // Max 3 code sends per claim
+    limit: 3,
     windowMs: 60 * 60 * 1000, // 1 hour
-    keyPrefix: "claim:send_code",
+    storeType: "default" as const,
   },
 
   CLAIM_VERIFY_CODE: {
-    maxRequests: 3, // Max 3 verification attempts
+    limit: 3,
     windowMs: 15 * 60 * 1000, // 15 minutes
-    keyPrefix: "claim:verify_code",
+    storeType: "default" as const,
   },
 
   CLAIM_RESEND_CODE: {
-    maxRequests: 2, // Max 2 resends
+    limit: 2,
     windowMs: 60 * 60 * 1000, // 1 hour
-    keyPrefix: "claim:resend_code",
+    storeType: "default" as const,
   },
 
-  // Per-IP rate limits (stricter)
   CLAIM_START_IP: {
-    maxRequests: 5, // Max 5 claim starts from same IP per day
+    limit: 5,
     windowMs: 24 * 60 * 60 * 1000, // 24 hours
-    keyPrefix: "claim:start:ip",
+    storeType: "default" as const,
   },
 
   CLAIM_START_IP_WEEKLY: {
-    maxRequests: 10, // Max 10 claims per IP per week
+    limit: 10,
     windowMs: 7 * 24 * 60 * 60 * 1000, // 7 days
-    keyPrefix: "claim:start:ip:weekly",
+    storeType: "default" as const,
   },
 
-  // Per-phone rate limits
   CLAIM_PHONE_VERIFICATION: {
-    maxRequests: 5, // Max 5 verification attempts per phone per day
+    limit: 5,
     windowMs: 24 * 60 * 60 * 1000, // 24 hours
-    keyPrefix: "claim:phone:verify",
+    storeType: "default" as const,
   },
 
-  // Per-place rate limits
   CLAIM_PER_PLACE_DAILY: {
-    maxRequests: 10, // Max 10 claims for same place per day
+    limit: 10,
     windowMs: 24 * 60 * 60 * 1000, // 24 hours
-    keyPrefix: "claim:place:daily",
+    storeType: "default" as const,
   },
 } as const;

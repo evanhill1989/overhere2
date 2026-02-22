@@ -311,6 +311,20 @@ export type VerificationAttemptId = z.infer<
 >["id"];
 export type AuditLogId = z.infer<typeof claimAuditLogSchema>["id"];
 
+export type PlaceVerificationDetails = {
+  isVerified: boolean;
+  verifiedOwner?: {
+    role: "owner" | "manager";
+    verifiedAt: string; // ISO date
+  };
+  businessContact?: {
+    website?: string | null;
+    phone?: string | null;
+    email?: string | null;
+  } | null;
+  customDescription?: string | null;
+};
+
 export type DatabaseCheckin = {
   id: string;
   user_id: string;

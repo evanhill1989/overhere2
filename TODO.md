@@ -9,3 +9,5 @@
 ##
 
 ###
+
+Remind me what this client pattern is doing again

@@ -402,6 +402,9 @@ export const placeOwnerSettingsTable = pgTable("place_owner_settings", {
   lastUpdatedAt: timestamp("last_updated_at", { withTimezone: true })
     .notNull()
     .defaultNow(),
+  publicWebsite: varchar("public_website", { length: 255 }),
+  publicPhone: varchar("public_phone", { length: 20 }),
+  publicEmail: varchar("public_email", { length: 255 }),
 });
 
 export const verificationAttemptsTable = pgTable(
