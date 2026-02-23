@@ -26,14 +26,14 @@ export function useSearchPlacesMutation() {
       return { searchQuery: query };
     },
 
-    onError: (error) => {
+    onError: () => {
       // Could show toast notification here
     },
 
-    onSuccess: (data, variables) => {
+    onSuccess: () => {
     },
 
-    onSettled: (data, error, variables) => {
+    onSettled: () => {
     },
   });
 }

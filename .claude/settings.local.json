@@ -1,6 +1,11 @@
 {
   "permissions": {
-    "allow": ["Bash(npm run build:*)", "mcp__playwright"],
+    "allow": [
+      "Bash(npm run build:*)",
+      "mcp__playwright",
+      "Bash(cd /c/Users/evanh/Desktop/Portfolio/overhere2 && npx next lint --file \"src/app/places/[placeId]/_components/getCardState.tsx\" --file \"src/app/places/[placeId]/_components/PlaceDetails.tsx\" --file \"src/app/places/[placeId]/_components/RealtimeStatusIndicator.tsx\" --file \"src/app/places/[placeId]/_components/SimpleMessagingWindow.tsx\" --file \"src/app/_actions/ownerActions.ts\" --file \"src/app/_actions/ownerQueries.ts\" --file \"src/components/ownership/ClaimStatusTracker.tsx\" --file \"src/components/ownership/OwnershipEntryLink.tsx\" --file \"src/components/ownership/PhoneVerificationForm.tsx\" --file \"src/hooks/realtime-hooks/useRealtimeCheckins.ts\" --file \"src/hooks/realtime-hooks/useRealtimeMessageRequests.ts\" --file \"src/hooks/realtime-hooks/useRealtimeMessages.ts\" --file \"src/hooks/realtime-hooks/useRealtimeMessageSession.ts\" --file \"src/hooks/useMessageRequestMutation.ts\" --file \"src/hooks/useRequestStateTracker.ts\" --file \"src/hooks/useSearchPlacesMutation.ts\" 2>&1)",
+      "Bash(cd /c/Users/evanh/Desktop/Portfolio/overhere2 && npx next lint --file src/app/_actions/ownerActions.ts 2>&1)"
+    ],
     "deny": [],
     "ask": []
   }

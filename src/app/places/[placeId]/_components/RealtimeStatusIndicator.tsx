@@ -1,7 +1,6 @@
 // src/components/debug/RealtimeStatusIndicator.tsx
 "use client";
 
-import { useState } from "react";
 // import { useRequestDeliveryDebugger } from "@/hooks/useRequestStateTracker";
 import type { UserId, PlaceId } from "@/lib/types/database";
 
@@ -11,11 +10,9 @@ type RealtimeStatusIndicatorProps = {
   enabled?: boolean;
 };
 
-export function RealtimeStatusIndicator({
-  userId,
-  placeId,
-  enabled = false,
-}: RealtimeStatusIndicatorProps) {
-  // Debug component temporarily disabled - needs useRequestDeliveryDebugger implementation
+export function RealtimeStatusIndicator(
+  props: RealtimeStatusIndicatorProps,
+) {
+  void props; // Debug component temporarily disabled - needs useRequestDeliveryDebugger implementation
   return null;
 }

@@ -71,7 +71,7 @@ export function PlaceDetails({
         initiateeId: targetUserId, // ✅ Type system ensures correct assignment
         placeId: place.id,
       });
-    } catch (error) {}
+    } catch {}
   };
 
   // Filter out current user's checkin

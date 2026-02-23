@@ -44,7 +44,6 @@ export function getCardState({
   onSendRequest,
   onResumeSession,
   onAcceptRequest,
-  onRejectRequest,
 }: CardStateProps): CardState {
   // 💡 FIX 2: Use Nullish Coalescing (??) to ensure requests is an array before using .find()
   const safeRequests = requests ?? [];

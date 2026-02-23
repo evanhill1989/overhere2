@@ -10,9 +10,25 @@ import type {
   PlaceId,
   MessageRequestStatus,
 } from "@/lib/types/database";
-import { MESSAGE_REQUEST_STATUS } from "@/lib/types/database"; // 💡 Import Status Constants
+import {
+  MESSAGE_REQUEST_STATUS,
+  timestampSchema,
+  requestIdSchema,
+  userIdSchema,
+  placeIdSchema,
+} from "@/lib/types/database"; // 💡 Import Status Constants
 
 type MessageRequestWithTopic = MessageRequest & { topic: string | null };
+
+type RawMessageRequest = {
+  id: string;
+  initiator_id: string;
+  initiatee_id: string;
+  place_id: string;
+  status: MessageRequestStatus;
+  created_at: string;
+  responded_at: string | null;
+};
 
 // NOTE: The commented-out TanStack Query logic remains commented out,
 // and we are managing state via useState/useEffect as per your current file structure.
@@ -42,7 +58,7 @@ export function useRealtimeMessageRequests(
         (payload) => {
           // Extract the new (updated) data
           const rawNewData = payload.new as
-            | (Record<string, any> & {
+            | (Record<string, unknown> & {
                 status: MessageRequestStatus;
                 initiator_id: UserId;
               })
@@ -71,25 +87,33 @@ export function useRealtimeMessageRequests(
 
           setRequests((old) => {
             if (payload.eventType === "INSERT" && payload.new) {
-              const raw = payload.new as any;
+              const raw = payload.new as RawMessageRequest;
               const newReq: MessageRequestWithTopic = {
-                id: raw.id,
-                initiatorId: raw.initiator_id,
-                initiateeId: raw.initiatee_id,
-                placeId: raw.place_id,
+                id: requestIdSchema.parse(raw.id),
+                initiatorId: userIdSchema.parse(raw.initiator_id),
+                initiateeId: userIdSchema.parse(raw.initiatee_id),
+                placeId: placeIdSchema.parse(raw.place_id),
                 status: raw.status,
-                createdAt: raw.created_at,
-                respondedAt: raw.responded_at,
+                createdAt: timestampSchema.parse(new Date(raw.created_at)),
+                respondedAt: raw.responded_at
+                  ? timestampSchema.parse(new Date(raw.responded_at))
+                  : null,
                 topic: null,
               };
               if (old.some((r) => r.id === newReq.id)) return old;
               return [newReq, ...old];
             }
             if (payload.eventType === "UPDATE" && payload.new) {
-              const raw = payload.new as any;
+              const raw = payload.new as RawMessageRequest;
               return old.map((r) =>
                 r.id === raw.id
-                  ? { ...r, status: raw.status, respondedAt: raw.responded_at }
+                  ? {
+                      ...r,
+                      status: raw.status,
+                      respondedAt: raw.responded_at
+                        ? timestampSchema.parse(new Date(raw.responded_at))
+                        : null,
+                    }
                   : r,
               );
             }

@@ -3,7 +3,7 @@
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { requestToMessage } from "@/app/_actions/messageActions";
-import { MessageRequestsQueryKey, PlaceId, UserId } from "@/lib/types/database";
+import { type MessageRequest, MessageRequestsQueryKey, PlaceId, UserId } from "@/lib/types/database";
 import { useRequestStateTracker } from "./useRequestStateTracker";
 
 type MessageRequestInput = {
@@ -42,8 +42,8 @@ export function useMessageRequestMutation() {
       const previousRequests = queryClient.getQueryData(initiatorKey);
 
       // Add optimistic request to initiator's cache (3-part key)
-      queryClient.setQueryData(initiatorKey, (old: any[] = []) => [
-        ...old,
+      queryClient.setQueryData(initiatorKey, (old: MessageRequest[] | undefined) => [
+        ...(old ?? []),
         {
           id: `temp-${Date.now()}`,
           ...newRequest,

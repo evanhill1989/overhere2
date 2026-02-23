@@ -47,12 +47,15 @@ export default async function ClaimStatusPage({ params }: PageProps) {
         placeName: claim.placeName || "",
         placeAddress: claim.placeAddress || "",
         status: claim.status,
-        submittedAt: claim.submittedAt,
-        verifiedAt: claim.verifiedAt,
+        submittedAt: claim.submittedAt.toISOString(),
+        verifiedAt: claim.verifiedAt?.toISOString() ?? null,
         rejectionReason: claim.rejectionReason,
         fraudScore: claim.fraudScore,
       }}
-      auditLog={auditLog}
+      auditLog={auditLog.map((entry) => ({
+        ...entry,
+        createdAt: entry.createdAt.toISOString(),
+      }))}
       placeId={claim.placeId}
     />
   );

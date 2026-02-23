@@ -83,7 +83,6 @@ export function ClaimStatusTracker({
   onReturnHome,
 }: ClaimStatusTrackerProps) {
   const config = statusConfig[claim.status];
-  const StatusIcon = config.icon;
 
   const canCancel = claim.status === "pending";
 

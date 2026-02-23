@@ -9,11 +9,9 @@ import {
   checkinsTable,
   messageSessionsTable,
 } from "@/lib/schema";
-import { eq, and, gte, count, sql } from "drizzle-orm";
+import { eq, and, gte, count } from "drizzle-orm";
 import { createClient } from "@/utils/supabase/server";
 import {
-  type UserId,
-  type PlaceId,
   type VerifiedOwner,
   type PlaceOwnerSettings,
   type Promotion,

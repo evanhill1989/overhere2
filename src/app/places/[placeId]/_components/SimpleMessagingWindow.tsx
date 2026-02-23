@@ -8,6 +8,7 @@ import { X, Send } from "lucide-react";
 import { useRealtimeMessages } from "@/hooks/realtime-hooks/useRealtimeMessages";
 import { createClient } from "@/utils/supabase/client";
 import { markMessagesAsRead } from "@/app/_actions/messageActions";
+import type { SessionId } from "@/lib/types/database";
 import { useQueryClient } from "@tanstack/react-query";
 
 interface SimpleMessagingWindowProps {
@@ -38,7 +39,7 @@ export function SimpleMessagingWindow({
 
   useEffect(() => {
     return () => {
-      markMessagesAsRead(sessionId as any, currentUserCheckinId)
+      markMessagesAsRead(sessionId as SessionId, currentUserCheckinId)
         .then(() => {
           // Invalidate unread counts after marking as read
           queryClient.invalidateQueries({ queryKey: ["unreadMessageCounts"] });
@@ -64,7 +65,7 @@ export function SimpleMessagingWindow({
       if (sendError) throw sendError;
 
       setNewMessage("");
-    } catch (err) {
+    } catch {
       alert("Failed to send message. Please try again.");
     } finally {
       setIsSending(false);

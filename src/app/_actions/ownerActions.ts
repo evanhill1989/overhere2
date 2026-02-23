@@ -15,19 +15,12 @@ import {
   RATE_LIMIT_CONFIGS,
 } from "@/lib/security/serverActionRateLimit";
 import {
-  type UserId,
-  type PlaceId,
   type ClaimId,
-  type PlaceClaim,
-  type VerifiedOwner,
   type PlaceOwnerSettings,
   type Promotion,
   userIdSchema,
   placeIdSchema,
   claimIdSchema,
-  promotionIdSchema,
-  placeClaimSchema,
-  verifiedOwnerSchema,
   placeOwnerSettingsSchema,
   promotionSchema,
   claimPlaceFormSchema,
@@ -53,13 +46,13 @@ import type { ApiResponse } from "@/lib/types/api";
 
 export async function claimPlace(input: {
   placeId: string;
-  verificationMethod: string;
+  verificationMethod: "phone" | "mail" | "manual";
   phoneNumber?: string;
 }): Promise<ApiResponse<{ claimId: ClaimId }>> {
   try {
     // Rate limiting
     const rateLimitResult = await checkServerActionRateLimit(
-      RATE_LIMIT_CONFIGS.CHECKIN_CREATE, // Reuse existing config
+      RATE_LIMIT_CONFIGS.CLAIM_START,
     );
 
     if (!rateLimitResult.success) {
@@ -114,8 +107,8 @@ export async function claimPlace(input: {
     let verificationCode: string | null = null;
     let verificationCodeExpiresAt: Date | null = null;
 
-    if (validatedInput.verificationMethod === VERIFICATION_METHOD.PHONE) {
-      if (!validatedInput.phoneNumber) {
+    if (input.verificationMethod === VERIFICATION_METHOD.PHONE) {
+      if (!input.phoneNumber) {
         return {
           success: false,
           error: "Phone number required for phone verification",
@@ -129,7 +122,7 @@ export async function claimPlace(input: {
 
       // TODO: Send SMS with verification code
       console.log(
-        `📱 Verification code for ${validatedInput.phoneNumber}: ${verificationCode}`,
+        `📱 Verification code for ${input.phoneNumber}: ${verificationCode}`,
       );
     }
 
@@ -140,8 +133,8 @@ export async function claimPlace(input: {
         placeId,
         userId,
         status: CLAIM_STATUS.PENDING,
-        verificationMethod: validatedInput.verificationMethod,
-        phoneNumber: validatedInput.phoneNumber || null,
+        verificationMethod: input.verificationMethod,
+        phoneNumber: input.phoneNumber || null,
         verificationCode,
         verificationCodeExpiresAt,
       })
@@ -153,7 +146,7 @@ export async function claimPlace(input: {
       success: true,
       data: { claimId },
       message:
-        validatedInput.verificationMethod === VERIFICATION_METHOD.PHONE
+        input.verificationMethod === VERIFICATION_METHOD.PHONE
           ? "Verification code sent to your phone"
           : "Claim submitted for review",
     };
@@ -292,7 +285,7 @@ export async function updateOwnerSettings(input: {
   try {
     // Rate limiting
     const rateLimitResult = await checkServerActionRateLimit(
-      RATE_LIMIT_CONFIGS.CHECKIN_CREATE,
+      RATE_LIMIT_CONFIGS.CLAIM_SUBMIT_BUSINESS_INFO,
     );
 
     if (!rateLimitResult.success) {
@@ -399,7 +392,7 @@ export async function createPromotion(input: {
   try {
     // Rate limiting
     const rateLimitResult = await checkServerActionRateLimit(
-      RATE_LIMIT_CONFIGS.CHECKIN_CREATE,
+      RATE_LIMIT_CONFIGS.CLAIM_SUBMIT_BUSINESS_INFO,
     );
 
     if (!rateLimitResult.success) {

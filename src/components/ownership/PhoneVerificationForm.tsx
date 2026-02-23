@@ -20,7 +20,6 @@ type PhoneVerificationFormProps = {
 };
 
 export function PhoneVerificationForm({
-  claimId,
   phoneNumber,
   onVerify,
   onResend,

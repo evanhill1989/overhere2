@@ -151,7 +151,7 @@ export function useHasActiveSession(userId: UserId | null) {
 
       const twoHoursAgo = subHours(new Date(), 2);
 
-      const { data, error } = await supabase
+      const { data } = await supabase
         .from("message_sessions")
         .select("id")
         .or(`initiator_id.eq.${userId},initiatee_id.eq.${userId}`)

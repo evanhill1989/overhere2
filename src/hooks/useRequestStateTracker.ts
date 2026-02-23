@@ -64,7 +64,7 @@ export function useRequestStateTracker() {
     const now = new Date();
     const failures: RequestState[] = [];
 
-    for (const [requestId, state] of pendingDeliveries.entries()) {
+    for (const [, state] of pendingDeliveries.entries()) {
       const timeSinceSent = now.getTime() - state.sentAt.getTime();
 
       if (!state.acknowledged && timeSinceSent > FAILURE_THRESHOLD_MS) {

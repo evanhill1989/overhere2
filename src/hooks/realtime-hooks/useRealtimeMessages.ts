@@ -77,7 +77,7 @@ export function useRealtimeMessages(sessionId: string) {
         );
 
         setMessages(formattedMessages);
-      } catch (err) {
+      } catch {
       } finally {
         setIsLoading(false);
       }
@@ -128,7 +128,7 @@ export function useRealtimeMessages(sessionId: string) {
             });
           },
         )
-        .subscribe((status: string) => {
+        .subscribe(() => {
         });
 
       channelRef.current = channel;

@@ -6,8 +6,6 @@ import {
   type UserId,
   type PlaceId,
   type VerifiedOwner,
-  userIdSchema,
-  placeIdSchema,
   verifiedOwnerSchema,
   SUBSCRIPTION_STATUS,
 } from "@/lib/types/database";

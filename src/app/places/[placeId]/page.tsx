@@ -3,6 +3,7 @@ import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/utils/supabase/server";
 import { placeIdSchema, userIdSchema } from "@/lib/types/core";
 import { getPlaceVerificationDetails } from "@/app/_actions/ownershipQueries"; // NEW
+import type { PlaceVerificationDetails } from "@/lib/types/database";
 
 import { PlacePageClientPrimerWrapper } from "./_components/PlacePagePrimerWrapper";
 
@@ -55,7 +56,18 @@ export default async function PlacePage(props: PageProps) {
   // ============================================
   // 3. FETCH VERIFICATION DETAILS (NEW)
   // ============================================
-  const verificationDetails = await getPlaceVerificationDetails(placeId);
+  const verificationResult = await getPlaceVerificationDetails(placeId);
+  const verificationDetails: PlaceVerificationDetails | null =
+    !verificationResult.success
+      ? null
+      : !verificationResult.isVerified
+        ? { isVerified: false }
+        : {
+            isVerified: true,
+            verifiedOwner: verificationResult.verifiedOwner,
+            businessContact: verificationResult.businessContact,
+            customDescription: verificationResult.customDescription,
+          };
 
   // ============================================
   // 4. RENDER CLIENT COMPONENT
@@ -70,7 +82,7 @@ export default async function PlacePage(props: PageProps) {
           name: placeInfo.place_name,
           address: placeInfo.place_address,
         }}
-        verificationDetails={verificationDetails} // ← NEW: Pass down
+        verificationDetails={verificationDetails}
       />
     </main>
   );

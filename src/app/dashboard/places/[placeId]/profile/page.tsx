@@ -16,7 +16,7 @@ export default async function ProfileManagementPage({ params }: PageProps) {
   // ============================================
   const result = await getOwnerDashboard({ placeId });
 
-  if (!result.success || !result.data) {
+  if (!result.success) {
     return (
       <div className="text-destructive">
         Error loading settings: {result.error}

@@ -19,7 +19,13 @@ type PromotionFormProps = {
 export default function PromotionForm({ placeId }: PromotionFormProps) {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<{
+    type: (typeof PROMOTION_TYPE)[keyof typeof PROMOTION_TYPE];
+    title: string;
+    message: string;
+    startAt: string;
+    endAt: string;
+  }>({
     type: PROMOTION_TYPE.FEATURED_MESSAGE,
     title: "",
     message: "",
@@ -86,7 +92,11 @@ export default function PromotionForm({ placeId }: PromotionFormProps) {
               id="type"
               value={formData.type}
               onChange={(e) =>
-                setFormData((prev) => ({ ...prev, type: e.target.value }))
+                setFormData((prev) => ({
+                  ...prev,
+                  type: e.target.value as (typeof PROMOTION_TYPE)[keyof typeof PROMOTION_TYPE],
+                }))
+
               }
               className="border-input bg-background w-full rounded-md border px-3 py-2 text-sm"
             >

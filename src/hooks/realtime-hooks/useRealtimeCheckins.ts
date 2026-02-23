@@ -5,11 +5,8 @@ import { useEffect, useRef } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { createClient } from "@/utils/supabase/client";
 import type { RealtimeChannel } from "@supabase/supabase-js";
-import { checkinIdSchema } from "@/lib/types/database";
-import type { Checkin, DatabaseCheckin } from "@/lib/types/database";
+import type { Checkin } from "@/lib/types/database";
 import type { PlaceId } from "@/lib/types/core";
-
-import { mapCheckinToCamel } from "@/lib/caseConverter";
 import { getCheckinsAtPlace } from "@/app/_actions/checkinQueries";
 
 async function fetchCheckins(placeId: PlaceId): Promise<Checkin[]> {
@@ -38,7 +35,7 @@ export function useRealtimeCheckins(
           table: "checkins",
           filter: `place_id=eq.${placeId}`,
         },
-        (payload) => {
+        () => {
           // Handle updates immediately
           // Force refetch to ensure consistency
           queryClient.invalidateQueries({

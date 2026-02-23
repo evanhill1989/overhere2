@@ -18,7 +18,7 @@ export default async function OwnerDashboardOverview({ params }: PageProps) {
   // ============================================
   const result = await getOwnerDashboard({ placeId });
 
-  if (!result.success || !result.data) {
+  if (!result.success) {
     return (
       <div className="text-destructive">
         Error loading dashboard: {result.error}
