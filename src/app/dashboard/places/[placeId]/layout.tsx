@@ -4,6 +4,7 @@ import { createClient } from "@/utils/supabase/server";
 import { requirePlaceOwner } from "@/lib/auth/ownershipAuth";
 import { userIdSchema, placeIdSchema } from "@/lib/types/database";
 import Link from "next/link";
+import { placeLogger } from "@/lib/logger";
 
 type LayoutProps = {
   children: React.ReactNode;
@@ -15,7 +16,7 @@ export default async function OwnerDashboardLayout({
   params,
 }: LayoutProps) {
   const { placeId: rawPlaceId } = await params;
-  console.log("🔍 [Dashboard] Raw placeId:", rawPlaceId);
+  placeLogger.debug("[Dashboard] Raw placeId:", rawPlaceId);
 
   // ============================================
   // 1. AUTHENTICATION CHECK
@@ -26,11 +27,11 @@ export default async function OwnerDashboardLayout({
     error: authError,
   } = await supabase.auth.getUser();
 
-  console.log("🔍 [Dashboard] User:", user?.id, user?.email);
-  console.log("🔍 [Dashboard] Auth error:", authError);
+  placeLogger.debug("[Dashboard] User:", user?.id, user?.email);
+  placeLogger.debug("[Dashboard] Auth error:", authError);
 
   if (authError || !user) {
-    console.log("❌ [Dashboard] No user, redirecting");
+    placeLogger.warn("[Dashboard] No user, redirecting");
     redirect("/");
   }
 
@@ -41,14 +42,9 @@ export default async function OwnerDashboardLayout({
   try {
     placeId = placeIdSchema.parse(rawPlaceId);
     userId = userIdSchema.parse(user.id);
-    console.log(
-      "✅ [Dashboard] Parsed IDs - userId:",
-      userId,
-      "placeId:",
-      placeId,
-    );
+    placeLogger.debug("[Dashboard] Parsed IDs - userId:", userId, "placeId:", placeId);
   } catch (error) {
-    console.error("❌ [Dashboard] ID validation failed:", error);
+    placeLogger.error("[Dashboard] ID validation failed:", error);
     redirect("/");
   }
 
@@ -56,11 +52,11 @@ export default async function OwnerDashboardLayout({
   // 3. OWNERSHIP VERIFICATION
   // ============================================
   try {
-    console.log("🔍 [Dashboard] Calling requirePlaceOwner...");
+    placeLogger.debug("[Dashboard] Calling requirePlaceOwner...");
     await requirePlaceOwner(userId, placeId);
-    console.log("✅ [Dashboard] Ownership verified!");
+    placeLogger.debug("[Dashboard] Ownership verified!");
   } catch (error) {
-    console.error("❌ [Dashboard] Ownership verification failed:", error);
+    placeLogger.error("[Dashboard] Ownership verification failed:", error);
     redirect("/");
   }
 

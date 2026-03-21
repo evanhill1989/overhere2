@@ -1,5 +1,5 @@
 // src/lib/schema.ts
-import { eq, sql } from "drizzle-orm";
+import { sql } from "drizzle-orm";
 import {
   pgTable,
   varchar,
@@ -132,9 +132,12 @@ export const checkinsTable = pgTable(
     placeIdx: index("checkins_place_idx").on(table.placeId),
     statusIdx: index("checkins_status_idx").on(table.checkinStatus),
     createdAtIndex: index("checkins_created_at_idx").on(table.createdAt),
+    activeCheckinByUserPlace: index("checkins_user_place_active_idx")
+      .on(table.userId, table.placeId)
+      .where(sql`is_active = true`),
     uniqueActiveCheckin: uniqueIndex("checkins_user_active_unique")
       .on(table.userId)
-      .where(eq(table.isActive, true)),
+      .where(sql`is_active = true`),
   }),
 );
 
@@ -235,6 +238,9 @@ export const messagesTable = pgTable(
     sessionIdx: index("message_session_idx").on(table.sessionId),
     senderIdx: index("message_sender_idx").on(table.senderCheckinId),
     createdAtIdx: index("message_created_at_idx").on(table.createdAt),
+    unreadBySession: index("messages_session_unread_idx")
+      .on(table.sessionId)
+      .where(sql`read_at IS NULL`),
   }),
 );
 

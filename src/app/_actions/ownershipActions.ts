@@ -33,6 +33,8 @@ import {
   checkClaimEligibility,
   recordIpClaimAttempt,
 } from "@/lib/security/claimRateLimiter";
+
+import { ownerLogger } from "@/lib/logger";
 import { CLAIM_LIMITS } from "@/lib/security/claimLimits";
 import {
   calculateFraudScore,
@@ -242,7 +244,7 @@ export async function startClaim(formData: unknown) {
       },
     };
   } catch (error) {
-    console.error("Error starting claim:", error);
+    ownerLogger.error("Error starting claim:", error);
     return { success: false, error: "Failed to start claim" };
   }
 }
@@ -319,7 +321,7 @@ export async function submitBusinessInfo(formData: unknown) {
 
     return { success: true };
   } catch (error) {
-    console.error("Error submitting business info:", error);
+    ownerLogger.error("Error submitting business info:", error);
     return { success: false, error: "Failed to submit business info" };
   }
 }
@@ -391,7 +393,7 @@ export async function sendPhoneVerificationCode(claimId: string) {
 
     return { success: true };
   } catch (error) {
-    console.error("Error sending verification code:", error);
+    ownerLogger.error("Error sending verification code:", error);
     return { success: false, error: "Failed to send verification code" };
   }
 }
@@ -484,7 +486,7 @@ export async function verifyPhone(formData: unknown) {
 
     return { success: true };
   } catch (error) {
-    console.error("Error verifying phone:", error);
+    ownerLogger.error("Error verifying phone:", error);
     return { success: false, error: "Failed to verify phone" };
   }
 }
@@ -537,7 +539,7 @@ export async function resendPhoneVerificationCode(claimId: string) {
 
     return { success: true };
   } catch (error) {
-    console.error("Error resending verification code:", error);
+    ownerLogger.error("Error resending verification code:", error);
     return { success: false, error: "Failed to resend verification code" };
   }
 }
@@ -605,7 +607,7 @@ export async function submitClaim(claimId: string) {
 
     return { success: true };
   } catch (error) {
-    console.error("Error submitting claim:", error);
+    ownerLogger.error("Error submitting claim:", error);
     return { success: false, error: "Failed to submit claim" };
   }
 }
@@ -666,7 +668,7 @@ export async function cancelClaim(formData: unknown) {
 
     return { success: true };
   } catch (error) {
-    console.error("Error canceling claim:", error);
+    ownerLogger.error("Error canceling claim:", error);
     return { success: false, error: "Failed to cancel claim" };
   }
 }
@@ -774,7 +776,7 @@ export async function adminReviewClaim(formData: unknown) {
 
     return { success: true };
   } catch (error) {
-    console.error("Error reviewing claim:", error);
+    ownerLogger.error("Error reviewing claim:", error);
     return { success: false, error: "Failed to review claim" };
   }
 }

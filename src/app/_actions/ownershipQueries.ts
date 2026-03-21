@@ -15,6 +15,8 @@ import { createClient } from "@/utils/supabase/server";
 import type { UserId, PlaceId, ClaimId } from "@/lib/types/database";
 import { checkUserClaimEligibility } from "@/lib/security/claimRateLimiter";
 
+import { ownerLogger } from "@/lib/logger";
+
 // ============================================
 // QUERY ACTIONS
 // ============================================
@@ -60,7 +62,7 @@ export async function getUserClaims(userId?: string) {
 
     return { success: true, claims };
   } catch (error) {
-    console.error("Error getting user claims:", error);
+    ownerLogger.error("Error getting user claims:", error);
     return { success: false, error: "Failed to get claims" };
   }
 }
@@ -119,7 +121,7 @@ export async function getClaimById(claimId: string) {
 
     return { success: true, claim: claim[0] };
   } catch (error) {
-    console.error("Error getting claim:", error);
+    ownerLogger.error("Error getting claim:", error);
     return { success: false, error: "Failed to get claim" };
   }
 }
@@ -172,7 +174,7 @@ export async function getClaimAuditLog(claimId: string) {
 
     return { success: true, auditLog };
   } catch (error) {
-    console.error("Error getting audit log:", error);
+    ownerLogger.error("Error getting audit log:", error);
     return { success: false, error: "Failed to get audit log" };
   }
 }
@@ -202,7 +204,7 @@ export async function checkClaimEligibilityForUser() {
       details: eligibility.details,
     };
   } catch (error) {
-    console.error("Error checking eligibility:", error);
+    ownerLogger.error("Error checking eligibility:", error);
     return { success: false, error: "Failed to check eligibility" };
   }
 }
@@ -249,7 +251,7 @@ export async function getPlaceOwnershipStatus(placeId: string) {
       pendingClaimsCount: Number(pendingClaims[0]?.count ?? 0),
     };
   } catch (error) {
-    console.error("Error getting ownership status:", error);
+    ownerLogger.error("Error getting ownership status:", error);
     return { success: false, error: "Failed to get ownership status" };
   }
 }
@@ -298,7 +300,7 @@ export async function getUserActiveCheckins() {
       })),
     };
   } catch (error) {
-    console.error("Error getting active check-ins:", error);
+    ownerLogger.error("Error getting active check-ins:", error);
     return { success: false, error: "Failed to get check-ins" };
   }
 }
@@ -347,7 +349,7 @@ export async function getAllPendingClaims() {
 
     return { success: true, claims };
   } catch (error) {
-    console.error("Error getting pending claims:", error);
+    ownerLogger.error("Error getting pending claims:", error);
     return { success: false, error: "Failed to get pending claims" };
   }
 }
@@ -401,7 +403,7 @@ export async function getPlaceVerificationDetails(placeId: PlaceId) {
       customDescription: settings[0]?.descriptionOverride || null,
     };
   } catch (error) {
-    console.error("Error fetching verification details:", error);
+    ownerLogger.error("Error fetching verification details:", error);
     return { success: false, error: "Failed to fetch verification details" };
   }
 }

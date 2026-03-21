@@ -4,7 +4,12 @@
       "Bash(npm run build:*)",
       "mcp__playwright",
       "Bash(cd /c/Users/evanh/Desktop/Portfolio/overhere2 && npx next lint --file \"src/app/places/[placeId]/_components/getCardState.tsx\" --file \"src/app/places/[placeId]/_components/PlaceDetails.tsx\" --file \"src/app/places/[placeId]/_components/RealtimeStatusIndicator.tsx\" --file \"src/app/places/[placeId]/_components/SimpleMessagingWindow.tsx\" --file \"src/app/_actions/ownerActions.ts\" --file \"src/app/_actions/ownerQueries.ts\" --file \"src/components/ownership/ClaimStatusTracker.tsx\" --file \"src/components/ownership/OwnershipEntryLink.tsx\" --file \"src/components/ownership/PhoneVerificationForm.tsx\" --file \"src/hooks/realtime-hooks/useRealtimeCheckins.ts\" --file \"src/hooks/realtime-hooks/useRealtimeMessageRequests.ts\" --file \"src/hooks/realtime-hooks/useRealtimeMessages.ts\" --file \"src/hooks/realtime-hooks/useRealtimeMessageSession.ts\" --file \"src/hooks/useMessageRequestMutation.ts\" --file \"src/hooks/useRequestStateTracker.ts\" --file \"src/hooks/useSearchPlacesMutation.ts\" 2>&1)",
-      "Bash(cd /c/Users/evanh/Desktop/Portfolio/overhere2 && npx next lint --file src/app/_actions/ownerActions.ts 2>&1)"
+      "Bash(cd /c/Users/evanh/Desktop/Portfolio/overhere2 && npx next lint --file src/app/_actions/ownerActions.ts 2>&1)",
+      "Bash(__NEW_LINE_380d865f43d5145d__ sed:*)",
+      "Bash(sed -i \"s/console\\\\.error\\(\"\"Error getting claim:\"\"/ownerLogger.error\\(\"\"Error getting claim:\"\"/g\" src/app/_actions/ownershipQueries.ts)",
+      "Bash(sed -i \"s/console\\\\.error\\(\"\"Error getting audit log:\"\"/ownerLogger.error\\(\"\"Error getting audit log:\"\"/g\" src/app/_actions/ownershipQueries.ts)",
+      "Bash(sed -i \"s/console\\\\.error\\(\"\"Error checking eligibility:\"\"/ownerLogger.error\\(\"\"Error checking eligibility:\"\"/g\" src/app/_actions/ownershipQueries.ts)",
+      "Bash(sed -i \"s/console\\\\.error\\(\"\"Error getting ownership status:\"\"/ownerLogger.error\\(\"\"Error getting ownership status:\"\"/g\" src/app/_actions/ownershipQueries.ts)"
     ],
     "deny": [],
     "ask": []

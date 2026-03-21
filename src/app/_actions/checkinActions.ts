@@ -25,6 +25,8 @@ import {
   RATE_LIMIT_CONFIGS,
 } from "@/lib/security/serverActionRateLimit";
 
+import { checkinLogger, placeLogger } from "@/lib/logger";
+
 // ✅ Updated return type with branded types
 export type ActionResult = {
   success: boolean;
@@ -78,19 +80,19 @@ export async function fetchAndCacheGooglePlaceDetails(
             primaryType: cachedPlace.primaryType,
           }) as Place;
         } catch (parseError) {
-          console.error("❌ Failed to parse cached Place data:", parseError);
+          placeLogger.error("Failed to parse cached Place data:", parseError);
           // Fall through to re-fetch if cached data is malformed
         }
       }
     }
   } catch (dbError) {
-    console.error(`DB cache lookup failed for place ID ${placeId}:`, dbError);
+    placeLogger.error(`DB cache lookup failed for place ID ${placeId}:`, dbError);
   }
 
   // Fetch from Google Places API
   const apiKey = process.env.GOOGLE_PLACES_API_KEY;
   if (!apiKey) {
-    console.error("GOOGLE_PLACES_API_KEY environment variable not set.");
+    placeLogger.error("GOOGLE_PLACES_API_KEY environment variable not set.");
     return null;
   }
 
@@ -127,7 +129,7 @@ export async function fetchAndCacheGooglePlaceDetails(
       );
     }
   } catch (fetchError) {
-    console.error(
+    placeLogger.error(
       `Failed to fetch details from Google API for place ID ${placeId}:`,
       fetchError,
     );
@@ -185,7 +187,7 @@ export async function fetchAndCacheGooglePlaceDetails(
       "Failed to retrieve after insert/update cache for Place Details.",
     );
   } catch (dbError) {
-    console.error(
+    placeLogger.error(
       `DB cache update/insert failed for place ID ${placeId}:`,
       dbError,
     );
@@ -204,7 +206,7 @@ export async function fetchAndCacheGooglePlaceDetails(
         isVerified: false, // Default fallback value
       }) as Place;
     } catch (e) {
-      console.error("❌ Fallback data failed canonical validation:", e);
+      placeLogger.error("Fallback data failed canonical validation:", e);
       return null;
     }
   }
@@ -293,7 +295,7 @@ export async function checkIn(
     }
 
     fetchAndCacheGooglePlaceDetails(validated.placeId).catch((err) => {
-      console.warn("⚠️ Failed to cache place details (non-critical):", err);
+      placeLogger.warn("Failed to cache place details (non-critical):", err);
     });
 
     // ✅ Step 2: Check for existing check-in at this place (within 12 hours)
@@ -310,7 +312,7 @@ export async function checkIn(
 
     // ✅ Step 3: If recent check-in exists at same place, reactivate it
     if (existingCheckin) {
-      console.log("♻️ Reactivating existing check-in:", existingCheckin.id);
+      checkinLogger.info("Reactivating existing check-in:", existingCheckin.id);
 
       // Deactivate any OTHER active check-ins (different places)
       const { error: deactivateOthersError } = await supabase
@@ -324,8 +326,8 @@ export async function checkIn(
         .neq("id", existingCheckin.id);
 
       if (deactivateOthersError) {
-        console.error(
-          "❌ Failed to deactivate other check-ins:",
+        checkinLogger.error(
+          "Failed to deactivate other check-ins:",
           deactivateOthersError,
         );
         throw new Error("Failed to deactivate other check-ins");
@@ -341,7 +343,7 @@ export async function checkIn(
         .eq("id", existingCheckin.id);
 
       if (reactivateError) {
-        console.error("❌ Failed to reactivate check-in:", reactivateError);
+        checkinLogger.error("Failed to reactivate check-in:", reactivateError);
         throw new Error("Failed to reactivate check-in");
       }
 
@@ -359,8 +361,8 @@ export async function checkIn(
       .eq("is_active", true);
 
     if (deactivateError) {
-      console.error(
-        "❌ Failed to deactivate previous check-ins:",
+      checkinLogger.error(
+        "Failed to deactivate previous check-ins:",
         deactivateError,
       );
       throw new Error("Failed to deactivate previous check-ins");
@@ -384,14 +386,14 @@ export async function checkIn(
       .single();
 
     if (insertError) {
-      console.error("❌ Failed to create check-in:", insertError);
+      checkinLogger.error("Failed to create check-in:", insertError);
       throw new Error(`Failed to check in: ${insertError.message}`);
     }
 
     // Redirect to place page
     return { placeId: validated.placeId };
   } catch (error) {
-    console.error("❌ Check-in validation or processing error:", error);
+    checkinLogger.error("Check-in validation or processing error:", error);
     throw error;
   }
 }

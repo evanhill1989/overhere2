@@ -48,6 +48,8 @@ import {
   RATE_LIMIT_CONFIGS,
 } from "@/lib/security/serverActionRateLimit";
 
+import { messageLogger } from "@/lib/logger";
+
 // ============================================
 // REQUEST TO MESSAGE
 // ============================================
@@ -62,7 +64,7 @@ export async function requestToMessage(
     );
 
     if (!rateLimitResult.success) {
-      console.error("❌ Rate limit exceeded for message request");
+      messageLogger.error("Rate limit exceeded for message request");
       return {
         success: false,
         error: rateLimitResult.error || "Rate limit exceeded",
@@ -77,7 +79,7 @@ export async function requestToMessage(
     } = await supabase.auth.getUser();
 
     if (authError || !user) {
-      console.error("❌ Not authenticated");
+      messageLogger.error("Not authenticated");
       return { success: false, error: "Not authenticated" };
     }
 
@@ -89,7 +91,7 @@ export async function requestToMessage(
 
     // Verify initiator matches authenticated user
     if (authenticatedUserId !== initiatorId) {
-      console.error("❌ Unauthorized: initiator doesn't match user");
+      messageLogger.error("Unauthorized: initiator doesn't match user");
       return { success: false, error: "Unauthorized" };
     }
 
@@ -103,12 +105,12 @@ export async function requestToMessage(
     );
 
     if (checkError) {
-      console.error("❌ Location check error:", checkError);
+      messageLogger.error("Location check error:", checkError);
       return { success: false, error: "Location verification failed" };
     }
 
     if (!samePlace) {
-      console.error("❌ Users not at same place");
+      messageLogger.error("Users not at same place");
       return {
         success: false,
         error: "Both users must be at the same location",
@@ -125,7 +127,7 @@ export async function requestToMessage(
       .in("status", ["pending", "accepted"]);
 
     if (existingError) {
-      console.error("❌ Error checking existing requests:", existingError);
+      messageLogger.error("Error checking existing requests:", existingError);
       return { success: false, error: "Failed to check existing requests" };
     }
 
@@ -146,7 +148,7 @@ export async function requestToMessage(
       .single();
 
     if (insertError) {
-      console.error("❌ Failed to create request:", insertError);
+      messageLogger.error("Failed to create request:", insertError);
       return {
         success: false,
         error: `Failed to create request: ${insertError.message}`,
@@ -163,7 +165,7 @@ export async function requestToMessage(
     };
   } catch (e: unknown) {
     const error = e instanceof Error ? e : new Error("Unknown error");
-    console.error("❌ requestToMessage failed:", error.message);
+    messageLogger.error("requestToMessage failed:", error.message);
     return { success: false, error: error.message };
   }
 }
@@ -183,7 +185,7 @@ export async function respondToMessageRequest(
     );
 
     if (!rateLimitResult.success) {
-      console.error("❌ Rate limit exceeded for responding to request");
+      messageLogger.error("Rate limit exceeded for responding to request");
       return {
         message:
           rateLimitResult.error || "Too many responses. Please slow down.",
@@ -205,7 +207,7 @@ export async function respondToMessageRequest(
     } = await supabase.auth.getUser();
 
     if (authError || !user) {
-      console.error("❌ Not authenticated");
+      messageLogger.error("Not authenticated");
       return { message: "Not authenticated." };
     }
 
@@ -218,12 +220,12 @@ export async function respondToMessageRequest(
       .single();
 
     if (fetchError || !request) {
-      console.error("❌ Request not found or unauthorized:", fetchError);
+      messageLogger.error("Request not found or unauthorized:", fetchError);
       return { message: "Request not found." };
     } // Verify user is part of request
 
     if (request.initiator_id !== userId && request.initiatee_id !== userId) {
-      console.error("❌ Unauthorized to respond to this request");
+      messageLogger.error("Unauthorized to respond to this request");
       return { message: "Unauthorized." };
     }
 
@@ -248,7 +250,7 @@ export async function respondToMessageRequest(
 
       if (sessionError || !sessionData) {
         // Check for sessionData
-        console.error("❌ Failed to create session:", sessionError);
+        messageLogger.error("Failed to create session:", sessionError);
         return { message: "Failed to create messaging session." };
       }
 
@@ -264,7 +266,7 @@ export async function respondToMessageRequest(
       .eq("id", requestId);
 
     if (updateError) {
-      console.error("❌ Failed to update request:", updateError);
+      messageLogger.error("Failed to update request:", updateError);
       return { message: "Failed to update request." };
     }
 
@@ -274,7 +276,7 @@ export async function respondToMessageRequest(
     };
   } catch (e: unknown) {
     const error = e instanceof Error ? e : new Error("Unknown error");
-    console.error("❌ respondToMessageRequest failed:", error.message);
+    messageLogger.error("respondToMessageRequest failed:", error.message);
     return { message: error.message };
   }
 }
@@ -295,7 +297,7 @@ export async function getMessageSession(input: {
     } = await supabase.auth.getUser();
 
     if (authError || !user) {
-      console.error("❌ Not authenticated");
+      messageLogger.error("Not authenticated");
       return null;
     }
 
@@ -303,7 +305,7 @@ export async function getMessageSession(input: {
 
     // Verify userId matches authenticated user
     if (authenticatedUserId !== input.userId) {
-      console.error("❌ Unauthorized: userId doesn't match authenticated user");
+      messageLogger.error("Unauthorized: userId doesn't match authenticated user");
       return null;
     }
 
@@ -320,7 +322,7 @@ export async function getMessageSession(input: {
       .maybeSingle();
 
     if (error) {
-      console.error("❌ Error fetching session:", error);
+      messageLogger.error("Error fetching session:", error);
       return null;
     }
 
@@ -346,7 +348,7 @@ export async function getMessageSession(input: {
     };
   } catch (e: unknown) {
     const error = e instanceof Error ? e : new Error("Unknown error");
-    console.error("❌ getMessageSession failed:", error.message);
+    messageLogger.error("getMessageSession failed:", error.message);
     return null;
   }
 }
@@ -366,7 +368,7 @@ export async function submitMessage(
     );
 
     if (!rateLimitResult.success) {
-      console.error("❌ Rate limit exceeded for sending message");
+      messageLogger.error("Rate limit exceeded for sending message");
       return {
         success: false,
         error:
@@ -382,7 +384,7 @@ export async function submitMessage(
     } = await supabase.auth.getUser();
 
     if (authError || !user) {
-      console.error("❌ Not authenticated");
+      messageLogger.error("Not authenticated");
       return { success: false, error: "Not authenticated" };
     }
 
@@ -406,7 +408,7 @@ export async function submitMessage(
       .single();
 
     if (checkinError || !checkin || checkin.user_id !== userId) {
-      console.error("❌ Invalid or unauthorized sender checkin");
+      messageLogger.error("Invalid or unauthorized sender checkin");
       return { success: false, error: "Invalid sender" };
     }
 
@@ -418,12 +420,12 @@ export async function submitMessage(
       .single();
 
     if (sessionError || !session) {
-      console.error("❌ Session not found");
+      messageLogger.error("Session not found");
       return { success: false, error: "Session not found" };
     }
 
     if (session.initiator_id !== userId && session.initiatee_id !== userId) {
-      console.error("❌ User not part of session");
+      messageLogger.error("User not part of session");
       return {
         success: false,
         error: "Not authorized for this session",
@@ -442,7 +444,7 @@ export async function submitMessage(
       .single();
 
     if (insertError) {
-      console.error("❌ Failed to insert message:", insertError);
+      messageLogger.error("Failed to insert message:", insertError);
       return { success: false, error: insertError.message };
     }
 
@@ -472,7 +474,7 @@ export async function submitMessage(
     };
   } catch (e: unknown) {
     const error = e instanceof Error ? e : new Error("Unknown error");
-    console.error("❌ submitMessage failed:", error.message);
+    messageLogger.error("submitMessage failed:", error.message);
     return { success: false, error: error.message };
   }
 }
@@ -505,7 +507,7 @@ export async function getMessageRequests(
       .order("created_at", { ascending: false });
 
     if (error) {
-      console.error("❌ Error fetching requests:", error);
+      messageLogger.error("Error fetching requests:", error);
       return [];
     }
 
@@ -523,7 +525,7 @@ export async function getMessageRequests(
     }));
   } catch (e: unknown) {
     const error = e instanceof Error ? e : new Error("Unknown error");
-    console.error("❌ getMessageRequests failed:", error.message);
+    messageLogger.error("getMessageRequests failed:", error.message);
     return [];
   }
 }
@@ -556,14 +558,14 @@ export async function cancelMessageRequest(
       .eq("status", MESSAGE_REQUEST_STATUS.PENDING);
 
     if (error) {
-      console.error("❌ Failed to cancel request:", error);
+      messageLogger.error("Failed to cancel request:", error);
       return { success: false, error: error.message };
     }
 
     return { success: true, data: undefined };
   } catch (e: unknown) {
     const error = e instanceof Error ? e : new Error("Unknown error");
-    console.error("❌ cancelMessageRequest failed:", error.message);
+    messageLogger.error("cancelMessageRequest failed:", error.message);
     return { success: false, error: error.message };
   }
 }
@@ -593,7 +595,7 @@ export async function getSessionMessages(
       .order("created_at", { ascending: true });
 
     if (error) {
-      console.error("❌ Error fetching messages:", error);
+      messageLogger.error("Error fetching messages:", error);
       return [];
     }
 
@@ -613,7 +615,7 @@ export async function getSessionMessages(
     }));
   } catch (e: unknown) {
     const error = e instanceof Error ? e : new Error("Unknown error");
-    console.error("❌ getSessionMessages failed:", error.message);
+    messageLogger.error("getSessionMessages failed:", error.message);
     return [];
   }
 }
@@ -642,7 +644,7 @@ export async function verifySessionAccess(
     return data.initiator_id === userId || data.initiatee_id === userId;
   } catch (e: unknown) {
     const error = e instanceof Error ? e : new Error("Unknown error");
-    console.error("❌ verifySessionAccess failed:", error.message);
+    messageLogger.error("verifySessionAccess failed:", error.message);
     return false;
   }
 }
@@ -686,14 +688,14 @@ export async function markMessagesAsRead(
       .is("read_at", null);
 
     if (error) {
-      console.error("❌ Failed to mark messages as read:", error);
+      messageLogger.error("Failed to mark messages as read:", error);
       return { success: false, error: error.message };
     }
 
     return { success: true, data: undefined };
   } catch (e: unknown) {
     const error = e instanceof Error ? e : new Error("Unknown error");
-    console.error("❌ markMessagesAsRead failed:", error.message);
+    messageLogger.error("markMessagesAsRead failed:", error.message);
 
     return { success: false, error: error.message };
   }
@@ -745,50 +747,61 @@ export async function getUnreadMessageCounts(
 
     const unreadCounts: Record<string, number> = {};
 
+    // 1. Collect all other user IDs and session IDs upfront
+    const otherUserIds = sessions.map((s) =>
+      s.initiator_id === currentUserId ? s.initiatee_id : s.initiator_id,
+    );
+    const sessionIds = sessions.map((s) => s.id);
+
+    // 2. Batch-fetch all relevant checkins in one query
+    const { data: otherCheckins } = await supabase
+      .from("checkins")
+      .select("id, user_id")
+      .in("user_id", otherUserIds)
+      .eq("place_id", placeId)
+      .eq("is_active", true);
+
+    // 3. Batch-fetch all unread messages across all sessions in one query
+    const { data: unreadMessages } = await supabase
+      .from("messages")
+      .select("id, session_id, sender_checkin_id")
+      .in("session_id", sessionIds)
+      .is("read_at", null);
+
+    // 4. Build lookup maps and compute counts in memory
+    const checkinByUserId = Object.fromEntries(
+      (otherCheckins ?? []).map((c) => [c.user_id, c.id]),
+    );
+    const messagesBySession = (unreadMessages ?? []).reduce(
+      (acc, msg) => {
+        (acc[msg.session_id] ??= []).push(msg);
+        return acc;
+      },
+      {} as Record<string, typeof unreadMessages>,
+    );
+
+    // 5. Loop with no DB calls
     for (const session of sessions) {
-      // Get the other user's ID
       const otherUserId =
         session.initiator_id === currentUserId
           ? session.initiatee_id
           : session.initiator_id;
+      const otherCheckinId = checkinByUserId[otherUserId];
+      if (!otherCheckinId) continue;
 
-      // Get their active checkin at this place
-      const { data: otherCheckin } = await supabase
-        .from("checkins")
-        .select("id")
-        .eq("user_id", otherUserId)
-        .eq("place_id", placeId)
-        .eq("is_active", true)
-        .maybeSingle();
-
-      if (!otherCheckin) continue;
-
-      // Count unread messages in this session that were:
-      // - NOT sent by me
-      // - NOT yet read
-      const { data: unreadMessages } = await supabase
-        .from("messages")
-        .select("id, sender_checkin_id")
-        .eq("session_id", session.id)
-        .is("read_at", null);
-
-      if (!unreadMessages || unreadMessages.length === 0) continue;
-
-      // Filter out messages sent by current user
-      const unreadFromOther = unreadMessages.filter(
-        (msg) => msg.sender_checkin_id !== myCheckin.id,
+      const msgs = messagesBySession[session.id] ?? [];
+      const unreadFromOther = msgs.filter(
+        (m) => m.sender_checkin_id !== myCheckin.id,
       );
-
       if (unreadFromOther.length > 0) {
-        // Map to the OTHER user's checkin ID (not mine)
-        unreadCounts[otherCheckin.id] = unreadFromOther.length;
+        unreadCounts[otherCheckinId] = unreadFromOther.length;
       }
     }
 
     return unreadCounts;
   } catch (e: unknown) {
     const error = e instanceof Error ? e : new Error("Unknown error");
-    console.error("❌ getUnreadMessageCounts failed:", error.message);
+    messageLogger.error("getUnreadMessageCounts failed:", error.message);
     return {};
   }
 }
