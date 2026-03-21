@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "drop-table": "tsx scripts/drop-message-sessions.ts"
+    "drop-table": "tsx scripts/drop-message-sessions.ts",
+    "test": "vitest"
   },
   "dependencies": {
     "@gsap/react": "^2.1.2",
@@ -68,6 +69,8 @@
     "tailwindcss": "^4",
     "tailwindcss-animate": "^1.0.7",
     "tsx": "^4.19.3",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vite-tsconfig-paths": "^6.1.1",
+    "vitest": "^4.1.0"
   }
 }
