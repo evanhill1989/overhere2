@@ -1,11 +1,20 @@
 // src/providers/PlaceFinderProvider.tsx
 "use client";
 
-import { useState, useEffect, useRef, useContext, createContext } from "react";
+import {
+  useState,
+  useEffect,
+  useRef,
+  useContext,
+  createContext,
+  useCallback,
+} from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/utils/supabase/client";
 
 import { Coords, coordsSchema } from "@/lib/types/core";
+
+const LOCATION_PRIMER_KEY = "overhere_location_primer_seen";
 
 type PlaceFinderContextType = {
   userLocation: Coords | null;
@@ -26,52 +35,54 @@ export function PlaceFinderProvider({
 }) {
   const supabase = useRef(createClient());
   const router = useRouter();
+  const mountedRef = useRef(true);
 
   const [userLocation, setUserLocation] = useState<Coords | null>(null);
-
   const [ready, setReady] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [locationError, setLocationError] = useState<string | null>(null);
   const [isInSearchMode, setIsInSearchMode] = useState(false);
+  const [showLocationPrimer, setShowLocationPrimer] = useState(false);
+
   const locationRequestedRef = useRef(false);
 
-  // Geolocation setup with fallback strategy
+  // Track unmount to avoid state updates on unmounted component
   useEffect(() => {
-    const client = supabase.current;
-    let isSubscribed = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
 
-    const handleLocationSuccess = (pos: GeolocationPosition) => {
-      if (!isSubscribed) return;
+  const handleLocationSuccess = useCallback((pos: GeolocationPosition) => {
+    if (!mountedRef.current) return;
 
-      const rawLocationData = {
-        latitude: pos.coords.latitude,
-        longitude: pos.coords.longitude,
-        accuracy: pos.coords.accuracy,
-        timestamp: pos.timestamp,
-      };
-
-      try {
-        const brandedLocationData: Coords =
-          coordsSchema.parse(rawLocationData);
-
-        setUserLocation(brandedLocationData);
-
-        console.log(
-          "📍 Real location:",
-          pos.coords.latitude,
-          pos.coords.longitude,
-        );
-        setLocationError(null);
-        setReady(true);
-      } catch (e) {
-        console.error("❌ Failed to parse/brand location data:", e);
-        setLocationError("Failed to validate location coordinates.");
-        setReady(false);
-      }
+    const rawLocationData = {
+      latitude: pos.coords.latitude,
+      longitude: pos.coords.longitude,
+      accuracy: pos.coords.accuracy,
+      timestamp: pos.timestamp,
     };
 
-    const handleLocationError = (error: GeolocationPositionError) => {
-      if (!isSubscribed) return;
+    try {
+      const brandedLocationData: Coords = coordsSchema.parse(rawLocationData);
+      setUserLocation(brandedLocationData);
+      console.log(
+        "📍 Real location:",
+        pos.coords.latitude,
+        pos.coords.longitude,
+      );
+      setLocationError(null);
+      setReady(true);
+    } catch (e) {
+      console.error("❌ Failed to parse/brand location data:", e);
+      setLocationError("Failed to validate location coordinates.");
+      setReady(false);
+    }
+  }, []);
+
+  const handleLocationError = useCallback(
+    (error: GeolocationPositionError) => {
+      if (!mountedRef.current) return;
 
       console.error("❌ Location error:", {
         code: error.code,
@@ -100,7 +111,34 @@ export function PlaceFinderProvider({
 
       setLocationError(errorMessage);
       setReady(false);
-    };
+    },
+    [router],
+  );
+
+  const doRequestGeolocation = useCallback(() => {
+    if (!navigator.geolocation) {
+      console.error("❌ Geolocation is not supported by this browser");
+      setLocationError("Geolocation is not supported by your browser.");
+      setReady(false);
+      return;
+    }
+
+    console.log("📍 Requesting geolocation...");
+    navigator.geolocation.getCurrentPosition(
+      handleLocationSuccess,
+      handleLocationError,
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 300000,
+      },
+    );
+  }, [handleLocationSuccess, handleLocationError]);
+
+  // Auth state → primer check → geolocation request
+  useEffect(() => {
+    const client = supabase.current;
+    let isSubscribed = true;
 
     const {
       data: { subscription },
@@ -108,30 +146,21 @@ export function PlaceFinderProvider({
       console.log("🔐 Auth state change:", event, "Has user:", !!session?.user);
 
       if (session?.user && isSubscribed && !locationRequestedRef.current) {
-        locationRequestedRef.current = true;
+        const hasSeen = localStorage.getItem(LOCATION_PRIMER_KEY);
 
-        // Check if geolocation is available
-        if (!navigator.geolocation) {
-          console.error("❌ Geolocation is not supported by this browser");
-          setLocationError("Geolocation is not supported by your browser.");
-          setReady(false);
-          return;
+        if (!hasSeen) {
+          // First-time user: show explainer before the browser dialog fires
+          setShowLocationPrimer(true);
+          // locationRequestedRef stays false — primer accept will trigger the request
+        } else {
+          // Returning user: go straight to geolocation (existing behavior)
+          locationRequestedRef.current = true;
+          doRequestGeolocation();
         }
-
-        console.log("📍 Requesting geolocation...");
-        navigator.geolocation.getCurrentPosition(
-          handleLocationSuccess,
-          handleLocationError,
-          {
-            enableHighAccuracy: true,
-            timeout: 10000,
-            maximumAge: 300000,
-          },
-        );
       } else if (!session?.user) {
-        // Only reset state when user logs out, not when location already obtained
         setReady(false);
         setUserLocation(null);
+        setShowLocationPrimer(false);
         locationRequestedRef.current = false;
       }
     });
@@ -141,7 +170,14 @@ export function PlaceFinderProvider({
       locationRequestedRef.current = false;
       subscription.unsubscribe();
     };
-  }, [router]);
+  }, [router, doRequestGeolocation]);
+
+  const handlePrimerAccept = () => {
+    localStorage.setItem(LOCATION_PRIMER_KEY, "true");
+    setShowLocationPrimer(false);
+    locationRequestedRef.current = true;
+    doRequestGeolocation();
+  };
 
   const searchFormAction = (formData: FormData) => {
     const query = formData.get("searchQuery") as string;
@@ -155,11 +191,32 @@ export function PlaceFinderProvider({
     setSearchQuery(query.trim());
   };
 
-  // ✅ Clear search function
   const clearSearch = () => {
     setIsInSearchMode(false);
     setSearchQuery("");
   };
+
+  // --- Render gates (in priority order) ---
+
+  if (showLocationPrimer) {
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center gap-6 px-6 text-center">
+        <h1 className="text-2xl font-bold">One thing first</h1>
+        <p className="text-muted-foreground max-w-sm">
+          If you can&apos;t prove you&apos;re physically at a location, you
+          can&apos;t message people who are physically at the location. Allow
+          location permissions when prompted to see who else is ready to say
+          hello.
+        </p>
+        <button
+          onClick={handlePrimerAccept}
+          className="bg-primary text-primary-foreground rounded-md px-6 py-3 font-medium"
+        >
+          Got it — enable my location
+        </button>
+      </div>
+    );
+  }
 
   if (!ready || !userLocation) {
     if (locationError) {
