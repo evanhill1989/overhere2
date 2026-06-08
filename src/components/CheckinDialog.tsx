@@ -14,7 +14,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { checkIn } from "@/app/_actions/checkinActions";
-import { useRouter } from "next/navigation";
 import { Place } from "@/lib/types/database";
 
 interface CheckinDialogProps {
@@ -30,7 +29,6 @@ export default function CheckinDialog({
 }: CheckinDialogProps) {
   const { userLocation } = usePlaceFinder();
   const [isPending, startTransition] = useTransition();
-  const router = useRouter();
 
   const [topic, setTopic] = useState("");
   const [checkinStatus, setCheckinStatus] = useState<"available" | "busy">(
@@ -53,11 +51,7 @@ export default function CheckinDialog({
       try {
         await checkIn(formData);
 
-        await new Promise((resolve) => setTimeout(resolve, 2000)); // 2 second delay
-
-        router.push(`/places/${place.id}`);
-
-        router.push(`/places/${place.id}`);
+        window.location.href = `/places/${place.id}`;
       } catch {
         // TODO: Show error toast
       }

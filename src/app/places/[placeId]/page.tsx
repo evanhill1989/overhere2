@@ -4,6 +4,9 @@ import { createClient } from "@/utils/supabase/server";
 import { placeIdSchema, userIdSchema } from "@/lib/types/core";
 import { getPlaceVerificationDetails } from "@/app/_actions/ownershipQueries"; // NEW
 import type { PlaceVerificationDetails } from "@/lib/types/database";
+import { db } from "@/lib/db";
+import { placesTable } from "@/lib/schema";
+import { eq } from "drizzle-orm";
 
 import { PlacePageClientPrimerWrapper } from "./_components/PlacePagePrimerWrapper";
 
@@ -40,16 +43,12 @@ export default async function PlacePage(props: PageProps) {
   // ============================================
   // 2. VERIFY PLACE EXISTS & GET BASIC INFO
   // ============================================
-  const { data: placeInfo } = await supabase
-    .from("checkins")
-    .select("place_name, place_address")
-    .eq("place_id", placeId)
-    .eq("is_active", true)
-    .limit(1)
-    .maybeSingle();
+  const placeInfo = await db.query.placesTable.findFirst({
+    where: eq(placesTable.id, placeId),
+  });
 
   if (!placeInfo) {
-    console.log("❌ No active checkins found for place:", placeId);
+    console.log("❌ Place not found in cache:", placeId);
     return notFound();
   }
 
@@ -79,8 +78,8 @@ export default async function PlacePage(props: PageProps) {
         userId={userId}
         placeInfo={{
           id: placeId,
-          name: placeInfo.place_name,
-          address: placeInfo.place_address,
+          name: placeInfo.name,
+          address: placeInfo.address,
         }}
         verificationDetails={verificationDetails}
       />
